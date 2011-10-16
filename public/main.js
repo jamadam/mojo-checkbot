@@ -1,8 +1,12 @@
 $(function() {
-    var ws = new WebSocket('ws://127.0.0.1:3000/echo');
+    
+    var ws = new WebSocket('ws://'+location.host+'/echo');
+    
     ws.onopen = function () {
         console.log('Connection opened');
+        setTimeout(fetch, 2000);
     };
+    
     ws.onmessage = function (msg) {
         var res = JSON.parse(msg.data);
         $("#jobs").html(res.remain);
@@ -13,17 +17,23 @@ $(function() {
                 if(col) {
                     col = col.replace(/</g, '&lt;');
                     col = col.replace(/>/g, '&gt;');
+                    if (col.match(/^https?:\/\//)) {
+                        col = '<a href="'+col+'">'+col+'</a>';
+                    }
                 }
-                newTr.append('<td title="'+col+'">'+col+'</td>');
+                newTr.append('<td>'+col+'</td>');
             });
             $("#result tbody").prepend(newTr);
         });
+        setTimeout(fetch, 2000);
     };
     
-    setInterval(function(){
+    function fetch() {
         var offset = $('tr').length;
         ws.send(offset || 0);
-    }, 2000);
+    };
+    
+    fetch();
     
     $("tr").live('click', function() {
         $("#trLightbox").html('');
