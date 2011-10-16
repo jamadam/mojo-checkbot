@@ -1,36 +1,37 @@
 #!/usr/bin/env perl
 
+use lib '../mojo/lib';
 use strict;
 use warnings;
 use Data::Dumper;
 use Mojo::UserAgent;
 use Mojo::DOM;
 use Mojo::URL;
-use Getopt::Long;
+use Getopt::Long 'GetOptionsFromArray';
+use Mojolicious::Lite;
+use Mojo::JSON;
+use Mojo::IOLoop;
     
-    my $statistics = {};
-    my $errors = [];
-    my $checked = 0;
-
     my %options;
-    GetOptions(\%options, 'match=s', 'report-urls');
+    GetOptionsFromArray(\@ARGV, \%options,
+        'match=s',
+        'report-urls',
+        'start=s',
+    );
     
-    $| = 1;
-    local $SIG{ALRM} = sub {
-        print "$checked URLs checked for now.\n";
-        for my $key (keys %$statistics) {
-            my $num = 0;
-            if (scalar @{$statistics->{$key}}) {
-                $num = scalar @{$statistics->{$key}};
-            }
-            print "    $key: $num\n";
-        }
-        print scalar @$errors. " crawling errors occured\n";
-        alarm 5;
-    };
-    alarm 5;
+    my $jobs = [{
+        url     => Mojo::URL->new($options{start}),
+        referer => 'N/A',
+        anchor  => 'N/A',
+        href    => 'N/A',
+    }];
     
+    my @result;
+    my $errors = [];
+    my %fix;
+    my $ua = Mojo::UserAgent->new;
     my $url_filter = sub {1};
+    my $clients = {};
     
     if ($options{match}) {
         my $url_filter_last = $url_filter;
@@ -43,81 +44,104 @@ use Getopt::Long;
         };
     }
     
-    my $ua = Mojo::UserAgent->new;
+    my $loop_id;
+    $loop_id = Mojo::IOLoop->recurring(1 => sub {
+        my $job = shift @$jobs;
+        my $res = check($job->{url});
+        $job->{res} = $res;
+        $job->{url} = "$job->{url}";
+        push(@result, $job);
+        if (! scalar @$jobs) {
+            Mojo::IOLoop->drop($loop_id);
+        }
+    });
     
-    my $res = check(Mojo::URL->new($ARGV[0]));
+    websocket '/echo' => sub {
+        my $self = shift;
+        app->log->debug(sprintf 'Client connected: %s', $self->tx);
+        my $id = sprintf("%s", $self->tx);
+        $clients->{$id} = $self->tx;
+        
+        $self->on_message(sub {
+            my ($self, $offset) = @_;
+            my $json = Mojo::JSON->new;
+            my @result1 = @result[$offset..$#result];
+            my $str = $json->encode({remain => scalar @$jobs, result => \@result1});
+            utf8::decode($str);
+            $clients->{$id}->send_message($str);
+        });
+        
+        $self->on_finish(sub {
+            app->log->debug('Client disconnected');
+            delete $clients->{$id};
+        });
+    };
     
-    if ($res && $res != 200) {
-        print "GET $ARGV[0] causes status code $res";
-    }
+    any '/' => sub {
+        my $self = shift;
+        $self->render('index');
+    };
     
-    my %fix;
+    app->start;
     
     sub check {
-        $checked++;
-        no warnings 'recursion';
         my $url = shift;
-        if ($url_filter->($url) && ! $fix{"$url"}) {
-            $fix{"$url"} = 1;
-            if ($options{'sreport-urls'}) {
-                print "HEAD ". $url. "\n";
-            }
-            my ($head_res, $content_type) = head_code($url);
-            if ($head_res && $head_res == 200) {
-                if ($content_type =~ qr{text/(html|xml)}) {
-                    my $http_res = $ua->max_redirects(5)->get($url);
-                    my $dom = Mojo::DOM->new($http_res->res->body);
-                    $dom->xml(1);
-                    my $base;
-                    if (my $base_tag = $dom->at('base')) {
-                        $base = Mojo::URL->new($base_tag->attrs('href'));
-                    }
-                    $dom->find('body a')->each(sub {
-                        my $dom = shift;
-                        my $href = $dom->{href};
-                        if ($href) {
-                            $href =~ s{#[^#]+$}{};
-                            my $cur_url;
-                            if ($href =~ qr{https?://}) {
-                                $cur_url = Mojo::URL->new($href);
-                            } else {
-                                $cur_url = resolveHref($base || $url, $href);
-                            }
-                            if (my $res = check($cur_url)) {
-                                $statistics->{$res} ||= [];
-                                push(@{$statistics->{$res}}, {
-                                    anchor  => $dom->content_xml,
-                                    href    => $href,
-                                    uri     => "$cur_url",
-                                    referer => "$url",
-                                });
-                            }
-                        }
-                    });
+        my ($head_res, $content_type) = try_head($url);
+        if ($head_res && $head_res == 200) {
+            if ($content_type =~ qr{text/(html|xml)}) {
+                my $http_res = $ua->max_redirects(5)->get($url);
+                my $body = $http_res->res->body;
+                utf8::decode($body);
+                my $dom = Mojo::DOM->new($body);
+                $dom->xml(1);
+                my $base;
+                if (my $base_tag = $dom->at('base')) {
+                    $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
+                $dom->find('body a')->each(sub {
+                    my $dom = shift;
+                    my $href = $dom->{href};
+                    if ($href) {
+                        $href =~ s{#[^#]+$}{};
+                        my $cur_url;
+                        if ($href =~ qr{https?://}) {
+                            $cur_url = Mojo::URL->new($href);
+                        } else {
+                            $cur_url = resolve_href($base || $url, $href);
+                        }
+                        if ($url_filter->("$cur_url") && ! $fix{$cur_url}) {
+                            $fix{$cur_url} = 1;
+                            my $a = $dom->content_xml;
+                            push(@$jobs, {
+                                anchor  => $dom->content_xml,
+                                href    => $href,
+                                url     => $cur_url,
+                                referer => "$url",
+                            });
+                        }
+                    }
+                });
             }
-            return $head_res;
         }
+        return $head_res;
     }
     
-    sub head_code {
+    sub try_head {
         my $url = shift;
         my $res = $ua->max_redirects(5)->head($url);
         if ($res->error) {
             push(@$errors, $res->error);
-        } else {
-            return $res->res->code, $res->res->headers->content_type;
         }
-        return;
+        return $res->res->code, $res->res->headers->content_type;
     }
     
-    sub resolveHref {
+    sub resolve_href {
         my ($base, $href) = @_;
         my $new = $base->clone;
         my $temp = Mojo::URL->new($href);
         $new->path($temp->path->to_string);
         $new->path->canonicalize;
         $new->query($temp->query);
-        $new->fragment($temp->fragment);
+        $new->fragment($temp->fragment); # delete?
         return $new;
     }

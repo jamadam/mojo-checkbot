@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>mojo-checkbot</title>
+		<link type="text/css" rel="stylesheet" href="/yui-reset.css" />
+		<link type="text/css" rel="stylesheet" href="/main.css" />
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+		<script type="text/javascript" src="/main.js"></script>
+	</head>
+	<body>
+		<header>
+			<h1>
+				mojo-checkbot
+			</h1>
+			<p id="summary">
+				jobs:<span id="jobs"></span>
+			</p>
+		</header>
+		<article>
+			<table id="result">
+				<thead>
+					<tr>
+						<th>anchor</th>
+						<th>href</th>
+						<th>resolved URI</th>
+						<th>status code</th>
+						<th>referer</th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+		</article>
+	</body>
+	
+	<div id="trLightbox" class="lightbox" style="display:none;">
+		<table>
+			<tr>
+				<th>
+					anchor
+				</th>
+				<td class="anchor">
+				</td>
+			</tr>
+			<tr>
+				<th>
+					href
+				</th>
+				<td class="href">
+				</td>
+			</tr>
+			<tr>
+				<th>
+					resolvedURI
+				</th>
+				<td class="resolvedURI">
+				</td>
+			</tr>
+			<tr>
+				<th>
+					statusCode
+				</th>
+				<td class="statusCode">
+				</td>
+			</tr>
+			<tr>
+				<th>
+					referer
+				</th>
+				<td class="referer">
+				</td>
+			</tr>
+		</table>
+	</div>
+</html>
