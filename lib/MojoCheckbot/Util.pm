@@ -23,6 +23,9 @@ use Mojolicious::Lite;
         $new->path->canonicalize;
         $new->query($temp->query);
         $new->fragment($temp->fragment); # delete?
+        if ($new->path->parts->[0] =~ /^\./) {
+            shift @{$new->path->parts};
+        }
         return $new;
     }
 
