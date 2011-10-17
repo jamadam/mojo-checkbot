@@ -20,8 +20,7 @@ table {
         background-color:#eef;
     }
     th {
-        background-color:#448;
-        box-shadow:0 0 4px #000 inset;
+        background-color:#58a;
         font-weight:bold;
         text-align:center;
         color:#fff;
@@ -42,21 +41,29 @@ body {
         top:0;
         left:0;
         width:100%;
-        height:60px;
         padding:10px 10px;
         background-color:#0f0;
-        background:-moz-linear-gradient(center top, #86a, #eee);
+        background:-moz-linear-gradient(center top, #8ac, #eee);
         background:-webkit-gradient(linear, left top, left bottom, from(#86a), to(#eee));
         border-bottom:3px solid #00a;
         z-index:101;
     }
+        #header > * {
+            display:block;
+            float:left;
+            margin-right:20px;
+        }
         h1 {
             font-weight:bold;
         }
+        #header:after {content:''; display:block; height:0; clear:both;}
     #container {
         z-index:100;
         min-height:100%;
     }
+        #container th {
+            box-shadow:1px 1px 2px #555 inset;
+        }
         #container td {
             white-space:nowrap;
             text-overflow:ellipsis;
@@ -72,7 +79,7 @@ body {
             color:#f00;
         }
         #container tr:hover {
-            background-color:#88a;
+            background-color:#efa;
         }
     #footer {
         background-color:#333;
@@ -106,7 +113,7 @@ body {
         -webkit-box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
         -moz-box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
         box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
-        border:2px solid #8cf;
+        border:3px solid #fc5;
         width:auto;
         max-width:80%;
         height:auto;
@@ -116,8 +123,15 @@ body {
             width:auto;
             white-space:nowrap;
             text-overflow:normal;
+            padding:5px;
+            border:1px solid #ccc;
         }
             .lightbox td textarea {
                 width:100%;
+                height:auto;
                 min-width:500px;
+                display:block;
+                border:none;
+                overflow:hidden;
+                background-color:transparent;
             }

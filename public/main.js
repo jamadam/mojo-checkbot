@@ -12,13 +12,15 @@ $(function() {
                 });
                 $("#result tbody").prepend(newTr);
             });
+            var fixed = $('#result tbody tr').length;
+            $('#fixed').html(fixed);
             setTimeout(fetch, 2000);
         });
     };
     
     fetch();
     
-    $("tr").live('click', function() {
+    $("tbody tr").live('click', function() {
         var tmp = $(this).find('td');
         $('#trLightbox .anchor textarea').html(tmp.eq(0).html());
         $('#trLightbox .href textarea').html(tmp.eq(1).html());
