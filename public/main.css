@@ -45,7 +45,6 @@ body {
         background-color:#0f0;
         background:-moz-linear-gradient(center top, #8ac, #eee);
         background:-webkit-gradient(linear, left top, left bottom, from(#86a), to(#eee));
-        border-bottom:3px solid #00a;
         z-index:101;
     }
         #header > * {
@@ -113,7 +112,7 @@ body {
         -webkit-box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
         -moz-box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
         box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
-        border:3px solid #fc5;
+        border:3px solid #00a;
         width:auto;
         max-width:80%;
         height:auto;
