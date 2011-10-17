@@ -1,17 +1,21 @@
 #!/usr/bin/env perl
 
-use lib '../mojo/lib';
 use strict;
 use warnings;
+use File::Basename 'dirname';
+use File::Spec;
+use lib join '/', File::Spec->splitdir(dirname(__FILE__)), 'lib';
 use Data::Dumper;
+use Getopt::Long 'GetOptionsFromArray';
 use Mojo::UserAgent;
+use Mojo::Util;
 use Mojo::DOM;
 use Mojo::URL;
-use Getopt::Long 'GetOptionsFromArray';
-use Mojolicious::Lite;
 use Mojo::JSON;
 use Mojo::IOLoop;
-    
+use Mojolicious::Lite;
+use MojoCheckbot::Util;
+
     my %options;
     GetOptionsFromArray(\@ARGV, \%options,
         'match=s',
@@ -72,7 +76,10 @@ use Mojo::IOLoop;
     
     sub check {
         my $url = shift;
-        my ($head_res, $content_type) = try_head($url);
+        my ($head_res, $content_type, $ua_error) = MojoCheckbot::Util::try_head($url, $ua);
+        if ($ua_error) {
+            push(@$errors, $ua_error);
+        }
         if ($head_res && $head_res == 200) {
             if ($content_type =~ qr{text/(html|xml)}) {
                 my $http_res = $ua->max_redirects(5)->get($url);
@@ -93,13 +100,14 @@ use Mojo::IOLoop;
                         if ($href =~ qr{https?://}) {
                             $cur_url = Mojo::URL->new($href);
                         } else {
-                            $cur_url = resolve_href($base || $url, $href);
+                            $cur_url = MojoCheckbot::Util::resolve_href($base || $url, $href);
                         }
                         if ($url_filter->("$cur_url") && ! $fix{$cur_url}) {
                             $fix{$cur_url} = 1;
-                            my $a = $dom->content_xml;
+                            my $anchor = $dom->content_xml;
+                            Mojo::Util::html_escape($anchor);
                             push(@$jobs, {
-                                anchor  => $dom->content_xml,
+                                anchor  => $anchor,
                                 href    => $href,
                                 url     => $cur_url,
                                 referer => "$url",
@@ -110,28 +118,4 @@ use Mojo::IOLoop;
             }
         }
         return $head_res;
-    }
-    
-    sub retreve_urls {
-        
-    }
-    
-    sub try_head {
-        my $url = shift;
-        my $res = $ua->max_redirects(5)->head($url);
-        if ($res->error) {
-            push(@$errors, $res->error);
-        }
-        return $res->res->code, $res->res->headers->content_type;
-    }
-    
-    sub resolve_href {
-        my ($base, $href) = @_;
-        my $new = $base->clone;
-        my $temp = Mojo::URL->new($href);
-        $new->path($temp->path->to_string);
-        $new->path->canonicalize;
-        $new->query($temp->query);
-        $new->fragment($temp->fragment); # delete?
-        return $new;
     }
