@@ -19,8 +19,8 @@ use MojoCheckbot::Util;
     my %options;
     GetOptionsFromArray(\@ARGV, \%options,
         'match=s',
-        'report-urls',
         'start=s',
+        'delay=i',
     );
     
     my $jobs = [{
@@ -49,7 +49,7 @@ use MojoCheckbot::Util;
     }
     
     my $loop_id;
-    $loop_id = Mojo::IOLoop->recurring(1 => sub {
+    $loop_id = Mojo::IOLoop->recurring($options{delay} => sub {
         my $job = shift @$jobs;
         my $res = check($job->{url});
         $job->{res} = $res;
