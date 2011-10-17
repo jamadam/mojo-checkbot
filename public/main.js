@@ -20,9 +20,13 @@ $(function() {
     
     $("tr").live('click', function() {
         $("#trLightbox").html('');
-        $(this).find('td').each(function(idx, obj){
-           $("#trLightbox").append(obj);
-        });
+        var tmp = $(this).find('td');
+        console.log($('#trLightbox .anchor'));
+        $('#trLightbox .anchor').html(tmp.eq(0).html());
+        $('#trLightbox .href').html(tmp.eq(1).html());
+        $('#trLightbox .resolvedURI').html(tmp.eq(1).html());
+        $('#trLightbox .statusCode').html(tmp.eq(1).html());
+        $('#trLightbox .referer').html(tmp.eq(1).html());
         $.lightbox("#trLightbox").show();
     });
 });

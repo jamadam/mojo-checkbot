@@ -1,11 +1,6 @@
 package MojoCheckbot::Util;
 use strict;
 use warnings;
-use File::Basename 'dirname';
-use File::Spec;
-use lib join '/', File::Spec->splitdir(dirname(__FILE__)), 'lib';
-use Data::Dumper;
-use Getopt::Long 'GetOptionsFromArray';
 use Mojo::UserAgent;
 use Mojo::Util;
 use Mojo::DOM;
