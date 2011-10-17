@@ -3,7 +3,7 @@ mojo-checkbot 0.01
 
 ## SYNOPSIS
     
-    mojo-checkbot.pl [--start start URL] [--match match string] [--sleep seconds]
+    mojo-checkbot.pl daemon [--start start URL] [--match match string] [--sleep seconds]
 
 ## DESCRIPTION
 
@@ -21,7 +21,7 @@ HTMLページ内のリンク先に次々とアクセスし、ステータスコ�
     [Mon Oct 17 23:18:35 2011] [info] Server listening (http://*:3000)
     Server available at http://127.0.0.1:3000.
 
-本プログラムはMojolicious::Liteをベースにしていますので、そちらのオプションを有効なはずです。
+本プログラムはMojolicious::Liteをベースにしていますので、そちらのオプションも有効なはずです。
 
 ### EXAMPLE2
 
