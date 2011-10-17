@@ -1,5 +1,36 @@
 @charset "utf-8";
 
+table,
+tr,
+th,
+td {
+    border-collapse: collapse;
+}
+table {
+    width:100%;
+}
+    th,
+    td {
+        border:1px solid #eee;
+        padding:5px;
+        border-top:none;
+        border-bottom:none;
+    }
+    tr:nth-child(odd) {
+        background-color:#eef;
+    }
+    th {
+        background-color:#448;
+        box-shadow:0 0 4px #000 inset;
+        font-weight:bold;
+        text-align:center;
+        color:#fff;
+        text-shadow:0px 0px 1px #000;
+    }
+    td {
+        overflow:hidden;
+        height:1.5em;
+    }
 html {
     height:100%;
 }
@@ -26,52 +57,23 @@ body {
         z-index:100;
         min-height:100%;
     }
-        table,
-        tr,
-        th,
-        td {
-            border-collapse: collapse;
+        #container td {
+            white-space:nowrap;
+            text-overflow:ellipsis;
+            max-width:200px;
         }
-        table {
-            width:100%;
+        #container tr.res404 {
+            color:#f00;
         }
-            th,
-            td {
-                border:1px solid #eee;
-                padding:5px;
-                border-top:none;
-                border-bottom:none;
-            }
-            th {
-                background-color:#448;
-                box-shadow:0 0 4px #000 inset;
-                font-weight:bold;
-                text-align:center;
-                color:#fff;
-                text-shadow:0px 0px 1px #000;
-            }
-            td {
-                max-width:200px;
-                overflow:hidden;
-                white-space:nowrap;
-                text-overflow:ellipsis;
-                height:1.5em;
-            }
-            tr.res404 {
-                color:#f00;
-            }
-            tr.res400 {
-                color:#f00;
-            }
-            tr.res500 {
-                color:#f00;
-            }
-            tr:nth-child(odd) {
-                background-color:#eef;
-            }
-            tr:hover {
-                background-color:#88a;
-            }
+        #container tr.res400 {
+            color:#f00;
+        }
+        #container tr.res500 {
+            color:#f00;
+        }
+        #container tr:hover {
+            background-color:#88a;
+        }
     #footer {
         background-color:#333;
         color:#fff;
@@ -106,6 +108,16 @@ body {
         box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
         border:2px solid #8cf;
         width:auto;
+        max-width:80%;
         height:auto;
-        max-width:600px;
+        overflow:hidden;
     }
+        .lightbox td {
+            width:auto;
+            white-space:nowrap;
+            text-overflow:normal;
+        }
+            .lightbox td textarea {
+                width:100%;
+                min-width:500px;
+            }

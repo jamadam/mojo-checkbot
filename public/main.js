@@ -19,14 +19,12 @@ $(function() {
     fetch();
     
     $("tr").live('click', function() {
-        $("#trLightbox").html('');
         var tmp = $(this).find('td');
-        console.log($('#trLightbox .anchor'));
-        $('#trLightbox .anchor').html(tmp.eq(0).html());
-        $('#trLightbox .href').html(tmp.eq(1).html());
-        $('#trLightbox .resolvedURI').html(tmp.eq(1).html());
-        $('#trLightbox .statusCode').html(tmp.eq(1).html());
-        $('#trLightbox .referer').html(tmp.eq(1).html());
+        $('#trLightbox .anchor textarea').html(tmp.eq(0).html());
+        $('#trLightbox .href textarea').html(tmp.eq(1).html());
+        $('#trLightbox .resolvedURI textarea').html(tmp.eq(3).html());
+        $('#trLightbox .statusCode textarea').html(tmp.eq(4).html());
+        $('#trLightbox .referer textarea').html(tmp.eq(5).html());
         $.lightbox("#trLightbox").show();
     });
 });
