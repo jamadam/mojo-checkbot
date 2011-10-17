@@ -56,25 +56,11 @@ use Mojo::IOLoop;
         }
     });
     
-    websocket '/echo' => sub {
+    get '/echo' => sub {
         my $self = shift;
-        app->log->debug(sprintf 'Client connected: %s', $self->tx);
-        my $id = sprintf("%s", $self->tx);
-        $clients->{$id} = $self->tx;
-        
-        $self->on_message(sub {
-            my ($self, $offset) = @_;
-            my $json = Mojo::JSON->new;
-            my @result1 = @result[$offset..$#result];
-            my $str = $json->encode({remain => scalar @$jobs, result => \@result1});
-            utf8::decode($str);
-            $clients->{$id}->send_message($str);
-        });
-        
-        $self->on_finish(sub {
-            app->log->debug('Client disconnected');
-            delete $clients->{$id};
-        });
+        my $offset = $self->req->param('offset');
+        my @result1 = @result[$offset..$#result];
+        $self->render_json({remain => scalar @$jobs, result => \@result1});
     };
     
     any '/' => sub {
@@ -124,6 +110,10 @@ use Mojo::IOLoop;
             }
         }
         return $head_res;
+    }
+    
+    sub retreve_urls {
+        
     }
     
     sub try_head {
