@@ -22,9 +22,9 @@ $(function() {
         var tmp = $(this).find('td');
         $('#trLightbox .anchor textarea').html(tmp.eq(0).html());
         $('#trLightbox .href textarea').html(tmp.eq(1).html());
-        $('#trLightbox .resolvedURI textarea').html(tmp.eq(3).html());
-        $('#trLightbox .statusCode textarea').html(tmp.eq(4).html());
-        $('#trLightbox .referer textarea').html(tmp.eq(5).html());
+        $('#trLightbox .resolvedURI textarea').html(tmp.eq(2).html());
+        $('#trLightbox .statusCode textarea').html(tmp.eq(3).html());
+        $('#trLightbox .referer textarea').html(tmp.eq(4).html());
         $.lightbox("#trLightbox").show();
     });
 });
