@@ -1,4 +1,4 @@
-mojo-checkbot 0.01
+mojo-checkbot 0.01 alpha
 ---------------
 
 ## SYNOPSIS
