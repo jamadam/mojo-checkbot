@@ -21,6 +21,7 @@ use MojoCheckbot::Util;
         'match=s',
         'start=s',
         'delay=i',
+        'ua=s',
     );
     
     my $jobs = [{
@@ -33,9 +34,9 @@ use MojoCheckbot::Util;
     my @result;
     my $errors = [];
     my %fix;
-    my $ua = Mojo::UserAgent->new;
     my $url_filter = sub {1};
     my $clients = {};
+    my $ua = Mojo::UserAgent->new->name($options{ua} || 'mojo-checkbot');
     
     if ($options{match}) {
         my $url_filter_last = $url_filter;
