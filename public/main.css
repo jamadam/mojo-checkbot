@@ -46,14 +46,21 @@ body {
         background:-webkit-gradient(linear, left top, left bottom, from(#86a), to(#eee));
         z-index:101;
     }
-        #header > * {
-            display:block;
+        h1 {
+            font-weight:bold;
             float:left;
             margin-right:20px;
         }
-        h1 {
-            font-weight:bold;
+        #summary {
         }
+            #summary > * {
+                display:block;
+                float:left;
+                margin-right:20px;
+            }
+            #summary .label {
+                font-weight:bold;
+            }
         #header:after {content:''; display:block; height:0; clear:both;}
     #container {
         z-index:100;

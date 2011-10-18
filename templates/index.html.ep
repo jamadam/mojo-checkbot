@@ -17,12 +17,8 @@
 			<h1>
 				mojo-checkbot
 			</h1>
-			<p>
-				Jobs:<span id="jobs"></span>
-			</p>
-			<p>
-				Fixed:<span id="fixed"></span>
-			</p>
+			<div id="summary">
+			</div>
 		</div>
 		<div id="container">
 			<table id="result">
