@@ -3,8 +3,6 @@ use strict;
 use warnings;
 use File::Basename 'dirname';
 use File::Spec;
-use lib join '/', File::Spec->splitdir(dirname(__FILE__)), 'extlib';
-use lib join '/', File::Spec->splitdir(dirname(__FILE__)), 'lib';
 use Data::Dumper;
 use Getopt::Long 'GetOptionsFromArray';
 use Mojo::UserAgent;
@@ -27,6 +25,9 @@ our $VERSION = '0.0.1';
 
     sub startup {
         my $self = shift;
+        $self->home->parse(File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot'));
+        $self->static->root($self->home->rel_dir('public'));
+        $self->renderer->root($self->home->rel_dir('templates'));
         
         local @ARGV = @ARGV;
         GetOptionsFromArray(\@ARGV, \%options,
