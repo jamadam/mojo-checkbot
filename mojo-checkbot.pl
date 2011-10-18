@@ -97,7 +97,7 @@ use MojoCheckbot::Util;
                     if ($href) {
                         $href =~ s{#[^#]+$}{};
                         my $cur_url;
-                        if ($href =~ /^mailto:/) {
+                        if ($href =~ /^(mailto|javascript):/) {
                             return;
                         }
                         if ($href =~ qr{https?://}) {
