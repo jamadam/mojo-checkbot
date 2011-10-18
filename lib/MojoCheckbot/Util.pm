@@ -9,6 +9,17 @@ use Mojo::JSON;
 use Mojo::IOLoop;
 use Mojolicious::Lite;
     
+    sub fetch {
+        my ($url, $ua, $cb) = @_;
+        my ($res, $content_type, $ua_error) = MojoCheckbot::Util::try_head($url, $ua);
+        if ($res && $res == 200) {
+            my $http_res = $ua->max_redirects(5)->get($url);
+            $cb->($http_res);
+            return $http_res->res->code;
+        }
+        return $res;
+    }
+    
     sub try_head {
         my ($url, $ua) = @_;
         my $res = $ua->max_redirects(5)->head($url);

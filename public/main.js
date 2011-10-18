@@ -15,11 +15,12 @@ $(function() {
                 });
                 $("#result tbody").prepend(newTr);
                 status_statistics[status] = (status_statistics[status] || 0) + 1;
-                $("#summary").empty();
-                $("#summary").append(new_stat('Jobs', msg.remain));
-                $("#summary").append(new_stat('Fixed', $('#result tbody tr').length));
+                var summaryCont = $("#summary");
+                summaryCont.empty();
+                summaryCont.append(new_stat('Jobs', msg.remain));
+                summaryCont.append(new_stat('Fixed', $('#result tbody tr').length));
                 for (var key in status_statistics) {
-                    $("#summary").append(new_stat(key, status_statistics[key]));
+                    summaryCont.append(new_stat(key, status_statistics[key]));
                 }
             });
             setTimeout(fetch, 2000);

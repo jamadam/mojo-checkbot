@@ -76,13 +76,10 @@ use MojoCheckbot::Util;
     
     sub check {
         my $url = shift;
-        my ($head_res, $content_type, $ua_error) = MojoCheckbot::Util::try_head($url, $ua);
-        if ($ua_error) {
-            push(@$errors, $ua_error);
-        }
-        if ($head_res && $head_res == 200) {
+        return MojoCheckbot::Util::fetch($url, $ua, sub{
+            my $http_res = shift;
+            my $content_type = $http_res->res->headers->content_type;
             if ($content_type =~ qr{text/(html|xml)}) {
-                my $http_res = $ua->max_redirects(5)->get($url);
                 my $body = $http_res->res->body;
                 utf8::decode($body);
                 my $dom = Mojo::DOM->new($body);
@@ -119,6 +116,5 @@ use MojoCheckbot::Util;
                     }
                 });
             }
-        }
-        return $head_res;
+        });
     }
