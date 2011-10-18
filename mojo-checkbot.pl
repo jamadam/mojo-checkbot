@@ -13,6 +13,8 @@ use Mojo::DOM;
 use Mojo::URL;
 use Mojo::JSON;
 use Mojo::IOLoop;
+use Mojo::CookieJar;
+use Mojo::Cookie::Response;
 use Mojolicious::Lite;
 use MojoCheckbot::Util;
 
@@ -22,6 +24,7 @@ use MojoCheckbot::Util;
         'start=s',
         'delay=i',
         'ua=s',
+        'cookie=s',
     );
     
     my $jobs = [{
@@ -37,6 +40,11 @@ use MojoCheckbot::Util;
     my $url_filter = sub {1};
     my $clients = {};
     my $ua = Mojo::UserAgent->new->name($options{ua} || 'mojo-checkbot');
+    
+    if ($options{cookie}) {
+        my $cookies = Mojo::Cookie::Response->parse($options{cookie});
+        $ua->cookie_jar(Mojo::CookieJar->new->add(@$cookies));
+    }
     
     if ($options{match}) {
         my $url_filter_last = $url_filter;
