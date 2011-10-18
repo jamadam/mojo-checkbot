@@ -3,7 +3,7 @@ mojo-checkbot 0.01 alpha
 
 ## SYNOPSIS
     
-    mojo-checkbot.pl daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string]
+    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string]
 
 ## DESCRIPTION
 
@@ -17,7 +17,7 @@ HTMLページ内のリンク先に次々とアクセスし、ステータスコ�
 
 ### EXAMPLE1
 
-    $ mojo-checkbot.pl daemon --start http://example.com --match http://example.com/ --sleep 2
+    $ mojo-checkbot daemon --start http://example.com --match http://example.com/ --sleep 2
     [Mon Oct 17 23:18:35 2011] [info] Server listening (http://*:3000)
     Server available at http://127.0.0.1:3000.
 
@@ -25,11 +25,11 @@ HTMLページ内のリンク先に次々とアクセスし、ステータスコ�
 
 ### EXAMPLE2
 
-    $ mojo-checkbot.pl daemon --listen http://*:3001 --start http://example.com
+    $ mojo-checkbot daemon --listen http://*:3001 --start http://example.com
 
 ### EXAMPLE3
 
-    $ mojo-checkbot.pl daemon --start http://example.com --cookie \
+    $ mojo-checkbot daemon --start http://example.com --cookie \
         'key=value; Version=1; Domain=example.com; Path=/; expires=Fri, \
         28 Oct 2011 15:26:47 GMT'
 
