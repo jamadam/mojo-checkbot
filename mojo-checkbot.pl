@@ -78,29 +78,25 @@ use MojoCheckbot::Util;
         my $url = shift;
         return MojoCheckbot::Util::fetch($url, $ua, sub{
             my $http_res = shift;
-            my $content_type = $http_res->res->headers->content_type;
-            if ($content_type =~ qr{text/(html|xml)}) {
+            if ($http_res->res->headers->content_type =~ qr{text/(html|xml)}) {
                 my $body = $http_res->res->body;
                 utf8::decode($body);
                 my $dom = Mojo::DOM->new($body);
                 $dom->xml(1);
-                my $base;
+                my $base = $url;
                 if (my $base_tag = $dom->at('base')) {
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
                 $dom->find('body a')->each(sub {
                     my $dom = shift;
                     my $href = $dom->{href};
-                    if ($href) {
+                    if ($href && $href !~ /^(mailto|javascript):/) {
                         $href =~ s{#[^#]+$}{};
                         my $cur_url;
-                        if ($href =~ /^(mailto|javascript):/) {
-                            return;
-                        }
                         if ($href =~ qr{https?://}) {
                             $cur_url = Mojo::URL->new($href);
                         } else {
-                            $cur_url = MojoCheckbot::Util::resolve_href($base || $url, $href);
+                            $cur_url = MojoCheckbot::Util::resolve_href($base, $href);
                         }
                         if ($url_filter->("$cur_url") && ! $fix{$cur_url}) {
                             $fix{$cur_url} = 1;
