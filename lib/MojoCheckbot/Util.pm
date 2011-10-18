@@ -1,17 +1,11 @@
 package MojoCheckbot::Util;
 use strict;
 use warnings;
-use Mojo::UserAgent;
-use Mojo::Util;
-use Mojo::DOM;
 use Mojo::URL;
-use Mojo::JSON;
-use Mojo::IOLoop;
-use Mojolicious::Lite;
     
     sub fetch {
         my ($url, $ua, $cb) = @_;
-        my ($res, $content_type, $ua_error) = MojoCheckbot::Util::try_head($url, $ua);
+        my ($res, $content_type, $ua_error) = try_head($url, $ua);
         if ($res && $res == 200) {
             my $http_res = $ua->max_redirects(5)->get($url);
             $cb->($http_res);
