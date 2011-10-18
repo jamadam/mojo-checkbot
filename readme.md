@@ -3,7 +3,7 @@ mojo-checkbot 0.01 alpha
 
 ## SYNOPSIS
     
-    mojo-checkbot.pl daemon [--start start URL] [--match match string] [--sleep seconds]
+    mojo-checkbot.pl daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header]
 
 ## DESCRIPTION
 
