@@ -32,6 +32,7 @@
 					</tr>
 				</thead>
 				<tbody>
+					<tr class="dummy"><td></td></tr>
 				</tbody>
 			</table>
 		</div>
@@ -39,14 +40,14 @@
 			Copyright <a href="http://blog2.jamadam.com/">jamadam</a> Alrights Reserved.
 		</div>
 		<div id="trLightbox" class="lightbox" style="display:none;">
-			<form>
+			<form action="#dummy">
 				<table>
 					<tr>
 						<th>
 							Anchor
 						</th>
 						<td class="anchor">
-							<textarea></textarea>
+							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>
 					<tr>
@@ -54,7 +55,7 @@
 							Href
 						</th>
 						<td class="href">
-							<textarea></textarea>
+							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>
 					<tr>
@@ -62,7 +63,7 @@
 							Resolved URI
 						</th>
 						<td class="resolvedURI">
-							<textarea></textarea>
+							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>
 					<tr>
@@ -70,7 +71,7 @@
 							Status Code
 						</th>
 						<td class="statusCode">
-							<textarea></textarea>
+							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>
 					<tr>
@@ -78,7 +79,7 @@
 							Referer
 						</th>
 						<td class="referer">
-							<textarea></textarea>
+							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>
 				</table>

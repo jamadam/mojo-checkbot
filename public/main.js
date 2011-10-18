@@ -2,6 +2,8 @@ $(function() {
     
     var status_statistics = {};
     
+    $("tbody tr.dummy").remove();
+    
     function fetch() {
         var offset = $('#result tbody tr').length;
         $.get('/echo?offset='+offset, function(msg){
