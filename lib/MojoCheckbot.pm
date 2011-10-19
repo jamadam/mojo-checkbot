@@ -14,7 +14,7 @@ use Mojo::IOLoop;
 use Mojo::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Base 'Mojolicious';
-our $VERSION = '0.0.1';
+our $VERSION = '0.01';
 
     my $url_filter = sub {4};
     my $jobs = [];
