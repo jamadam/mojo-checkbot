@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 2;
+	use Test::More tests => 18;
 	
 	my $base;
 	my $tmp;

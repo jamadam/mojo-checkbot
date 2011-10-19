@@ -8,7 +8,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
   NAME         => 'MojoCheckbot',
   VERSION_FROM => 'lib/MojoCheckbot.pm',
-  AUTHOR       => 'A Good Programmer <nospam@cpan.org>',
-  EXE_FILES    => ['script/mojo_checkbot'],
+  AUTHOR       => 'jamadam <sugama@jamadam.com>',
+  EXE_FILES    => ['script/mojo-checkbot'],
   test         => {TESTS => 't/*.t'}
 );
