@@ -12,6 +12,44 @@ use MojoCheckbot;
 
 	use Test::More tests => 2;
 	
+	my $base;
+	my $tmp;
+	$base = Mojo::URL->new('http://example.com');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+	
+	$base = Mojo::URL->new('http://example.com/dir/');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html');
+	is($tmp, 'http://example.com/dir/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, '../hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, '../../hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+
+	$base = Mojo::URL->new('http://example.com/dir/');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html/?a=b');
+	is($tmp, 'http://example.com/dir/hoge.html/?a=b');
+	$tmp = MojoCheckbot::resolve_href($base, '../hoge.html/?a=b');
+	is($tmp, 'http://example.com/hoge.html/?a=b');
+	$tmp = MojoCheckbot::resolve_href($base, '../../hoge.html/?a=b');
+	is($tmp, 'http://example.com/hoge.html/?a=b');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html/?a=b');
+	is($tmp, 'http://example.com/hoge.html/?a=b');
+
+	$base = Mojo::URL->new('http://example.com/dir/');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html#fragment');
+	is($tmp, 'http://example.com/dir/hoge.html#fragment');
+	$tmp = MojoCheckbot::resolve_href($base, '../hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html#fragment');
+	$tmp = MojoCheckbot::resolve_href($base, '../../hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html#fragment');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html#fragment');
+	
 	my $html = <<EOF;
 <html>
 <body>
