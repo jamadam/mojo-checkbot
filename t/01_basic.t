@@ -4,53 +4,107 @@ use warnings;
 use Test::More;
 use Test::Mojo;
 use utf8;
-use Test::More tests => 68;
-use Mojolicious::Lite;
-use MojoCheckbot::Util;
 use Data::Dumper;
+use lib './extlib';
+use Mojo::IOLoop;
+use Mojolicious::Lite;
+use MojoCheckbot;
+
+	use Test::More tests => 2;
 	
-	get '/' => {text => 'works'};
+	my $base;
+	my $tmp;
+	$base = Mojo::URL->new('http://example.com');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
 	
-	my $ua = Mojo::UserAgent->new;
-	$ua = Mojo::UserAgent->new->app(app);
-	my $tx = $ua->get('/');
-	ok $tx->success, 'successful';
-	is $tx->res->code, 200,     'right status';
-	is $tx->res->body, 'works', 'right content';
+	$base = Mojo::URL->new('http://example.com/dir/');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html');
+	is($tmp, 'http://example.com/dir/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, '../hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, '../../hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html');
+	is($tmp, 'http://example.com/hoge.html');
+
+	$base = Mojo::URL->new('http://example.com/dir/');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html/?a=b');
+	is($tmp, 'http://example.com/dir/hoge.html/?a=b');
+	$tmp = MojoCheckbot::resolve_href($base, '../hoge.html/?a=b');
+	is($tmp, 'http://example.com/hoge.html/?a=b');
+	$tmp = MojoCheckbot::resolve_href($base, '../../hoge.html/?a=b');
+	is($tmp, 'http://example.com/hoge.html/?a=b');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html/?a=b');
+	is($tmp, 'http://example.com/hoge.html/?a=b');
+
+	$base = Mojo::URL->new('http://example.com/dir/');
+	$tmp = MojoCheckbot::resolve_href($base, './hoge.html#fragment');
+	is($tmp, 'http://example.com/dir/hoge.html#fragment');
+	$tmp = MojoCheckbot::resolve_href($base, '../hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html#fragment');
+	$tmp = MojoCheckbot::resolve_href($base, '../../hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html#fragment');
+	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html#fragment');
 	
-	my $port2     = Mojo::IOLoop->generate_port;
-	warn $port2;
-	my $buffer2 = {};
+	my $html = <<EOF;
+<html>
+<body>
+<a href="http://example.com">example.com</a>
+<a href="/foo.html">foo.html</a>
+</body>
+</html>
+EOF
+	
+	my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
+
+	my $port = Mojo::IOLoop->generate_port;
 	Mojo::IOLoop->listen(
-		port            => $port2,
-		on_accept => sub {
-			my ($loop, $id) = @_;
-			$buffer2->{$id} = '';
-		},
+		port      => $port,
 		on_read => sub {
 			my ($loop, $id, $chunk) = @_;
-			$buffer2->{$id} .= $chunk;
-			if (index($buffer2->{$id}, "\x0d\x0a\x0d\x0a") >= 0) {
-				delete $buffer2->{$id};
-				$loop->write(
-					$id => "HTTP/1.1 200 OK\x0d\x0a"
-						. "Content-Type: text/plain\x0d\x0a\x0d\x0aworks too!",
-					sub { shift->drop(shift) }
-				);
-			}
+			$loop->write(
+				$id => "HTTP/1.1 404 OK\x0d\x0a"
+					. "Content-Type: text/html\x0d\x0a\x0d\x0aNot Found",
+				sub { shift->drop(shift) }
+			);
 		},
-		on_error => sub {
-			my ($self, $id) = @_;
-			delete $buffer2->{$id};
-		}
 	);
 	
-	#MojoCheckbot::Util::fetch("http://localhost:$port2/", $ua, sub{
-	#	warn Dumper $_[0]->res->body;
-	#});
-	warn $port2;
-	$tx = $ua->get("http://127.0.0.1:$port2");
+	{
+		my $res = MojoCheckbot::fetch("http://localhost:$port/hoge", $ua, sub{
+			my $http_res = shift;
+			ok(0, 'must not be do this');
+		});
+		is($res, 404);
+	}
+
+	$port = Mojo::IOLoop->generate_port;
+	Mojo::IOLoop->listen(
+		port      => $port,
+		on_read => sub {
+			my ($loop, $id, $chunk) = @_;
+			$loop->write(
+				$id => "HTTP/1.1 200 OK\x0d\x0a"
+					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
+				sub { shift->drop(shift) }
+			);
+		},
+	);
+	
+	{
+		my $res = MojoCheckbot::fetch("http://localhost:$port/", $ua, sub{
+			my $http_res = shift;
+			is(ref $http_res, 'Mojo::Transaction::HTTP');
+			like($http_res->res->body, qr{foo.html});
+		});
+		is($res, 200);
+	}
 
 1;
 
 __END__
+
