@@ -13,11 +13,10 @@ use Mojo::JSON;
 use Mojo::IOLoop;
 use Mojo::CookieJar;
 use Mojo::Cookie::Response;
-use MojoCheckbot::Util;
 use Mojo::Base 'Mojolicious';
 our $VERSION = '0.0.1';
 
-    my $url_filter = sub {1};
+    my $url_filter = sub {4};
     my $jobs = [];
     my %options;
     my $ua;
@@ -91,7 +90,7 @@ our $VERSION = '0.0.1';
     
     sub check {
         my ($self, $url) = @_;
-        return MojoCheckbot::Util::fetch($url, $self->ua, sub{
+        return fetch($url, $self->ua, sub{
             my $http_res = shift;
             if ($http_res->res->headers->content_type =~ qr{text/(html|xml)}) {
                 my $body = $http_res->res->body;
@@ -111,7 +110,7 @@ our $VERSION = '0.0.1';
                         if ($href =~ qr{https?://}) {
                             $cur_url = Mojo::URL->new($href);
                         } else {
-                            $cur_url = MojoCheckbot::Util::resolve_href($base, $href);
+                            $cur_url = resolve_href($base, $href);
                         }
                         if ($url_filter->("$cur_url") && ! $fix->{$cur_url}) {
                             $fix->{$cur_url} = 1;
@@ -128,6 +127,37 @@ our $VERSION = '0.0.1';
                 });
             }
         });
+    }
+    
+    sub fetch {
+        my ($url, $ua, $cb) = @_;
+        my ($res, $content_type, $ua_error) = try_head($url, $ua);
+        if ($res && $res == 200) {
+            my $http_res = $ua->max_redirects(5)->get($url);
+            $cb->($http_res);
+            return $http_res->res->code;
+        }
+        return $res;
+    }
+    
+    sub try_head {
+        my ($url, $ua) = @_;
+        my $res = $ua->max_redirects(5)->head($url);
+        return $res->res->code, $res->res->headers->content_type, $res->error;
+    }
+    
+    sub resolve_href {
+        my ($base, $href) = @_;
+        my $new = $base->clone;
+        my $temp = Mojo::URL->new($href);
+        $new->path($temp->path->to_string);
+        $new->path->canonicalize;
+        $new->query($temp->query);
+        $new->fragment($temp->fragment); # delete?
+        if ($new->path->parts->[0] && $new->path->parts->[0] =~ /^\./) {
+            shift @{$new->path->parts};
+        }
+        return $new;
     }
 
 1;
