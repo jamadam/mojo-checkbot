@@ -84,13 +84,10 @@ body {
                 text-overflow:ellipsis;
                 max-width:200px;
             }
-            #container tr.res404 {
+            #container tr.res4xx {
                 color:#f00;
             }
-            #container tr.res400 {
-                color:#f00;
-            }
-            #container tr.res500 {
+            #container tr.res5xx {
                 color:#f00;
             }
             #container tr:hover {
