@@ -14,6 +14,7 @@ use Mojo::IOLoop;
 use Mojo::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Base 'Mojolicious';
+use Encode;
 our $VERSION = '0.01';
 
     my $url_filter = sub {4};
@@ -91,9 +92,20 @@ our $VERSION = '0.01';
     sub check {
         my ($self, $url) = @_;
         return fetch($url, $self->ua, sub{
-            my $http_res = shift;
-            if ($http_res->res->headers->content_type =~ qr{text/(html|xml)}) {
-                my $body = $http_res->res->body;
+            my $tx = shift;
+            my $res = $tx->res;
+            if ($res->headers->content_type =~ qr{text/(html|xml)}) {
+                my $body = $res->body;
+                my $mime = $res->headers->content_type;
+                my $charset = ($mime =~ qr{; ?charset=(.+);?})[0];
+                if (! $charset) {
+                    my $dom = Mojo::DOM->new($body);
+                    $dom->find('meta[http\-equiv=Content-Type]')->each(sub{
+                        my $meta_dom = shift;
+                        $charset = ($meta_dom->{content} =~ qr{; ?charset=(.+);?})[0];
+                    });
+                }
+                $body = Encode::decode($charset, $body);
                 utf8::decode($body);
                 my $dom = Mojo::DOM->new($body);
                 $dom->xml(1);
