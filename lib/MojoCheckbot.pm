@@ -105,7 +105,7 @@ our $VERSION = '0.01';
                         $charset = ($meta_dom->{content} =~ qr{; ?charset=(.+);?})[0];
                     });
                 }
-                $body = Encode::decode($charset, $body);
+                $body = Encode::decode($charset || 'utf-8', $body);
                 utf8::decode($body);
                 my $dom = Mojo::DOM->new($body);
                 $dom->xml(1);
