@@ -114,9 +114,9 @@ our $VERSION = '0.01';
                 if (my $base_tag = $dom->at('base')) {
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
-                $dom->find('body a')->each(sub {
+                my $cb = sub {
                     my $dom = shift;
-                    my $href = $dom->{href};
+                    my $href = $dom->{href} || $dom->{src};
                     if ($href && $href !~ /^(mailto|javascript):/) {
                         $href =~ s{#[^#]+$}{};
                         my $cur_url;
@@ -127,7 +127,7 @@ our $VERSION = '0.01';
                         }
                         if ($url_filter->("$cur_url") && ! $fix->{$cur_url}) {
                             $fix->{$cur_url} = 1;
-                            my $anchor = $dom->content_xml;
+                            my $anchor = $dom->content_xml || $dom->{alt} || '';
                             Mojo::Util::html_escape($anchor);
                             push(@$jobs, {
                                 anchor  => $anchor,
@@ -137,7 +137,11 @@ our $VERSION = '0.01';
                             });
                         }
                     }
-                });
+                };
+                $dom->find('script')->each($cb);
+                $dom->find('link')->each($cb);
+                $dom->find('body a')->each($cb);
+                $dom->find('img')->each($cb);
             }
         });
     }
