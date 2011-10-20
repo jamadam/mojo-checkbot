@@ -25,6 +25,7 @@ our $VERSION = '0.01';
 
     sub startup {
         my $self = shift;
+        $self->app->secret(time());
         $self->home->parse(File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot'));
         $self->static->root($self->home->rel_dir('public'));
         $self->renderer->root($self->home->rel_dir('templates'));
