@@ -1,4 +1,10 @@
 Revision history for mojo-checkbot
 
+0.03 2011/10/20
+  - charset defaults to 'utf-8'
+
+0.02 2011/10/20
+  - charset is respected
+
 0.01 2011/10/18
   - initial release
