@@ -175,7 +175,7 @@ our $VERSION = '0.01';
         $new->path->canonicalize;
         $new->query($temp->query);
         $new->fragment($temp->fragment); # delete?
-        if ($new->path->parts->[0] && $new->path->parts->[0] =~ /^\./) {
+        while ($new->path->parts->[0] && $new->path->parts->[0] =~ /^\./) {
             shift @{$new->path->parts};
         }
         return $new;
