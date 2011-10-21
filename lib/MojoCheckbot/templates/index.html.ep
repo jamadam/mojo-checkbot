@@ -24,7 +24,7 @@
 			<table id="result">
 				<thead>
 					<tr>
-						<th>Anchor/Alt</th>
+						<th>Context</th>
 						<th>Href</th>
 						<th>Resolved URI</th>
 						<th>Status Code</th>
@@ -44,9 +44,9 @@
 				<table>
 					<tr>
 						<th>
-							Anchor/Alt
+							Context
 						</th>
-						<td class="anchor">
+						<td class="context">
 							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>

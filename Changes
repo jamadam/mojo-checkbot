@@ -1,5 +1,8 @@
 Revision history for mojo-checkbot
 
+0.06 2011/10/21
+  - Behaves better on illigal rel path
+
 0.05 2011/10/21
   - Got better charset guessing
   - Right base url on redirect

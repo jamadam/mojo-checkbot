@@ -42,7 +42,7 @@ our $VERSION = '0.01';
         $jobs->[0] = {
             url     => Mojo::URL->new($options{start}),
             referer => 'N/A',
-            anchor  => 'N/A',
+            context  => 'N/A',
             href    => 'N/A',
         };
         
@@ -116,10 +116,10 @@ our $VERSION = '0.01';
                         }
                         if ($url_filter->("$cur_url") && ! $fix->{$cur_url}) {
                             $fix->{$cur_url} = 1;
-                            my $anchor = $dom->content_xml || $dom->{alt} || '';
-                            Mojo::Util::html_escape($anchor);
+                            my $context = $dom->content_xml || $dom->{alt} || '';
+                            Mojo::Util::html_escape($context);
                             push(@$jobs, {
-                                anchor  => $anchor,
+                                context  => $context,
                                 href    => $href,
                                 url     => $cur_url,
                                 referer => "$url",
