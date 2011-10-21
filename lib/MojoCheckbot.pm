@@ -37,6 +37,7 @@ our $VERSION = '0.01';
             'sleep=i',
             'ua=s',
             'cookie=s',
+            'timestamp=s',
         );
         
         $jobs->[0] = {
@@ -47,6 +48,7 @@ our $VERSION = '0.01';
         };
         
         $ua = Mojo::UserAgent->new->name($options{ua} || "mojo-checkbot($VERSION)");
+        $ua->keep_alive_timeout($options{timeout});
         
         if ($options{cookie}) {
             my $cookies = Mojo::Cookie::Response->parse($options{cookie});

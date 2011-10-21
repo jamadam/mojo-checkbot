@@ -1,5 +1,8 @@
 Revision history for mojo-checkbot
 
+0.07 2011/10/21
+  - timeout option added
+
 0.06 2011/10/21
   - Checkbox for hide 2xx status added on report view
   - Behaves better on illigal rel path
