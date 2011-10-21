@@ -123,7 +123,7 @@ our $VERSION = '0.01';
     sub collect_urls {
         my ($dom) = @_;
         my @array;
-        my $cb = sub {
+        $dom->find('script, link, a, img, area')->each(sub {
             my $dom = shift;
             if (my $href = $dom->{href} || $dom->{src}) {
                 $href =~ s{#[^#]+$}{};
@@ -135,12 +135,7 @@ our $VERSION = '0.01';
                     href    => $href,
                 });
             }
-        };
-        $dom->find('script')->each($cb);
-        $dom->find('link')->each($cb);
-        $dom->find('a')->each($cb);
-        $dom->find('img')->each($cb);
-        $dom->find('area')->each($cb);
+        });
         return @array;
     }
     

@@ -34,10 +34,10 @@ EOF
 
 	my $dom = Mojo::DOM->new($html);
 	my @array = MojoCheckbot::collect_urls($dom);
-	is_deeply(shift @array, {href => 'js1.js', context => ''});
-	is_deeply(shift @array, {href => 'js2.js', context => ''});
 	is_deeply(shift @array, {href => 'css1.css', context => ''});
 	is_deeply(shift @array, {href => 'css2.css', context => ''});
+	is_deeply(shift @array, {href => 'js1.js', context => ''});
+	is_deeply(shift @array, {href => 'js2.js', context => ''});
 	is_deeply(shift @array, {href => 'index1.html', context => 'A'});
 	is_deeply(shift @array, {href => 'index2.html', context => 'B'});
 	is_deeply(shift @array, {href => 'mailto:a@example.com', context => 'C'});
