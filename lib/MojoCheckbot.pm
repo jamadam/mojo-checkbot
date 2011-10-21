@@ -40,10 +40,10 @@ our $VERSION = '0.01';
         );
         
         $jobs->[0] = {
-            url     => Mojo::URL->new($options{start}),
-            referer => 'N/A',
-            context  => 'N/A',
-            href    => 'N/A',
+            resolvedURI     => Mojo::URL->new($options{start}),
+            referer         => 'N/A',
+            context         => 'N/A',
+            literalURI      => 'N/A',
         };
         
         $ua = Mojo::UserAgent->new->name($options{ua} || "mojo-checkbot($VERSION)");
@@ -68,10 +68,10 @@ our $VERSION = '0.01';
         my $loop_id;
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
             my $job = shift @$jobs;
-            my ($res, $new_jobs) = check($job->{url}, $ua);
+            my ($res, $new_jobs) = check($job->{resolvedURI}, $ua);
             push(@$jobs, @$new_jobs);
             $job->{res} = $res;
-            $job->{url} = "$job->{url}";
+            $job->{resolvedURI} = "$job->{resolvedURI}";
             push(@result, $job);
             if (! scalar @$jobs) {
                 Mojo::IOLoop->drop($loop_id);
@@ -109,15 +109,15 @@ our $VERSION = '0.01';
                 }
                 my @urls = collect_urls($dom);
                 for my $entry (@urls) {
-                    my $url2 = resolve_href($base, $entry->{href});
+                    my $url2 = resolve_href($base, $entry->{literalURI});
                     if ($url2->scheme =~ qr{https?|ftp}
                             && $url_filter->("$url2") && ! $fix->{$url2}) {
                         $fix->{$url2} = 1;
                         push(@new_jobs, {
-                            context => $entry->{context},
-                            href    => $entry->{href},
-                            url     => $url2,
-                            referer => "$url",
+                            context     => $entry->{context},
+                            literalURI  => $entry->{literalURI},
+                            resolvedURI => $url2,
+                            referer     => "$url",
                         });
                     }
                 }
@@ -135,7 +135,7 @@ our $VERSION = '0.01';
                 my $context =
                         $dom->content_xml || $dom->{alt} || $dom->{title} || '';
                 Mojo::Util::html_escape($context);
-                push(@array, {context  => $context, href => $href});
+                push(@array, {context  => $context, literalURI => $href});
             }
         });
         return @array;

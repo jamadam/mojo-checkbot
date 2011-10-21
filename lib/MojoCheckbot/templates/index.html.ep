@@ -25,8 +25,8 @@
 				<thead>
 					<tr>
 						<th>Context</th>
-						<th>Href</th>
-						<th>Resolved URI</th>
+						<th>URI(Literal)</th>
+						<th>URI(Resolved)</th>
 						<th>Status Code</th>
 						<th>Referer</th>
 					</tr>
@@ -52,15 +52,15 @@
 					</tr>
 					<tr>
 						<th>
-							Href
+							URI(Literal)
 						</th>
-						<td class="href">
+						<td class="literalURI">
 							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>
 					<tr>
 						<th>
-							Resolved URI
+							URI(Resolved)
 						</th>
 						<td class="resolvedURI">
 							<textarea rows="1" cols="10"></textarea>
