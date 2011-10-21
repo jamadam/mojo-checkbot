@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 18;
+	use Test::More tests => 20;
 	
 	my $base;
 	my $tmp;
@@ -19,6 +19,12 @@ use MojoCheckbot;
 	is($tmp, 'http://example.com/hoge.html');
 	$tmp = MojoCheckbot::resolve_href($base, './hoge.html');
 	is($tmp, 'http://example.com/hoge.html');
+
+	$base = Mojo::URL->new('http://example.com');
+	$tmp = MojoCheckbot::resolve_href($base, 'http://example2.com/hoge.html');
+	is($tmp, 'http://example2.com/hoge.html');
+	$tmp = MojoCheckbot::resolve_href($base, 'http://example2.com//hoge.html');
+	is($tmp, 'http://example2.com/hoge.html');
 	
 	$base = Mojo::URL->new('http://example.com/dir/');
 	$tmp = MojoCheckbot::resolve_href($base, './hoge.html');

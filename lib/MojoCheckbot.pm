@@ -104,18 +104,13 @@ our $VERSION = '0.01';
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
                 for my $entry (collect_urls($dom)) {
-                    my $cur_url;
-                    if ($entry->{href} =~ qr{https?://}) {
-                        $cur_url = Mojo::URL->new($entry->{href});
-                    } else {
-                        $cur_url = resolve_href($base, $entry->{href});
-                    }
-                    if ($url_filter->("$cur_url") && ! $fix->{$cur_url}) {
-                        $fix->{$cur_url} = 1;
+                    my $url2 = resolve_href($base, $entry->{href});
+                    if ($url2->scheme =~ qr{https?|ftp} && $url_filter->("$url2") && ! $fix->{$url2}) {
+                        $fix->{$url2} = 1;
                         push(@$jobs, {
                             context => $entry->{context},
                             href => $entry->{href},
-                            url => $cur_url,
+                            url => $url2,
                             referer => "$url",
                         });
                     }
@@ -130,15 +125,13 @@ our $VERSION = '0.01';
         my $cb = sub {
             my $dom = shift;
             my $href = $dom->{href} || $dom->{src};
-            if ($href && $href !~ /^(mailto|javascript):/) {
-                $href =~ s{#[^#]+$}{};
-                my $context = $dom->content_xml || $dom->{alt} || '';
-                Mojo::Util::html_escape($context);
-                push(@array, {
-                    context  => $context,
-                    href    => $href,
-                });
-            }
+            $href =~ s{#[^#]+$}{};
+            my $context = $dom->content_xml || $dom->{alt} || '';
+            Mojo::Util::html_escape($context);
+            push(@array, {
+                context  => $context,
+                href    => $href,
+            });
         };
         $dom->find('script')->each($cb);
         $dom->find('link')->each($cb);
@@ -183,6 +176,9 @@ our $VERSION = '0.01';
         my ($base, $href) = @_;
         my $new = $base->clone;
         my $temp = Mojo::URL->new($href);
+        if ($temp->scheme) {
+            return $temp;
+        }
         $new->path($temp->path->to_string);
         $new->path->canonicalize;
         $new->query($temp->query);
