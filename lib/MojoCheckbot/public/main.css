@@ -104,10 +104,12 @@ body {
             }
     #footer {
         background-color:#333;
-        color:#fff;
+        color:#eee;
         height:50px;
         line-height:50px;
         text-align:center;
+        font-family:helvetica,arial,freesans,clean,sans-serif;
+        font-size:12px;
     }
         #footer a {
             color:inherit;
