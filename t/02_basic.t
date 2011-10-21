@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 8;
+	use Test::More tests => 4;
 	
 	my $html = <<EOF;
 <html>
@@ -50,11 +50,8 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::fetch("http://localhost:$port/", $ua, sub{
-			my $tx = shift;
-			is(MojoCheckbot::guess_encoding($tx->res), undef);
-		});
-		is($res, 200);
+		my $tx = $ua->get("http://localhost:$port/");
+		is(MojoCheckbot::guess_encoding($tx->res), undef);
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
@@ -71,11 +68,8 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::fetch("http://localhost:$port/", $ua, sub{
-			my $tx = shift;
-			is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
-		});
-		is($res, 200);
+		my $tx = $ua->get("http://localhost:$port/");
+		is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
@@ -92,11 +86,8 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::fetch("http://localhost:$port/", $ua, sub{
-			my $tx = shift;
-			is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
-		});
-		is($res, 200);
+		my $tx = $ua->get("http://localhost:$port/");
+		is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
@@ -113,11 +104,8 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::fetch("http://localhost:$port/", $ua, sub{
-			my $tx = shift;
-			is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
-		});
-		is($res, 200);
+		my $tx = $ua->get("http://localhost:$port/");
+		is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
 	}
 
 1;

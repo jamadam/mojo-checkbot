@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 20;
+	use Test::More tests => 18;
 	
 	my $base;
 	my $tmp;
@@ -81,10 +81,7 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::fetch("http://localhost:$port/hoge", $ua, sub{
-			my $http_res = shift;
-			ok(0, 'must not be do this');
-		});
+		my ($res, $jobs) = MojoCheckbot::check("http://localhost:$port/", $ua);
 		is($res, 404);
 	}
 
@@ -102,11 +99,7 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::fetch("http://localhost:$port/", $ua, sub{
-			my $http_res = shift;
-			is(ref $http_res, 'Mojo::Transaction::HTTP');
-			like($http_res->res->body, qr{foo.html});
-		});
+		my ($res, $jobs) = MojoCheckbot::check("http://localhost:$port/", $ua);
 		is($res, 200);
 	}
 

@@ -50,7 +50,7 @@ our $VERSION = '0.01';
         
         if ($options{cookie}) {
             my $cookies = Mojo::Cookie::Response->parse($options{cookie});
-            $self->ua->cookie_jar(Mojo::CookieJar->new->add(@$cookies));
+            $ua->cookie_jar(Mojo::CookieJar->new->add(@$cookies));
         }
         
         if ($options{match}) {
@@ -68,7 +68,8 @@ our $VERSION = '0.01';
         my $loop_id;
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
             my $job = shift @$jobs;
-            my $res = $self->check($job->{url});
+            my ($res, $new_jobs) = check($job->{url}, $ua);
+            push(@$jobs, @$new_jobs);
             $job->{res} = $res;
             $job->{url} = "$job->{url}";
             push(@result, $job);
@@ -91,10 +92,13 @@ our $VERSION = '0.01';
     }
     
     sub check {
-        my ($self, $url) = @_;
-        return fetch($url, $self->ua, sub{
-            my $tx = shift;
+        my ($url, $ua) = @_;
+        my $code = $ua->max_redirects(5)->head($url)->res->code;
+        my @new_jobs;
+        if ($code && $code == 200) {
+            my $tx = $ua->max_redirects(5)->get($url);
             my $res = $tx->res;
+            $code = $res->code;
             if ($res->headers->content_type =~ qr{text/(html|xml)}) {
                 my $charset = guess_encoding($res) || 'utf-8';
                 my $body = Encode::decode($charset, $res->body);
@@ -106,18 +110,20 @@ our $VERSION = '0.01';
                 my @urls = collect_urls($dom);
                 for my $entry (@urls) {
                     my $url2 = resolve_href($base, $entry->{href});
-                    if ($url2->scheme =~ qr{https?|ftp} && $url_filter->("$url2") && ! $fix->{$url2}) {
+                    if ($url2->scheme =~ qr{https?|ftp}
+                            && $url_filter->("$url2") && ! $fix->{$url2}) {
                         $fix->{$url2} = 1;
-                        push(@$jobs, {
+                        push(@new_jobs, {
                             context => $entry->{context},
-                            href => $entry->{href},
-                            url => $url2,
+                            href    => $entry->{href},
+                            url     => $url2,
                             referer => "$url",
                         });
                     }
                 }
             }
-        });
+        }
+        return $code, \@new_jobs;
     }
     
     sub collect_urls {
@@ -130,10 +136,7 @@ our $VERSION = '0.01';
                 my $context =
                         $dom->content_xml || $dom->{alt} || $dom->{title} || '';
                 Mojo::Util::html_escape($context);
-                push(@array, {
-                    context  => $context,
-                    href    => $href,
-                });
+                push(@array, {context  => $context, href => $href});
             }
         });
         return @array;
@@ -152,23 +155,6 @@ our $VERSION = '0.01';
             });
         }
         return $charset;
-    }
-    
-    sub fetch {
-        my ($url, $ua, $cb) = @_;
-        my ($res, $content_type, $ua_error) = try_head($url, $ua);
-        if ($res && $res == 200) {
-            my $http_res = $ua->max_redirects(5)->get($url);
-            $cb->($http_res);
-            return $http_res->res->code;
-        }
-        return $res;
-    }
-    
-    sub try_head {
-        my ($url, $ua) = @_;
-        my $res = $ua->max_redirects(5)->head($url);
-        return $res->res->code, $res->res->headers->content_type, $res->error;
     }
     
     sub resolve_href {
