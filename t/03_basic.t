@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 9;
+	use Test::More tests => 10;
 	
 	my $html = <<EOF;
 <html>
@@ -25,6 +25,9 @@ use MojoCheckbot;
 <a href="index2.html">B</a>
 <a href="mailto:a\@example.com">C</a>
 <a href="tel:0000">D</a>
+<map name="m_map" id="m_map">
+	<area href="index3.html" coords="" title="E" />
+</map>
 </body>
 </html>
 EOF
@@ -39,6 +42,7 @@ EOF
 	is_deeply(shift @array, {href => 'index2.html', context => 'B'});
 	is_deeply(shift @array, {href => 'mailto:a@example.com', context => 'C'});
 	is_deeply(shift @array, {href => 'tel:0000', context => 'D'});
+	is_deeply(shift @array, {href => 'index3.html', context => 'E'});
 	is(shift @array, undef);
 
 1;

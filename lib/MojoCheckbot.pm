@@ -103,7 +103,8 @@ our $VERSION = '0.01';
                 if (my $base_tag = $dom->at('base')) {
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
-                for my $entry (collect_urls($dom)) {
+                my @urls = collect_urls($dom);
+                for my $entry (@urls) {
                     my $url2 = resolve_href($base, $entry->{href});
                     if ($url2->scheme =~ qr{https?|ftp} && $url_filter->("$url2") && ! $fix->{$url2}) {
                         $fix->{$url2} = 1;
@@ -124,19 +125,22 @@ our $VERSION = '0.01';
         my @array;
         my $cb = sub {
             my $dom = shift;
-            my $href = $dom->{href} || $dom->{src};
-            $href =~ s{#[^#]+$}{};
-            my $context = $dom->content_xml || $dom->{alt} || '';
-            Mojo::Util::html_escape($context);
-            push(@array, {
-                context  => $context,
-                href    => $href,
-            });
+            if (my $href = $dom->{href} || $dom->{src}) {
+                $href =~ s{#[^#]+$}{};
+                my $context =
+                        $dom->content_xml || $dom->{alt} || $dom->{title} || '';
+                Mojo::Util::html_escape($context);
+                push(@array, {
+                    context  => $context,
+                    href    => $href,
+                });
+            }
         };
         $dom->find('script')->each($cb);
         $dom->find('link')->each($cb);
-        $dom->find('body a')->each($cb);
+        $dom->find('a')->each($cb);
         $dom->find('img')->each($cb);
+        $dom->find('area')->each($cb);
         return @array;
     }
     
