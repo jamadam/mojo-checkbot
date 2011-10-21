@@ -85,6 +85,14 @@
 							<textarea rows="1" cols="10"></textarea>
 						</td>
 					</tr>
+					<tr>
+						<th>
+							Error
+						</th>
+						<td class="error">
+							<textarea rows="1" cols="10"></textarea>
+						</td>
+					</tr>
 				</table>
 			</form>
 		</div>

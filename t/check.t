@@ -1,11 +1,11 @@
 package Template_Basic;
 use strict;
 use warnings;
+use lib './lib', './extlib';
 use Test::More;
 use Test::Mojo;
 use utf8;
 use Data::Dumper;
-use lib './extlib';
 use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;

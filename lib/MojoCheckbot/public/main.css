@@ -45,7 +45,6 @@ body {
         background-color:#0f0;
         background:-moz-linear-gradient(center top, #8ac, #eee);
         background:-webkit-gradient(linear, left top, left bottom, from(#86a), to(#eee));
-        z-index:101;
     }
         h1 {
             font-weight:bold;
@@ -69,7 +68,6 @@ body {
             }
         #header:after {content:''; display:block; height:0; clear:both;}
     #container {
-        z-index:100;
         min-height:100%;
     }
         #container table {
@@ -142,10 +140,11 @@ body {
         height:auto;
         overflow:hidden;
     }
+        .lightbox th {
+            border:1px solid #ccc;
+        }
         .lightbox td {
             width:auto;
-            white-space:nowrap;
-            text-overflow:normal;
             padding:5px;
             border:1px solid #ccc;
         }

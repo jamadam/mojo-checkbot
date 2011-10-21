@@ -1,11 +1,11 @@
 package Template_Basic;
 use strict;
 use warnings;
+use lib './lib', './extlib';
 use Test::More;
 use Test::Mojo;
 use utf8;
 use Data::Dumper;
-use lib './extlib';
 use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
@@ -30,8 +30,10 @@ use MojoCheckbot;
 	);
 	
 	{
-		my ($res, $jobs) = MojoCheckbot::check("http://localhost:$port/", $ua);
-		is($res, undef);
+		my ($res, $jobs) = eval {
+			MojoCheckbot::check("http://localhost:$port/", $ua);
+		};
+		is($@, 'Premature connection close');
 	}
 
 1;

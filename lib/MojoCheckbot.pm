@@ -70,9 +70,15 @@ our $VERSION = '0.08';
         my $loop_id;
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
             my $job = shift @$jobs;
-            my ($res, $new_jobs) = check($job->{resolvedURI}, $ua);
-            push(@$jobs, @$new_jobs);
-            $job->{res} = $res;
+            my ($res, $new_jobs) = eval {
+                check($job->{resolvedURI}, $ua);
+            };
+            if ($@) {
+                $job->{error} = $@;
+            } else {
+                push(@$jobs, @$new_jobs);
+                $job->{res} = $res;
+            }
             $job->{resolvedURI} = "$job->{resolvedURI}";
             push(@result, $job);
             if (! scalar @$jobs) {
@@ -95,7 +101,12 @@ our $VERSION = '0.08';
     
     sub check {
         my ($url, $ua) = @_;
-        my $code = $ua->max_redirects(5)->head($url)->res->code;
+        my $tx = $ua->max_redirects(5)->head($url);
+        my $code = $tx->res->code;
+        if (! $code) {
+            my ($message) = $tx->error;
+            die $message;
+        }
         my @new_jobs;
         if ($code && $code == 200) {
             my $tx = $ua->max_redirects(5)->get($url);
