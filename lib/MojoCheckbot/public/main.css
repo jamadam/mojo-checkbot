@@ -97,7 +97,7 @@ body {
             #container tr:hover {
                 background-color:#efa;
             }
-            #container tr.hid {
+            #container tr.hd {
                 display:none;
             }
     #footer {
