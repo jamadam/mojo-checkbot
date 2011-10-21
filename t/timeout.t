@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 2;
+	use Test::More tests => 1;
 	
 	my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
 	$ua->keep_alive_timeout(1);
