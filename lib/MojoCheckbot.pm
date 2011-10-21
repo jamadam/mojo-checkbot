@@ -103,36 +103,48 @@ our $VERSION = '0.01';
                 if (my $base_tag = $dom->at('base')) {
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
-                my $cb = sub {
-                    my $dom = shift;
-                    my $href = $dom->{href} || $dom->{src};
-                    if ($href && $href !~ /^(mailto|javascript):/) {
-                        $href =~ s{#[^#]+$}{};
-                        my $cur_url;
-                        if ($href =~ qr{https?://}) {
-                            $cur_url = Mojo::URL->new($href);
-                        } else {
-                            $cur_url = resolve_href($base, $href);
-                        }
-                        if ($url_filter->("$cur_url") && ! $fix->{$cur_url}) {
-                            $fix->{$cur_url} = 1;
-                            my $context = $dom->content_xml || $dom->{alt} || '';
-                            Mojo::Util::html_escape($context);
-                            push(@$jobs, {
-                                context  => $context,
-                                href    => $href,
-                                url     => $cur_url,
-                                referer => "$url",
-                            });
-                        }
+                for my $entry (collect_urls($dom)) {
+                    my $cur_url;
+                    if ($entry->{href} =~ qr{https?://}) {
+                        $cur_url = Mojo::URL->new($entry->{href});
+                    } else {
+                        $cur_url = resolve_href($base, $entry->{href});
                     }
-                };
-                $dom->find('script')->each($cb);
-                $dom->find('link')->each($cb);
-                $dom->find('body a')->each($cb);
-                $dom->find('img')->each($cb);
+                    if ($url_filter->("$cur_url") && ! $fix->{$cur_url}) {
+                        $fix->{$cur_url} = 1;
+                        push(@$jobs, {
+                            context => $entry->{context},
+                            href => $entry->{href},
+                            url => $cur_url,
+                            referer => "$url",
+                        });
+                    }
+                }
             }
         });
+    }
+    
+    sub collect_urls {
+        my ($dom) = @_;
+        my @array;
+        my $cb = sub {
+            my $dom = shift;
+            my $href = $dom->{href} || $dom->{src};
+            if ($href && $href !~ /^(mailto|javascript):/) {
+                $href =~ s{#[^#]+$}{};
+                my $context = $dom->content_xml || $dom->{alt} || '';
+                Mojo::Util::html_escape($context);
+                push(@array, {
+                    context  => $context,
+                    href    => $href,
+                });
+            }
+        };
+        $dom->find('script')->each($cb);
+        $dom->find('link')->each($cb);
+        $dom->find('body a')->each($cb);
+        $dom->find('img')->each($cb);
+        return @array;
     }
     
     sub guess_encoding {
