@@ -132,7 +132,6 @@ our $VERSION = '0.01';
         $dom->find('script, link, a, img, area')->each(sub {
             my $dom = shift;
             if (my $href = $dom->{href} || $dom->{src}) {
-                $href =~ s{#[^#]+$}{};
                 my $context =
                         $dom->content_xml || $dom->{alt} || $dom->{title} || '';
                 Mojo::Util::html_escape($context);
@@ -161,13 +160,13 @@ our $VERSION = '0.01';
         my ($base, $href) = @_;
         my $new = $base->clone;
         my $temp = Mojo::URL->new($href);
+        $temp->fragment('');
         if ($temp->scheme) {
             return $temp;
         }
         $new->path($temp->path->to_string);
         $new->path->canonicalize;
         $new->query($temp->query);
-        $new->fragment($temp->fragment); # delete?
         while ($new->path->parts->[0] && $new->path->parts->[0] =~ /^\./) {
             shift @{$new->path->parts};
         }

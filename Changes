@@ -2,6 +2,9 @@ Revision history for mojo-checkbot
 
 0.06 2011/10/21
   - Behaves better on illigal rel path
+  = fixed a bug on ua handling
+  - Also checks ftp scheme
+  - Also checks area tags
 
 0.05 2011/10/21
   - Got better charset guessing

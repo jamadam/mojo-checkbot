@@ -48,13 +48,13 @@ use MojoCheckbot;
 
 	$base = Mojo::URL->new('http://example.com/dir/');
 	$tmp = MojoCheckbot::resolve_href($base, './hoge.html#fragment');
-	is($tmp, 'http://example.com/dir/hoge.html#fragment');
+	is($tmp, 'http://example.com/dir/hoge.html');
 	$tmp = MojoCheckbot::resolve_href($base, '../hoge.html#fragment');
-	is($tmp, 'http://example.com/hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html');
 	$tmp = MojoCheckbot::resolve_href($base, '../../hoge.html#fragment');
-	is($tmp, 'http://example.com/hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html');
 	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html#fragment');
-	is($tmp, 'http://example.com/hoge.html#fragment');
+	is($tmp, 'http://example.com/hoge.html');
 	
 	my $html = <<EOF;
 <html>
