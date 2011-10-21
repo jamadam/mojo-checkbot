@@ -611,7 +611,7 @@ to C<CPAN>.
   $ make dist
   $ mojo cpanify -u USER -p PASS Mojolicious-Plugin-DebugHelper-0.01.tar.gz
 
-=head2 Mode specific C<exception> and C<not_found> templates
+=head2 Custom C<exception> and C<not_found> templates
 
 While the built-in C<exception> and C<not_found> templates are very useful
 during development, you most likely want to show your users something more

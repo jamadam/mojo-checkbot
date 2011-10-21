@@ -23,8 +23,6 @@ sub new {
 
 sub build_tx { shift->app->build_tx }
 
-sub upgrade_tx { shift->app->upgrade_tx(shift)->server_handshake }
-
 sub load_app {
   my ($self, $file) = @_;
 
@@ -56,7 +54,7 @@ EOF
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_request {
   warn <<EOF;
-Mojo::Server->on_request is DEPRECATED in favor of using Mojo::Server->on!!!
+Mojo::Server->on_request is DEPRECATED in favor of using Mojo::Server->on!
 EOF
   shift->on(request => shift);
 }
@@ -158,12 +156,6 @@ Note that this method is EXPERIMENTAL and might change without warning!
   $server->run;
 
 Start server.
-
-=head2 C<upgrade_tx>
-
-  my $ws = $server->upgrade_tx(tx);
-
-Let application upgrade transaction.
 
 =head1 SEE ALSO
 

@@ -110,14 +110,21 @@ sub _build_tx {
   weaken $self;
   $tx->on(
     request => sub {
-      my $tx = pop;
+      my ($tx, $ws) = @_;
+
+      # WebSocket
+      if ($ws) {
+        $self->{connections}->{$id}->{websocket} = $ws->server_handshake;
+        $self->emit(request => $ws);
+      }
+
+      # HTTP
       $self->emit(request => $tx);
+
+      # Resume
       $tx->on(resume => sub { $self->_write($id) });
     }
   );
-
-  # Upgrade
-  $tx->on(upgrade => sub { $self->_upgrade($id, pop) });
 
   # New request on the connection
   $c->{requests} ||= 0;
@@ -283,15 +290,8 @@ sub _read {
     if ($c->{requests} || 0) >= $self->max_requests;
 
   # Finish or start writing
-  if ($tx->is_done) { $self->_finish($id, $tx) }
+  if ($tx->is_finished) { $self->_finish($id, $tx) }
   elsif ($tx->is_writing) { $self->_write($id) }
-}
-
-sub _upgrade {
-  my ($self, $id, $txref) = @_;
-  return unless $$txref->req->headers->upgrade =~ /WebSocket/i;
-  my $c = $self->{connections}->{$id};
-  $c->{websocket} = $$txref = $self->upgrade_tx($$txref);
 }
 
 sub _user {
@@ -316,7 +316,7 @@ sub _write {
   # Write
   weaken $self;
   my $cb = sub { $self->_write($id) };
-  if ($tx->is_done) {
+  if ($tx->is_finished) {
     $self->_finish($id, $tx);
     $cb = undef unless $c->{transaction} || $c->{websocket};
   }
@@ -338,7 +338,7 @@ Mojo::Server::Daemon - Non-blocking I/O HTTP 1.1 and WebSocket server
   my $daemon = Mojo::Server::Daemon->new(listen => ['http://*:8080']);
   $daemon->unsubscribe_all('request');
   $daemon->on(request => sub {
-    my ($self, $tx) = @_;
+    my ($daemon, $tx) = @_;
 
     # Request
     my $method = $tx->req->method;
