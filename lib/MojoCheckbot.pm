@@ -136,6 +136,9 @@ our $VERSION = '0.08';
             if (my $href = $dom->{href} || $dom->{src}) {
                 my $context =
                         $dom->content_xml || $dom->{alt} || $dom->{title} || '';
+                if (length($context) > 300) {
+                    $context = substr($context, 0, 300). '...';
+                }
                 Mojo::Util::html_escape($context);
                 push(@array, {context  => $context, literalURI => $href});
             }
