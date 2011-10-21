@@ -96,20 +96,9 @@ our $VERSION = '0.01';
             my $tx = shift;
             my $res = $tx->res;
             if ($res->headers->content_type =~ qr{text/(html|xml)}) {
-                my $body = $res->body;
-                my $mime = $res->headers->content_type;
-                my $charset = ($mime =~ qr{; ?charset=(.+);?})[0];
-                if (! $charset) {
-                    my $dom = Mojo::DOM->new($body);
-                    $dom->find('meta[http\-equiv=Content-Type]')->each(sub{
-                        my $meta_dom = shift;
-                        $charset = ($meta_dom->{content} =~ qr{; ?charset=(.+);?})[0];
-                    });
-                }
-                $body = Encode::decode($charset || 'utf-8', $body);
-                utf8::decode($body);
+                my $charset = guess_encoding($res) || 'utf-8';
+                my $body = Encode::decode($charset, $res->body);
                 my $dom = Mojo::DOM->new($body);
-                $dom->xml(1);
                 my $base = $url;
                 if (my $base_tag = $dom->at('base')) {
                     $base = Mojo::URL->new($base_tag->attrs('href'));
@@ -144,6 +133,21 @@ our $VERSION = '0.01';
                 $dom->find('img')->each($cb);
             }
         });
+    }
+    
+    sub guess_encoding {
+        my $res = shift;
+        my $type = $res->headers->content_type;
+        my $charset = ($type =~ qr{; ?charset=([^;\$]+)})[0];
+        if (! $charset) {
+            my $head = ($res->body =~ qr{<head>(.+)</head>}is)[0];
+            my $dom = Mojo::DOM->new($head);
+            $dom->find('meta[http\-equiv=Content-Type]')->each(sub{
+                my $meta_dom = shift;
+                $charset = ($meta_dom->{content} =~ qr{; ?charset=([^;\$]+)})[0];
+            });
+        }
+        return $charset;
     }
     
     sub fetch {
