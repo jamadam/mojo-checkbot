@@ -90,16 +90,16 @@ body {
                 text-overflow:ellipsis;
                 max-width:200px;
             }
-            #container tr.res4xx {
+            #container tr.r4 {
                 color:#f00;
             }
-            #container tr.res5xx {
+            #container tr.r5 {
                 color:#f00;
             }
             #container tr:hover {
                 background-color:#efa;
             }
-            #container tr.hidden {
+            #container tr.hid {
                 display:none;
             }
     #footer {
