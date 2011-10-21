@@ -99,7 +99,7 @@ our $VERSION = '0.01';
                 my $charset = guess_encoding($res) || 'utf-8';
                 my $body = Encode::decode($charset, $res->body);
                 my $dom = Mojo::DOM->new($body);
-                my $base = $url;
+                my $base = $tx->req->url;
                 if (my $base_tag = $dom->at('base')) {
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
