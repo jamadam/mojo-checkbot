@@ -17,7 +17,7 @@ use Mojo::Base 'Mojolicious';
 use Encode;
 our $VERSION = '0.01';
 
-    my $url_filter = sub {4};
+    my $url_filter = sub {1};
     my $jobs = [];
     my %options;
     my $ua;
@@ -82,8 +82,8 @@ our $VERSION = '0.01';
         $r->route('/echo')->to(cb => sub {
             my $c = shift;
             my $offset = $c->req->param('offset');
-            my @result1 = @result[$offset..$#result];
-            $c->render_json({remain => scalar @$jobs, result => \@result1});
+            my @diff = @result[$offset..$#result];
+            $c->render_json({remain => scalar @$jobs, result => \@diff});
         });
         $r->route('/')->to(cb => sub {
             my $c = shift;
