@@ -1,5 +1,13 @@
 Revision history for mojo-checkbot
 
+0.05 2011/10/21
+  - Got better charset guessing
+  - Right base url on redirect
+  - Mojolicious 2.03 bundled
+
+0.04 2011/10/21
+  - img, link, script tags are also checked
+
 0.03 2011/10/20
   - charset defaults to 'utf-8'
 
