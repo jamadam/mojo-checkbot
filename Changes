@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
 0.06 2011/10/21
+  - Checkbox for hide 2xx status added on report view
   - Behaves better on illigal rel path
   = fixed a bug on ua handling
   - Also checks ftp scheme

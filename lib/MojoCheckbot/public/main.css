@@ -38,6 +38,7 @@ body {
     height:100%;
 }
     #header {
+        position:relative;
         top:0;
         left:0;
         padding:10px 10px;
@@ -50,6 +51,11 @@ body {
             font-weight:bold;
             float:left;
             margin-right:20px;
+        }
+        #header form {
+            position:absolute;
+            top:10px;
+            right:30px;
         }
         #summary {
         }
@@ -92,6 +98,9 @@ body {
             }
             #container tr:hover {
                 background-color:#efa;
+            }
+            #container tr.hidden {
+                display:none;
             }
     #footer {
         background-color:#333;

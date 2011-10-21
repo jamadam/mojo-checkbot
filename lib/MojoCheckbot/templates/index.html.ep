@@ -19,6 +19,9 @@
 			</h1>
 			<div id="summary">
 			</div>
+			<form>
+				<input id="hide2xx" type="checkbox" /> <label for="hide2xx">Hide 2xx status</label>
+			</form>
 		</div>
 		<div id="container">
 			<table id="result">
