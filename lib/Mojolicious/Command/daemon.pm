@@ -22,7 +22,7 @@ These options are available:
   --cookie <string>       Set cookie string sent to servers
   --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
   
-  Reportin server options
+  Report server options
   
   --backlog <size>        Set listen backlog size, defaults to SOMAXCONN.
   --clients <number>      Set maximum number of concurrent clients, defaults
