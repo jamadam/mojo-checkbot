@@ -3,6 +3,8 @@ Revision history for mojo-checkbot
 0.09 2011/10/22
   - Context defaults to dom itself
   - help localized for japanese
+  - Report design improved
+  - Internal optimization
 
 0.08 2011/10/22
   - crawling errors are also reported
