@@ -2,13 +2,8 @@
 
 use strict;
 use warnings;
-
 use File::Basename 'dirname';
 use File::Spec;
-
-use Data::Dumper;
-use Getopt::Long 'GetOptionsFromArray';
-
 use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '../extlib';
 use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '../lib';
 
