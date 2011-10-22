@@ -17,31 +17,31 @@ mojo-checkbot 0.09 beta
 
 These options are available:
 
-  Crawler options
-
-  --start <URL>           Set start URL for crawling.
-  --match <regexp>        Set regexp to judge whether or not the URL should be
-                          checked.
-  --sleep <seconds>       Set interval for crawling.
-  --ua <string>           Set user agent name for crawler header
-  --cookie <string>       Set cookie string sent to servers
-  --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
-
-  Report server options
-
-  --backlog <size>        Set listen backlog size, defaults to SOMAXCONN.
-  --clients <number>      Set maximum number of concurrent clients, defaults
-                          to 1000.
-  --group <name>          Set group name for process.
-  --keepalive <seconds>   Set keep-alive timeout, defaults to 15.
-  --listen <location>     Set one or more locations you want to listen on,
-                          defaults to "http://*:3000".
-  --proxy                 Activate reverse proxy support, defaults to the
-                          value of MOJO_REVERSE_PROXY.
-  --requests <number>     Set maximum number of requests per keep-alive
-                          connection, defaults to 25.
-  --user <name>           Set username for process.
-  --websocket <seconds>   Set WebSocket timeout, defaults to 300.
+    Crawler options
+    
+    --start <URL>           Set start URL for crawling.
+    --match <regexp>        Set regexp to judge whether or not the URL should be
+                            checked.
+    --sleep <seconds>       Set interval for crawling.
+    --ua <string>           Set user agent name for crawler header
+    --cookie <string>       Set cookie string sent to servers
+    --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
+    
+    Report server options
+    
+    --backlog <size>        Set listen backlog size, defaults to SOMAXCONN.
+    --clients <number>      Set maximum number of concurrent clients, defaults
+                            to 1000.
+    --group <name>          Set group name for process.
+    --keepalive <seconds>   Set keep-alive timeout, defaults to 15.
+    --listen <location>     Set one or more locations you want to listen on,
+                            defaults to "http://*:3000".
+    --proxy                 Activate reverse proxy support, defaults to the
+                            value of MOJO_REVERSE_PROXY.
+    --requests <number>     Set maximum number of requests per keep-alive
+                            connection, defaults to 25.
+    --user <name>           Set username for process.
+    --websocket <seconds>   Set WebSocket timeout, defaults to 300.
 
 ### EXAMPLE1
 
