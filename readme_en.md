@@ -13,7 +13,7 @@ http://127.0.0.1:3000 on your brouser and the report will automatically be updat
 
 ## OPTIONS
 
-下記のオプションが利用可能です:
+These options are available:
 
     Crawler options
     
@@ -55,8 +55,6 @@ also available.
     $ mojo-checkbot daemon --listen http://*:3001 --start http://example.com
 
 ### EXAMPLE3
-
-クッキーを指定して要認証サイトのチェックもできます。
 
     $ mojo-checkbot daemon --start http://example.com --cookie \
         'key=value; Version=1; Domain=example.com; Path=/; expires=Fri, \
