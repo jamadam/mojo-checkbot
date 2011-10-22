@@ -146,7 +146,7 @@ our $VERSION = '0.08';
             my $dom = shift;
             if (my $href = $dom->{href} || $dom->{src}) {
                 my $context =
-                        $dom->content_xml || $dom->{alt} || $dom->{title} || '';
+                        $dom->content_xml || $dom->{alt} || $dom->{title} || $dom->to_xml || '';
                 if (length($context) > 300) {
                     $context = substr($context, 0, 300). '...';
                 }
