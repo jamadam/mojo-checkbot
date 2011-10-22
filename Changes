@@ -1,5 +1,7 @@
 Revision history for mojo-checkbot
 
+0.10 2011/10/22
+
 0.09 2011/10/22
   - Context defaults to dom itself
   - help localized for japanese
