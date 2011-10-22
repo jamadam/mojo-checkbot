@@ -7,25 +7,25 @@ mojo-checkbot 0.09 beta
 
 ## DESCRIPTION
 
-ウェブサイトのリンクチェッカーです。コマンドラインで開始URLを指定してデーモンを起動し、
-ブラウザでhttp://127.0.0.1:3000 を開くとチェック状況が逐一報告されます。
-リンクの収集とステータスコードの収集は再帰的に延々続きますので、matchオプションでURLフィルタをかけておくと、
-そのうち止まるかもしれません。
+This is a Link checker for website.
+Once you start the daemon with a URL option, you can see the checking results at
+http://127.0.0.1:3000 on your brouser and the report will automatically be updated.
 
 ## OPTIONS
 
 下記のオプションが利用可能です:
 
-    クローラーオプション
+    Crawler options
     
-    --start <URL>           クロールをスタートするURLを指定します。
-    --match <regexp>        チェック対象のURLを正規表現で指定します。
-    --sleep <seconds>       クロールの間隔を指定します。
-    --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
-    --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
-    --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
+    --start <URL>           Set start URL for crawling.
+    --match <regexp>        Set regexp to judge whether or not the URL should be
+                            checked.
+    --sleep <seconds>       Set interval for crawling.
+    --ua <string>           Set user agent name for crawler header
+    --cookie <string>       Set cookie string sent to servers
+    --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
     
-    レポートサーバーオプション
+    Report server options
     
     --backlog <size>        Set listen backlog size, defaults to SOMAXCONN.
     --clients <number>      Set maximum number of concurrent clients, defaults
@@ -49,7 +49,8 @@ mojo-checkbot 0.09 beta
 
 ### EXAMPLE2
 
-本プログラムはMojolicious::Liteをベースにしていますので、そちらのオプションも有効なはずです。
+Since this program is based on Mojolicious::Lite, the options provided by it is
+also available.
 
     $ mojo-checkbot daemon --listen http://*:3001 --start http://example.com
 
