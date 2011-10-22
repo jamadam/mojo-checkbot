@@ -98,5 +98,7 @@
 				</table>
 			</form>
 		</div>
+		<div id="loadingContainer">
+		</div>
 	</body>
 </html>
