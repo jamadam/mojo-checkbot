@@ -33,7 +33,7 @@ use MojoCheckbot;
 		my ($res, $jobs) = eval {
 			MojoCheckbot::check("http://localhost:$port/", $ua);
 		};
-		is($@, 'Premature connection close');
+		like($@, qr{^Premature connection close});
 	}
 
 1;

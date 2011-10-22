@@ -34,10 +34,10 @@ EOF
 
 	my $dom = Mojo::DOM->new($html);
 	my @array = MojoCheckbot::collect_urls($dom);
-	is_deeply(shift @array, {literalURI => 'css1.css', context => ''});
-	is_deeply(shift @array, {literalURI => 'css2.css', context => ''});
-	is_deeply(shift @array, {literalURI => 'js1.js', context => ''});
-	is_deeply(shift @array, {literalURI => 'js2.js', context => ''});
+	is_deeply(shift @array, {literalURI => 'css1.css', context => '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
+	is_deeply(shift @array, {literalURI => 'css2.css', context => '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
+	is_deeply(shift @array, {literalURI => 'js1.js', context => '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
+	is_deeply(shift @array, {literalURI => 'js2.js', context => '&lt;script src=&quot;js2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
 	is_deeply(shift @array, {literalURI => 'index1.html', context => 'A'});
 	is_deeply(shift @array, {literalURI => 'index2.html', context => 'B'});
 	is_deeply(shift @array, {literalURI => 'mailto:a@example.com', context => 'C'});
