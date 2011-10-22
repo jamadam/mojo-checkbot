@@ -15,7 +15,7 @@ use Mojo::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Base 'Mojolicious';
 use Encode;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
     my $url_filter = sub {1};
     my $jobs = [];
@@ -146,7 +146,11 @@ our $VERSION = '0.08';
             my $dom = shift;
             if (my $href = $dom->{href} || $dom->{src}) {
                 my $context =
-                        $dom->content_xml || $dom->{alt} || $dom->{title} || $dom->to_xml || '';
+                        $dom->content_xml
+                        || $dom->{alt}
+                        || $dom->{title}
+                        || $dom->to_xml
+                        || '';
                 if (length($context) > 300) {
                     $context = substr($context, 0, 300). '...';
                 }
