@@ -5,12 +5,14 @@ use Getopt::Long 'GetOptions';
 use Mojo::Server::Daemon;
 
 my %description;
-$description{'ja_JP.UTF-8'}= <<"EOF";
-mojo-checkbot���J�n���܂��B
+$description{'ja_JP'}= <<"EOF";
+mojo-checkbotを開始します。
 EOF
 
-if ($description{$ENV{LANG}}) {
-  has description => $description{$ENV{LANG}};
+my $lang = ($ENV{LANG} =~ qr{^([^\.]+)})[0];
+
+if ($description{$lang}) {
+  has description => $description{$lang};
 } else {
   has description => <<'EOF';
 Start mojo-checkbot.
@@ -18,21 +20,21 @@ EOF
 }
 
 my %usage;
-$usage{'ja_JP.UTF-8'}= <<"EOF";
+$usage{'ja_JP'}= <<"EOF";
 hoge usage: $0 daemon [OPTIONS]
 
-���L�̃I�v�V���������p�\�ł�:
+下記のオプションが利用可能です:
   
-  �N���[���[�I�v�V����
+  クローラーオプション
   
-  --start <URL>           �N���[�����X�^�[�g����URL���w�肵�܂��B
-  --match <regexp>        �`�F�b�N�Ώۂ�URL�𐳋K�\���Ŏw�肵�܂��B
-  --sleep <seconds>       �N���[���̊Ԋu���w�肵�܂��B
-  --ua <string>           �N���[���[��HTTP�w�b�_�ɐݒ肷�郆�[�U�[�G�[�W�F���g���w�肵�܂��B
-  --cookie <string>       �N���[���[���T�[�o�[�ɑ��M����N�b�L�[���w�肵�܂��B
-  --timeout <seconds>     �N���[���[�̃^�C���A�E�g����b�����w�肵�܂��B�f�t�H���g��15�ł��B
+  --start <URL>           クロールをスタートするURLを指定します。
+  --match <regexp>        チェック対象のURLを正規表現で指定します。
+  --sleep <seconds>       クロールの間隔を指定します。
+  --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
+  --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
+  --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
   
-  ���|�[�g�T�[�o�[�I�v�V����
+  レポートサーバーオプション
   
   --backlog <size>        Set listen backlog size, defaults to SOMAXCONN.
   --clients <number>      Set maximum number of concurrent clients, defaults
@@ -49,8 +51,8 @@ hoge usage: $0 daemon [OPTIONS]
   --websocket <seconds>   Set WebSocket timeout, defaults to 300.
 EOF
 
-if ($usage{$ENV{LANG}}) {
-  has usage => $usage{$ENV{LANG}};
+if ($usage{$lang}) {
+  has usage => $usage{$lang};
 } else {
   has usage => <<"EOF";
 hoge usage: $0 daemon [OPTIONS]
