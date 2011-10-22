@@ -7,6 +7,7 @@
 		<meta http-equiv="Content-Script-Type" content="text/javascript" />
 		<meta http-equiv="Content-Style-Type" content="text/css" />
 		<link type="text/css" rel="stylesheet" href="/yui-reset.css" />
+		<link type="text/css" rel="stylesheet" href="/yui-fonts.css" />
 		<link type="text/css" rel="stylesheet" href="/main.css" />
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
 		<script type="text/javascript" src="/jquery.lightbox.js"></script>
