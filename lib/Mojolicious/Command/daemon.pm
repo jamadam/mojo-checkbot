@@ -4,10 +4,55 @@ use Mojo::Base 'Mojo::Command';
 use Getopt::Long 'GetOptions';
 use Mojo::Server::Daemon;
 
-has description => <<'EOF';
-Start application with HTTP 1.1 and WebSocket server.
+my %description;
+$description{'ja_JP.UTF-8'}= <<"EOF";
+mojo-checkbotを開始します。
 EOF
-has usage => <<"EOF";
+
+if ($description{$ENV{LANG}}) {
+  has description => $description{$ENV{LANG}};
+} else {
+  has description => <<'EOF';
+Start mojo-checkbot.
+EOF
+}
+
+my %usage;
+$usage{'ja_JP.UTF-8'}= <<"EOF";
+hoge usage: $0 daemon [OPTIONS]
+
+下記のオプションが利用可能です:
+  
+  クローラーオプション
+  
+  --start <URL>           クロールをスタートするURLを指定します。
+  --match <regexp>        チェック対象のURLを正規表現で指定します。
+  --sleep <seconds>       クロールの間隔を指定します。
+  --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
+  --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
+  --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
+  
+  レポートサーバーオプション
+  
+  --backlog <size>        Set listen backlog size, defaults to SOMAXCONN.
+  --clients <number>      Set maximum number of concurrent clients, defaults
+                          to 1000.
+  --group <name>          Set group name for process.
+  --keepalive <seconds>   Set keep-alive timeout, defaults to 15.
+  --listen <location>     Set one or more locations you want to listen on,
+                          defaults to "http://*:3000".
+  --proxy                 Activate reverse proxy support, defaults to the
+                          value of MOJO_REVERSE_PROXY.
+  --requests <number>     Set maximum number of requests per keep-alive
+                          connection, defaults to 25.
+  --user <name>           Set username for process.
+  --websocket <seconds>   Set WebSocket timeout, defaults to 300.
+EOF
+
+if ($usage{$ENV{LANG}}) {
+  has usage => $usage{$ENV{LANG}};
+} else {
+  has usage => <<"EOF";
 hoge usage: $0 daemon [OPTIONS]
 
 These options are available:
@@ -38,6 +83,7 @@ These options are available:
   --user <name>           Set username for process.
   --websocket <seconds>   Set WebSocket timeout, defaults to 300.
 EOF
+}
 
 # "It's an albino humping worm!
 #  Why do they call it that?
