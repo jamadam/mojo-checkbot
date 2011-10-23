@@ -7,9 +7,10 @@ mojo-checkbot 0.10 beta
 
 ## DESCRIPTION
 
-This is a Link checker for website.
-Once you start the daemon with a URL option, you can see the checking results at
-http://127.0.0.1:3000 on your brouser and the report will automatically be updated.
+mojo-checkbot is a Link checker for website. Once you start the daemon with
+a URL option, the crawler automatically collects the status codes for links and
+makes the report view available at http://127.0.0.1:3000. The report will
+automatically be updated until the jobs queue is empty.
 
 ## OPTIONS
 
