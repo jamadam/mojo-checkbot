@@ -15,7 +15,7 @@ use Mojo::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Base 'Mojolicious';
 use Encode;
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
     my $url_filter = sub {1};
     my $jobs = [];
