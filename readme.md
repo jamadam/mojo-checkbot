@@ -50,7 +50,7 @@ mojo-checkbot 0.13 beta
 
 ### EXAMPLE2
 
-本プログラムはMojolicious::Liteをベースにしていますので、そちらのオプションも有効なはずです。
+本プログラムはMojoliciousをベースにしていますので、そちらのオプションも有効なはずです。
 
     $ mojo-checkbot daemon --listen http://*:3001 --start http://example.com
 

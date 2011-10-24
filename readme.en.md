@@ -51,7 +51,7 @@ These options are available:
 
 ### EXAMPLE2
 
-Since this program is based on Mojolicious::Lite, the options provided by it is
+Since this program is based on Mojolicious, the options provided by it is
 also available.
 
     $ mojo-checkbot daemon --listen http://*:3001 --start http://example.com
