@@ -1,6 +1,8 @@
 Revision history for mojo-checkbot
 
 0.12 2011/10/23
+  - Added resume option
+  - Fixed a bug on timeout option
 
 0.11 2011/10/23
   - Fixed a bug on installation
