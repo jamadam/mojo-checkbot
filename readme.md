@@ -3,7 +3,7 @@ mojo-checkbot 0.13 beta
 
 ## SYNOPSIS
     
-    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds]
+    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds] [--resume]
 
 ## DESCRIPTION
 
