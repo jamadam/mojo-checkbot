@@ -65,7 +65,7 @@ our $VERSION = '0.12';
         if ($options{resume} && $cache->exists) {
             my $resume = Mojo::JSON->new->decode($cache->slurp);
             $jobs = $resume->{jobs};
-            @result = $resume->{result};
+            @result = @{$resume->{result}};
         }
         
         $jobs->[0] ||= {
@@ -114,7 +114,7 @@ our $VERSION = '0.12';
         });
         
         my $loop_id2;
-        $loop_id2 = Mojo::IOLoop->recurring(10 => sub {
+        $loop_id2 = Mojo::IOLoop->recurring(1 => sub {
             my $json = Mojo::JSON->new->encode({jobs => $jobs, result => \@result});
             $cache->store($json);
             if (! scalar @$jobs) {
