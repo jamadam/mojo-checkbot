@@ -68,7 +68,7 @@ our $VERSION = '0.13';
         }
         
         $jobs->[0] ||= {
-            resolvedURI     => Mojo::URL->new($options{start}),
+            resolvedURI     => $options{start},
             referer         => 'N/A',
             context         => 'N/A',
             literalURI      => 'N/A',
@@ -105,7 +105,6 @@ our $VERSION = '0.13';
                 push(@$jobs, @$new_jobs);
                 $job->{res} = $res;
             }
-            $job->{resolvedURI} = "$job->{resolvedURI}";
             push(@result, $job);
             if (! scalar @$jobs) {
                 Mojo::IOLoop->drop($loop_id);
