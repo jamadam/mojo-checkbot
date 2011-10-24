@@ -18,7 +18,7 @@ use Encode;
 use utf8;
 use Mojo::Util 'md5_sum';
 use MojoCheckbot::FileCache;
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
     my $url_filter = sub {1};
     my %options;
