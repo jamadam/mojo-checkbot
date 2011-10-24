@@ -6,7 +6,6 @@ use File::Spec;
 use Data::Dumper;
 use Getopt::Long 'GetOptionsFromArray';
 use Mojo::UserAgent;
-use Mojo::Util;
 use Mojo::DOM;
 use Mojo::URL;
 use Mojo::JSON;
