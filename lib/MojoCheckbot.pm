@@ -15,16 +15,29 @@ use Mojo::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Base 'Mojolicious';
 use Encode;
+use utf8;
+use Mojo::Util 'md5_sum';
+use MojoCheckbot::FileCache;
 our $VERSION = '0.12';
 
     my $url_filter = sub {1};
-    my $jobs = [];
     my %options;
-    my $ua;
     my $fix;
+    
+    sub cache_id {
+        my $seed = join('\t',
+            $options{start},
+            $options{match}     || '',
+            $options{ua}        || '',
+            $options{cookie}    || '',
+            $options{timeout}   || '',
+        );
+        return md5_sum($seed);
+    }
 
     sub startup {
         my $self = shift;
+        my $home2 = Mojo::Home->new($self->home);
         $self->app->secret(time());
         $self->home->parse(File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot'));
         $self->static->root($self->home->rel_dir('public'));
@@ -37,10 +50,25 @@ our $VERSION = '0.12';
             'sleep=i',
             'ua=s',
             'cookie=s',
-            'timestamp=s',
+            'timeout=s',
+            'resume',
         );
         
-        $jobs->[0] = {
+        my $ua;
+        my $jobs = [];
+        my @result;
+        my $cache_id = cache_id();
+        my $cache_dir = File::Spec->catfile(File::Spec->tmpdir, 'mojo-checkbot');
+        mkdir($cache_dir);
+        my $cache =
+        MojoCheckbot::FileCache->new->path(File::Spec->catfile($cache_dir, $cache_id));
+        if ($options{resume} && $cache->exists) {
+            my $resume = Mojo::JSON->new->decode($cache->slurp);
+            $jobs = $resume->{jobs};
+            @result = $resume->{result};
+        }
+        
+        $jobs->[0] ||= {
             resolvedURI     => Mojo::URL->new($options{start}),
             referer         => 'N/A',
             context         => 'N/A',
@@ -66,7 +94,6 @@ our $VERSION = '0.12';
             };
         }
         
-        my @result;
         my $loop_id;
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
             my $job = shift @$jobs;
@@ -83,6 +110,15 @@ our $VERSION = '0.12';
             push(@result, $job);
             if (! scalar @$jobs) {
                 Mojo::IOLoop->drop($loop_id);
+            }
+        });
+        
+        my $loop_id2;
+        $loop_id2 = Mojo::IOLoop->recurring(10 => sub {
+            my $json = Mojo::JSON->new->encode({jobs => $jobs, result => \@result});
+            $cache->store($json);
+            if (! scalar @$jobs) {
+                Mojo::IOLoop->drop($loop_id2);
             }
         });
         
@@ -129,7 +165,7 @@ our $VERSION = '0.12';
                         push(@new_jobs, {
                             context     => $entry->{context},
                             literalURI  => $entry->{literalURI},
-                            resolvedURI => $url2,
+                            resolvedURI => "$url2",
                             referer     => "$url",
                         });
                     }
