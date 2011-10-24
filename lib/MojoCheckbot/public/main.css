@@ -20,11 +20,12 @@ table {
         background-color:#eef;
     }
     th {
-        background-color:#58a;
-        font-weight:normal;
+        background-color:#dde;
+        font-family:helvetica,arial,freesans,clean,sans-serif;
+        font-weight:bold;
         text-align:center;
-        color:#000;
-        text-shadow:0px 0px 1px #fff;
+        color:#4183c4;
+        text-shadow: 0 1px 0 #FFFFFF;
     }
     td {
         overflow:hidden;
