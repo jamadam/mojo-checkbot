@@ -114,7 +114,7 @@ our $VERSION = '0.13';
         });
         
         my $loop_id2;
-        $loop_id2 = Mojo::IOLoop->recurring(1 => sub {
+        $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
             my $json = Mojo::JSON->new->encode({jobs => $jobs, result => \@result});
             $cache->store($json);
             if (! scalar @$jobs) {
