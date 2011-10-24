@@ -43,3 +43,41 @@ sub slurp {
 
 1;
 __END__
+
+=head1 NAME
+
+MojoCheckbot::FileCache - Cache handler
+
+=head1 SYNOPSIS
+    
+    my $cahce = MojoCheckbot::FileCache->new;
+    $cahce->path('/path/to/cache');
+    $cahce->store('string');
+    my $string = $cahce->slurp;
+
+=head1 DESCRIPTION
+
+MojoCheckbot::FileCache represents file caches used by MojoCheckbot.
+
+=head1 METHODS
+
+=head2 $instance->store
+
+Stores string into cache files.
+
+=head2 $instance->slurp
+
+Read cache file and returns it.
+
+=head1 AUTHOR
+
+Sugama Keita, E<lt>sugama@jamadam.comE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2011 by Sugama Keita.
+
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
+=cut

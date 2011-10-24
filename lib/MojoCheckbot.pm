@@ -230,3 +230,26 @@ our $VERSION = '0.13';
     }
 
 1;
+
+=head1 NAME
+
+MojoCheckbot - mojo-checkbot
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+MojoCheckbot is a backend for mojo-checkbot, a command line tool.
+
+=head1 AUTHOR
+
+Sugama Keita, E<lt>sugama@jamadam.comE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2011 by Sugama Keita.
+
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
+=cut
