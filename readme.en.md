@@ -25,7 +25,7 @@ These options are available:
     --ua <string>           Set user agent name for crawler header
     --cookie <string>       Set cookie string sent to servers
     --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
-    --resume                Resume previous result and continue it.
+    --resume                [EXPERIMENTAL]Resume previous result and continue it.
     
     Report server options
     

@@ -24,7 +24,7 @@ mojo-checkbot 0.12 beta
     --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
     --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
     --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
-    --resume                前回の結果を復元し、再開します。
+    --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
     
     レポートサーバーオプション
     
