@@ -57,10 +57,12 @@ our $VERSION = '0.15';
         MojoCheckbot::FileCache->new->path(File::Spec->catfile($cache_dir, $cache_id));
         if ($options{resume} && $cache->exists) {
             my $resume = Mojo::JSON->new->decode($cache->slurp);
+            warn Dumper $resume;
             $queues = $resume->{queues};
             @result = @{$resume->{result}};
+            $fix = $resume->{fix};
         }
-        
+        warn Dumper $fix;
         $queues->[0] ||= {
             resolvedURI     => $options{start},
             referer         => 'N/A',
@@ -100,8 +102,12 @@ our $VERSION = '0.15';
         
         my $loop_id2;
         $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
-            my $cache = {queues => $queues, result => \@result};
-            my $json = Mojo::JSON->new->encode($cache);
+            my $cache_structure = {
+                queues  => $queues,
+                result  => \@result,
+                fix     => $fix,
+            };
+            my $json = Mojo::JSON->new->encode($cache_structure);
             $cache->store($json);
             if (! scalar @$queues) {
                 Mojo::IOLoop->drop($loop_id2);
