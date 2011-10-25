@@ -17,7 +17,7 @@ use Encode;
 use utf8;
 use Mojo::Util 'md5_sum';
 use MojoCheckbot::FileCache;
-our $VERSION = '0.15';
+our $VERSION = '0.16';
     
     my $QUEUE_KEY_CONTEXT       = 1;
     my $QUEUE_KEY_LITERAL_URI   = 2;
