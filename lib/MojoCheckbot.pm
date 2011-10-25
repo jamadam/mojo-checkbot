@@ -54,13 +54,13 @@ our $VERSION = '0.16';
         );
         
         my $queues = [];
-        my @result;
+        my $result;
         my $cache = MojoCheckbot::FileCache->new(cache_id());
         if ($options{resume} && $cache->exists) {
             my $resume = Mojo::JSON->new->decode($cache->slurp);
             $queues = $resume->{queues};
-            @result = @{$resume->{result}};
-            for my $key (@$queues, @result) {
+            $result = $resume->{result};
+            for my $key (@$queues, @$result) {
                 $fix->{md5_sum($key)} = undef;
             }
             $fix = $resume->{fix};
@@ -96,7 +96,7 @@ our $VERSION = '0.16';
                 push(@$queues, @$new_queues);
                 $queue->{$QUEUE_KEY_RES} = $res;
             }
-            push(@result, $queue);
+            push(@$result, $queue);
             if (! scalar @$queues) {
                 Mojo::IOLoop->drop($loop_id);
             }
@@ -106,7 +106,7 @@ our $VERSION = '0.16';
         $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
             my $cache_structure = {
                 queues  => $queues,
-                result  => \@result,
+                result  => $result,
             };
             my $json = Mojo::JSON->new->encode($cache_structure);
             $cache->store($json);
@@ -119,8 +119,11 @@ our $VERSION = '0.16';
         $r->route('/diff')->to(cb => sub {
             my $c = shift;
             my $offset = $c->req->param('offset');
-            my $last = ($#result - $offset > 100) ? $offset + 100 : $#result;
-            my @diff = @result[$offset..$last];
+            my $last = scalar @$result;
+            if ($last - $offset > 100) {
+                $last = $offset + 100;
+            }
+            my @diff = @$result[$offset..$last];
             $c->render_json({queues => scalar @$queues, result => \@diff});
         });
         $r->route('/')->to(cb => sub {
