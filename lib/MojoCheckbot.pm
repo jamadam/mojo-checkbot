@@ -54,16 +54,18 @@ our $VERSION = '0.17';
         
         my $queues = [];
         my $result = [];
+        
         my $cache = MojoCheckbot::FileCache->new(cache_id());
+        
         if ($options{resume} && $cache->exists) {
             my $resume = $cache->slurp;
             $queues = $resume->{queues};
             $result = $resume->{result};
-            for my $key (@$queues, @$result) {
-                $fix->{md5_sum($key)} = undef;
+            for my $entry (@$queues, @$result) {
+                $fix->{md5_sum($entry->{$QUEUE_KEY_RESOLVED_URI})} = undef;
             }
-            $fix = $resume->{fix};
         }
+        
         $queues->[0] ||= {
             $QUEUE_KEY_RESOLVED_URI => $options{start},
             $QUEUE_KEY_REFERER      => 'N/A',
@@ -163,7 +165,7 @@ our $VERSION = '0.17';
                     if ($options{match} && "$url2" !~ /$options{match}/) {
                         next;
                     }
-                    my $md5 = md5_sum($url2);
+                    my $md5 = md5_sum("$url2");
                     if (exists $fix->{$md5}) {
                         next;
                     }
