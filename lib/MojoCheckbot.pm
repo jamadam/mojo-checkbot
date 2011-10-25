@@ -128,7 +128,8 @@ our $VERSION = '0.14';
         $r->route('/echo')->to(cb => sub {
             my $c = shift;
             my $offset = $c->req->param('offset');
-            my @diff = @result[$offset..$#result];
+            my $last = ($#result - $offset > 100) ? $offset + 100 : $#result;
+            my @diff = @result[$offset..$last];
             $c->render_json({remain => scalar @$jobs, result => \@diff});
         });
         $r->route('/')->to(cb => sub {
