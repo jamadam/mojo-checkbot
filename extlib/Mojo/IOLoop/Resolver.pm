@@ -111,15 +111,9 @@ sub build {
   return $req;
 }
 
-sub is_ipv4 {
-  return 1 if pop =~ $IPV4_RE;
-  return;
-}
+sub is_ipv4 { pop =~ $IPV4_RE }
 
-sub is_ipv6 {
-  return 1 if pop =~ $IPV6_RE;
-  return;
-}
+sub is_ipv6 { pop =~ $IPV6_RE }
 
 sub lookup {
   my ($self, $name, $cb) = @_;
@@ -375,6 +369,7 @@ Mojo::IOLoop::Resolver - IOLoop DNS stub resolver
 
 L<Mojo::IOLoop::Resolver> is a minimalistic non-blocking I/O DNS stub
 resolver used by L<Mojo:IOLoop>.
+
 Note that this module is EXPERIMENTAL and might change without warning!
 
 =head1 ATTRIBUTES

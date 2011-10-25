@@ -338,7 +338,7 @@ sub _get_content {
 
   # Charset
   my $charset;
-  ($tx->res->headers->content_type || '') =~ /charset=\"?([^"\s]+)\"?/
+  ($tx->res->headers->content_type || '') =~ /charset="?([^"\s]+)"?/
     and $charset = $1;
 
   # Content
@@ -661,8 +661,6 @@ Reset user agent session.
 
   $t = $t->send_message_ok('hello');
   $t = $t->send_message_ok('hello', 'sent successfully');
-  $t = $t->send_message_ok([$bytes]);
-  $t = $t->send_message_ok([$bytes], 'sent successfully');
 
 Send C<WebSocket> message.
 Note that this method is EXPERIMENTAL and might change without warning!

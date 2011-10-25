@@ -34,9 +34,7 @@ sub handle { shift->{handle} }
 
 sub is_finished {
   my $self = shift;
-  return if length $self->{buffer};
-  return if @{$self->subscribers('drain')};
-  return 1;
+  return !length($self->{buffer}) && !@{$self->subscribers('drain')};
 }
 
 sub pause {
@@ -169,6 +167,7 @@ Mojo::IOLoop::Stream - IOLoop stream
 
 L<Mojo::IOLoop::Stream> is a container for streaming handles used by
 L<Mojo::IOLoop>.
+
 Note that this module is EXPERIMENTAL and might change without warning!
 
 =head1 EVENTS

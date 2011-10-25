@@ -121,8 +121,7 @@ sub fix_headers {
 sub is_status_class {
   my ($self, $class) = @_;
   return unless my $code = $self->code;
-  return 1 if $code >= $class && $code < ($class + 100);
-  return;
+  return $code >= $class && $code < ($class + 100);
 }
 
 sub _build_start_line {
@@ -144,21 +143,21 @@ sub _parse_start_line {
   my $self = shift;
 
   # Try to detect HTTP 0.9
-  $self->{state} = 'content';
-  if ($self->{buffer} !~ /^\s*HTTP\//) {
+  if ($self->{buffer} =~ /^\s*(\S.{4})/ && $1 !~ /^HTTP\//) {
     $self->version('0.9');
-    return $self->content->relaxed(1);
+    $self->content->relaxed(1);
+    return $self->{state} = 'content';
   }
 
   # We have a full HTTP 1.0+ response line
-  my $line = get_line $self->{buffer};
-  return unless defined $line;
+  return unless defined(my $line = get_line $self->{buffer});
   return $self->error('Bad response start line.')
     unless $line =~ $START_LINE_RE;
   $self->version($1);
   $self->code($2);
   $self->message($3);
   $self->content->auto_relax(1);
+  $self->{state} = 'content';
 }
 
 1;

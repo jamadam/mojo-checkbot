@@ -49,7 +49,6 @@ sub load_plugin {
   die qq/Plugin "$name" missing, maybe you need to install it?\n/;
 }
 
-# "Let's see how crazy I am now, Nixon. The correct answer is very."
 sub register_plugin {
   my $self = shift;
   my $name = shift;
@@ -98,6 +97,9 @@ Mojolicious::Plugins - Plugins
 =head1 SYNOPSIS
 
   use Mojolicious::Plugins;
+
+  my $plugins = Mojolicious::Plugin->new;
+  $plugins->load_plugin('Config');
 
 =head1 DESCRIPTION
 

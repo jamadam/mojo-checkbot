@@ -71,7 +71,7 @@ sub body_params {
   my $params = Mojo::Parameters->new;
   my $type = $self->headers->content_type || '';
   $params->charset($self->default_charset);
-  $type =~ /charset=\"?(\S+)\"?/ and $params->charset($1);
+  $type =~ /charset="?(\S+)"?/ and $params->charset($1);
 
   # "x-application-urlencoded" and "application/x-www-form-urlencoded"
   if ($type =~ /(?:x-application|application\/x-www-form)-urlencoded/i) {
@@ -183,7 +183,7 @@ sub dom {
   # Parse
   return if $self->is_multipart;
   my $charset;
-  ($self->headers->content_type || '') =~ /charset=\"?([^\"\s;]+)\"?/
+  ($self->headers->content_type || '') =~ /charset="?([^"\s;]+)"?/
     and $charset = $1;
   my $dom = $self->dom_class->new(charset => $charset)->parse($self->body);
 
@@ -291,16 +291,11 @@ EOF
 
 sub is_dynamic { shift->content->is_dynamic }
 
-sub is_finished {
-  return 1 if (shift->{state} || '') eq 'finished';
-  return;
-}
+sub is_finished { (shift->{state} || '') eq 'finished' }
 
 sub is_limit_exceeded {
-  my $self = shift;
-  return unless my $code = ($self->error)[1];
-  return unless $code ~~ [413, 431];
-  return 1;
+  return unless my $code = (shift->error)[1];
+  return $code ~~ [413, 431];
 }
 
 sub is_multipart { shift->content->is_multipart }
@@ -493,7 +488,7 @@ sub _parse_formdata {
   my $content = $self->content;
   return \@formdata unless $content->is_multipart;
   my $default = $self->default_charset;
-  ($self->headers->content_type || '') =~ /charset=\"?(\S+)\"?/
+  ($self->headers->content_type || '') =~ /charset="?(\S+)"?/
     and $default = $1;
 
   # Walk the tree
@@ -509,14 +504,14 @@ sub _parse_formdata {
 
     # Charset
     my $charset = $default;
-    ($part->headers->content_type || '') =~ /charset=\"?(\S+)\"?/
+    ($part->headers->content_type || '') =~ /charset="?(\S+)"?/
       and $charset = $1;
 
     # "Content-Disposition"
     my $disposition = $part->headers->content_disposition;
     next unless $disposition;
-    my ($name)     = $disposition =~ /\ name="?([^\";]+)"?/;
-    my ($filename) = $disposition =~ /\ filename="?([^\"]*)"?/;
+    my ($name)     = $disposition =~ /\ name="?([^";]+)"?/;
+    my ($filename) = $disposition =~ /\ filename="?([^"]*)"?/;
     my $value      = $part;
 
     # Unescape
@@ -591,16 +586,9 @@ Emitted when message building or parsing makes progress.
 
   $message->on(progress => sub {
     my $message = shift;
-
-    # Make sure we have enough information
-    return
-      unless $message->content->is_parsing_body || $message->is_finished;
     return unless my $len = $message->headers->content_length;
-    my $progress = $message->content->progress;
-
-    # Calculate progress
-    say 'Progress: ',
-      $progress == $len ? 100 : int($progress / ($len / 100)), '%';
+    my $size = $message->content->progress;
+    say 'Progress: ', $size == $len ? 100 : int($size / ($len / 100)), '%';
   });
 
 =head1 ATTRIBUTES
@@ -642,7 +630,8 @@ to L<Mojo::JSON>.
   my $size = $message->max_message_size;
   $message = $message->max_message_size(1024);
 
-Maximum message size in bytes, defaults to C<5242880>.
+Maximum message size in bytes, defaults to the value of
+C<MOJO_MAX_MESSAGE_SIZE> or C<5242880>.
 
 =head1 METHODS
 
@@ -661,8 +650,13 @@ Check if message is at least a specific version.
   $message   = $message->body('Hello!');
   my $cb     = $message->body(sub {...});
 
-Access and replace text content or register C<read> event with content, which
-will be emitted when new content arrives.
+Access and replace text content or register C<read> event with C<content>,
+which will be emitted when new data arrives.
+
+  $message->body(sub {
+    my ($message, $chunk) = @_;
+    say "Streaming: $chunk";
+  });
 
 =head2 C<body_params>
 
@@ -812,7 +806,7 @@ Remove leftover data from message parser.
 
   $message->max_line_size(1024);
 
-Maximum line size in bytes.
+Alias for L<Mojo::Headers/"max_line_size">.
 Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<param>

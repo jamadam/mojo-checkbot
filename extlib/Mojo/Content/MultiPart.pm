@@ -47,7 +47,7 @@ sub build_boundary {
   my $headers = $self->headers;
   my $type = $headers->content_type || '';
   my $boundary;
-  $type =~ /boundary=\"?([^\s\"]+)\"?/i and $boundary = $1;
+  $type =~ /boundary="?([^\s"]+)"?/i and $boundary = $1;
   return $boundary if $boundary;
 
   # Generate and check boundary
@@ -243,7 +243,7 @@ Mojo::Content::MultiPart - HTTP 1.1 multipart content container
 
   my $multi = Mojo::Content::MultiPart->new;
   $multi->parse('Content-Type: multipart/mixed; boundary=---foobar');
-  my $part = $multi->parts->[4];
+  my $single = $multi->parts->[4];
 
 =head1 DESCRIPTION
 
@@ -263,6 +263,12 @@ emit the following new ones.
 
 Emitted when a new L<Mojo::Content::Single> part starts.
 Note that this event is EXPERIMENTAL and might change without warning!
+
+  $multi->on(part => sub {
+    my ($multi, $single) = @_;
+    return unless $single->headers->content_disposition =~ /name="([^"]+)"/;
+    say "Field: $1";
+  });
 
 =head1 ATTRIBUTES
 

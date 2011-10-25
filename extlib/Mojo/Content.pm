@@ -75,8 +75,6 @@ sub clone {
   return $self->new(headers => $self->headers->clone);
 }
 
-# "Aren't we forgetting the true meaning of Christmas?
-#  You know, the birth of Santa."
 sub generate_body_chunk {
   my ($self, $offset) = @_;
 
@@ -114,17 +112,12 @@ sub get_header_chunk {
 
 sub has_leftovers {
   my $self = shift;
-  return 1 if length $self->{buffer} || length $self->{pre_buffer};
-  return;
+  return length($self->{buffer}) || length($self->{pre_buffer});
 }
 
 sub header_size { length shift->build_headers }
 
-sub is_chunked {
-  my $self = shift;
-  my $encoding = $self->headers->transfer_encoding || '';
-  return $encoding =~ /chunked/i ? 1 : 0;
-}
+sub is_chunked { (shift->headers->transfer_encoding || '') =~ /chunked/i }
 
 # DEPRECATED in Leaf Fluttering In Wind!
 sub is_done {
@@ -136,21 +129,14 @@ EOF
 
 sub is_dynamic {
   my $self = shift;
-  return 1 if $self->{dynamic} && !defined $self->headers->content_length;
-  return;
+  return $self->{dynamic} && !defined $self->headers->content_length;
 }
 
-sub is_finished {
-  return 1 if (shift->{state} || '') eq 'finished';
-  return;
-}
+sub is_finished { (shift->{state} || '') eq 'finished' }
 
 sub is_multipart {undef}
 
-sub is_parsing_body {
-  return 1 if (shift->{state} || '') eq 'body';
-  return;
-}
+sub is_parsing_body { (shift->{state} || '') eq 'body' }
 
 sub leftovers {
   my $self = shift;
@@ -249,9 +235,6 @@ sub parse_body_once {
   return $self;
 }
 
-# "Quick Smithers. Bring the mind eraser device!
-#  You mean the revolver, sir?
-#  Precisely."
 sub parse_until_body {
   my ($self, $chunk) = @_;
 
@@ -283,6 +266,7 @@ sub parse_until_body {
 
 sub progress {
   my $self = shift;
+  return 0 unless ($self->{state} || '') ~~ [qw/body finished/];
   return $self->{raw_size} - ($self->{header_size} || 0);
 }
 
@@ -637,9 +621,9 @@ Parse chunk and stop after headers.
 
 =head2 C<progress>
 
-  my $bytes = $content->progress;
+  my $size = $content->progress;
 
-Number of bytes already received from message content.
+Size of content already received from message in bytes.
 Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<write>

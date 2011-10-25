@@ -50,10 +50,8 @@ sub connect {
   weaken $client->{resolver};
 
   # Events
-  $c->{close}   ||= delete $args->{on_close};
-  $c->{connect} ||= delete $args->{on_connect};
-  $c->{error}   ||= delete $args->{on_error};
-  $c->{read}    ||= delete $args->{on_read};
+  $c->{$_} = delete($args->{"on_$_"}) || $c->{$_}
+    for qw/close connect error read/;
   weaken $self;
   $client->on(
     connect => sub {
@@ -269,12 +267,9 @@ sub start_tls {
   my $id   = shift;
   my $args = ref $_[0] ? $_[0] : {@_};
 
-  # Steal handle and upgrade to TLS
-  my $stream = delete $self->{connections}->{$id}->{stream};
-  $args->{handle} = $stream->steal_handle;
-  $args->{id}     = $id;
-  $args->{tls}    = 1;
-  $self->connect($args);
+  # Steal handle and start TLS handshake
+  my $handle = delete($self->{connections}->{$id}->{stream})->steal_handle;
+  $self->connect({%$args, handle => $handle, id => $id, tls => 1});
 }
 
 sub stop {
@@ -426,7 +421,7 @@ Mojo::IOLoop - Minimalistic reactor for non-blocking TCP clients and servers
 
   # Listen on port 3000
   Mojo::IOLoop->listen(
-    port => 3000,
+    port    => 3000,
     on_read => sub {
       my ($loop, $id, $chunk) = @_;
 
@@ -440,9 +435,9 @@ Mojo::IOLoop - Minimalistic reactor for non-blocking TCP clients and servers
 
   # Connect to port 3000 with TLS activated
   my $id = Mojo::IOLoop->connect(
-    address => 'localhost',
-    port => 3000,
-    tls => 1,
+    address    => 'localhost',
+    port       => 3000,
+    tls        => 1,
     on_connect => sub {
       my ($loop, $id) = @_;
 
@@ -606,6 +601,10 @@ following new ones.
     address => '127.0.0.1',
     port    => 3000
   );
+  my $id = $loop->connect({
+    address => '127.0.0.1',
+    port    => 3000
+  });
 
 Open a TCP connection to a remote host.
 Note that TLS support depends on L<IO::Socket::SSL> and IPv6 support on
@@ -682,7 +681,7 @@ Note that this method is EXPERIMENTAL and might change without warning!
 
 Drop anything with an id.
 Connections will be dropped gracefully by allowing them to finish writing all
-data in its write buffer.
+data in their write buffers.
 
 =head2 C<generate_port>
 
@@ -712,12 +711,6 @@ Check if loop is running.
   my $id = Mojo::IOLoop->listen(port => 3000);
   my $id = $loop->listen(port => 3000);
   my $id = $loop->listen({port => 3000});
-  my $id = $loop->listen(
-    port     => 443,
-    tls      => 1,
-    tls_cert => '/foo/server.cert',
-    tls_key  => '/foo/server.key'
-  );
 
 Create a new listen socket.
 Note that TLS support depends on L<IO::Socket::SSL> and IPv6 support on
@@ -886,10 +879,47 @@ Start the loop, this will block until C<stop> is called.
 
 =head2 C<start_tls>
 
-  $loop->start_tls($id);
+  $loop->start_tls($id => (
+    tls_cert => '/foo/client.cert',
+    tls_key  => '/foo/client.key'
+  ));
+  $loop->start_tls($id => {
+    tls_cert => '/foo/client.cert',
+    tls_key  => '/foo/client.key'
+  });
 
 Start new TLS connection inside old connection.
 Note that TLS support depends on L<IO::Socket::SSL>.
+
+These options are currently available:
+
+=over 2
+
+=item C<on_connect>
+
+Callback to be invoked once the connection is established.
+
+=item C<on_close>
+
+Callback to be invoked if the connection gets closed.
+
+=item C<on_error>
+
+Callback to be invoked if an error happens on the connection.
+
+=item C<on_read>
+
+Callback to be invoked if new data arrives on the connection.
+
+=item C<tls_cert>
+
+Path to the TLS certificate file.
+
+=item C<tls_key>
+
+Path to the TLS key file.
+
+=back
 
 =head2 C<stop>
 

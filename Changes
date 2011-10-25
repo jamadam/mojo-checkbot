@@ -1,7 +1,9 @@
 Revision history for mojo-checkbot
 
 0.14 2011/10/25
-  - script file moved to mojo root
+  - Fixed a bug on fetching very large report 
+  - Script file is moved to mojo root
+  - Mojolicious2.10 is bundled
 
 0.13 2011/10/25
   - Redirection with meta tag also detected

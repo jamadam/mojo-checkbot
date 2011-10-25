@@ -104,7 +104,15 @@ L<Mojo::Server> can emit the following events.
     my ($server, $tx) = @_;
   });
 
-Emitted for requests that need a response.
+Emitted when a request is ready and needs to be handled.
+
+  $server->on(request => sub {
+    my ($server, $tx) = @_;
+    $tx->res->code(200);
+    $tx->res->headers->content_type('text/plain');
+    $tx->res->body('Hello World!');
+    $tx->resume;
+  });
 
 =head1 ATTRIBUTES
 
