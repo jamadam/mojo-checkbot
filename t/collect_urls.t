@@ -34,15 +34,15 @@ EOF
 
 	my $dom = Mojo::DOM->new($html);
 	my @array = MojoCheckbot::collect_urls($dom);
-	is_deeply(shift @array, {literalURI => 'css1.css', context => '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
-	is_deeply(shift @array, {literalURI => 'css2.css', context => '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
-	is_deeply(shift @array, {literalURI => 'js1.js', context => '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
-	is_deeply(shift @array, {literalURI => 'js2.js', context => '&lt;script src=&quot;js2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
-	is_deeply(shift @array, {literalURI => 'index1.html', context => 'A'});
-	is_deeply(shift @array, {literalURI => 'index2.html', context => 'B'});
-	is_deeply(shift @array, {literalURI => 'mailto:a@example.com', context => 'C'});
-	is_deeply(shift @array, {literalURI => 'tel:0000', context => 'D'});
-	is_deeply(shift @array, {literalURI => 'index3.html', context => 'E'});
+	is_deeply(shift @array, {2 => 'css1.css', 1 => '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
+	is_deeply(shift @array, {2 => 'css2.css', 1 => '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
+	is_deeply(shift @array, {2 => 'js1.js', 1 => '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
+	is_deeply(shift @array, {2 => 'js2.js', 1 => '&lt;script src=&quot;js2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
+	is_deeply(shift @array, {2 => 'index1.html', 1 => 'A'});
+	is_deeply(shift @array, {2 => 'index2.html', 1 => 'B'});
+	is_deeply(shift @array, {2 => 'mailto:a@example.com', 1 => 'C'});
+	is_deeply(shift @array, {2 => 'tel:0000', 1 => 'D'});
+	is_deeply(shift @array, {2 => 'index3.html', 1 => 'E'});
 	is(shift @array, undef);
 
 1;
