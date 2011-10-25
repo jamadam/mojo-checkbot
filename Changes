@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
 0.13 2011/10/24
+  - Redirection with meta tag also detected
 
 0.12 2011/10/24
   - Added resume option

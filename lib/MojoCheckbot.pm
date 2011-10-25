@@ -176,9 +176,9 @@ our $VERSION = '0.13';
     sub collect_urls {
         my ($dom) = @_;
         my @array;
-        $dom->find('script, link, a, img, area')->each(sub {
+        $dom->find('script, link, a, img, area, meta[http\-equiv=Refresh]')->each(sub {
             my $dom = shift;
-            if (my $href = $dom->{href} || $dom->{src}) {
+            if (my $href = $dom->{href} || $dom->{src} || ($dom->{content} =~ qr{URL=(.+)}i)[0]) {
                 my $context =
                         $dom->content_xml
                         || $dom->{alt}
