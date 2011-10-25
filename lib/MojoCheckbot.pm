@@ -8,7 +8,6 @@ use Getopt::Long 'GetOptionsFromArray';
 use Mojo::UserAgent;
 use Mojo::DOM;
 use Mojo::URL;
-use Mojo::JSON;
 use Mojo::IOLoop;
 use Mojo::CookieJar;
 use Mojo::Cookie::Response;
@@ -54,10 +53,10 @@ our $VERSION = '0.16';
         );
         
         my $queues = [];
-        my $result;
+        my $result = [];
         my $cache = MojoCheckbot::FileCache->new(cache_id());
         if ($options{resume} && $cache->exists) {
-            my $resume = Mojo::JSON->new->decode($cache->slurp);
+            my $resume = $cache->slurp;
             $queues = $resume->{queues};
             $result = $resume->{result};
             for my $key (@$queues, @$result) {
@@ -104,12 +103,7 @@ our $VERSION = '0.16';
         
         my $loop_id2;
         $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
-            my $cache_structure = {
-                queues  => $queues,
-                result  => $result,
-            };
-            my $json = Mojo::JSON->new->encode($cache_structure);
-            $cache->store($json);
+            $cache->store({queues  => $queues, result  => $result});
             if (! scalar @$queues) {
                 Mojo::IOLoop->drop($loop_id2);
             }

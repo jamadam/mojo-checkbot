@@ -5,11 +5,14 @@ use Fcntl ':flock';
 use IO::File;
 use File::Basename qw(dirname);
 use File::Spec;
+use Mojo::JSON;
 
 has 'path';
 has 'dir' => sub {
     File::Spec->catfile(File::Spec->tmpdir, 'mojo-checkbot');
 };
+
+my $j = Mojo::JSON->new;
 
 sub new {
     my $self = shift->SUPER::new();
@@ -27,13 +30,14 @@ sub exists {
 sub store {
     my ($self, $data) = @_;
     my $path = $self->path;
+    my $json = $j->encode($data);
     my $handle = IO::File->new("$path", '>:utf8');
     if (! $handle) {
         croak qq{Can't open cache file "$path": $!};
     }
     flock $handle, LOCK_EX;
     $handle->sysseek(0, SEEK_SET);
-    $handle->syswrite($data);
+    $handle->syswrite($json);
     $handle->eof;
     flock $handle, LOCK_UN;
     return $self;
@@ -51,7 +55,7 @@ sub slurp {
     while ($handle->sysread(my $buffer, 131072)) {
         $content .= $buffer;
     }
-    return $content;
+    return $j->decode($content);
 }
 
 1;
