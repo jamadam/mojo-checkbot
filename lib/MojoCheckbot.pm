@@ -19,7 +19,6 @@ use Mojo::Util 'md5_sum';
 use MojoCheckbot::FileCache;
 our $VERSION = '0.15';
 
-    my $url_filter = sub {1};
     my %options;
     my $fix;
     
@@ -77,17 +76,6 @@ our $VERSION = '0.15';
             $ua->cookie_jar(Mojo::CookieJar->new->add(@$cookies));
         }
         
-        if ($options{match}) {
-            my $url_filter_last = $url_filter;
-            $url_filter = sub {
-                my $url = shift;
-                if (! $url_filter_last->($url)) {
-                    return 0;
-                }
-                return "$url" =~ /$options{match}/;
-            };
-        }
-        
         my $loop_id;
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
             my $queue = shift @$queues;
@@ -112,7 +100,8 @@ our $VERSION = '0.15';
         
         my $loop_id2;
         $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
-            my $json = Mojo::JSON->new->encode({queues => $queues, result => \@result});
+            my $cache = {queues => $queues, result => \@result};
+            my $json = Mojo::JSON->new->encode($cache);
             $cache->store($json);
             if (! scalar @$queues) {
                 Mojo::IOLoop->drop($loop_id2);
@@ -164,39 +153,51 @@ our $VERSION = '0.15';
                 my @urls = collect_urls($dom);
                 for my $entry (@urls) {
                     my $url2 = resolve_href($base, $entry->{literalURI});
-                    if ($url2->scheme =~ qr{https?|ftp}
-                            && $url_filter->("$url2") && ! $fix->{$url2}) {
-                        $fix->{$url2} = 1;
-                        push(@new_queues, {
-                            context     => $entry->{context},
-                            literalURI  => $entry->{literalURI},
-                            resolvedURI => "$url2",
-                        });
+                    if ($url2->scheme !~ qr{https?|ftp}) {
+                        next;
                     }
+                    if ($options{match} && "$url2" !~ /$options{match}/) {
+                        next;
+                    }
+                    if ($fix->{$url2}) {
+                        next;
+                    }
+                    $fix->{$url2} = 1;
+                    push(@new_queues, {
+                        context     => $entry->{context},
+                        literalURI  => $entry->{literalURI},
+                        resolvedURI => "$url2",
+                    });
                 }
             }
         }
         return $code, \@new_queues;
     }
     
+    sub _analize_dom {
+        my $dom = shift;
+        if (my $href = $dom->{href} || $dom->{src} ||
+            $dom->{content} && ($dom->{content} =~ qr{URL=(.+)}i)[0]) {
+            my $context =
+                    $dom->content_xml
+                    || $dom->{alt}
+                    || $dom->{title}
+                    || $dom->to_xml
+                    || '';
+            if (length($context) > 300) {
+                $context = substr($context, 0, 300). '...';
+            }
+            Mojo::Util::html_escape($context);
+            return {context  => $context, literalURI => $href};
+        }
+    }
+
     sub collect_urls {
         my ($dom) = @_;
         my @array;
         $dom->find('script, link, a, img, area, meta[http\-equiv=Refresh]')->each(sub {
-            my $dom = shift;
-            if (my $href = $dom->{href} || $dom->{src} ||
-                $dom->{content} && ($dom->{content} =~ qr{URL=(.+)}i)[0]) {
-                my $context =
-                        $dom->content_xml
-                        || $dom->{alt}
-                        || $dom->{title}
-                        || $dom->to_xml
-                        || '';
-                if (length($context) > 300) {
-                    $context = substr($context, 0, 300). '...';
-                }
-                Mojo::Util::html_escape($context);
-                push(@array, {context  => $context, literalURI => $href});
+            if (my $queue = _analize_dom(shift)) {
+                push(@array, $queue);
             }
         });
         return @array;
