@@ -102,6 +102,10 @@ our $VERSION = '0.13';
             if ($@) {
                 $job->{error} = $@;
             } else {
+                @$new_jobs = map {
+                    $_->{referer} = $job->{resolvedURI};
+                    $_;
+                } @$new_jobs;
                 push(@$jobs, @$new_jobs);
                 $job->{res} = $res;
             }
@@ -135,15 +139,22 @@ our $VERSION = '0.13';
     
     sub check {
         my ($url, $ua) = @_;
-        my $tx = $ua->max_redirects(5)->head($url);
+        my $tx = $ua->max_redirects(0)->head($url);
         my $code = $tx->res->code;
         if (! $code) {
             my ($message) = $tx->error;
             die $message;
         }
         my @new_jobs;
+        if (my $location = $tx->res->headers->header('location')) {
+            push(@new_jobs, {
+                context     => '*Redirected by server configuration*',
+                literalURI  => $location,
+                resolvedURI => $location,
+            });
+        }
         if ($code && $code == 200) {
-            my $tx = $ua->max_redirects(5)->get($url);
+            my $tx = $ua->max_redirects(0)->get($url);
             my $res = $tx->res;
             $code = $res->code;
             if ($res->headers->content_type =~ qr{text/(html|xml)}) {
@@ -164,7 +175,6 @@ our $VERSION = '0.13';
                             context     => $entry->{context},
                             literalURI  => $entry->{literalURI},
                             resolvedURI => "$url2",
-                            referer     => "$url",
                         });
                     }
                 }
@@ -178,7 +188,8 @@ our $VERSION = '0.13';
         my @array;
         $dom->find('script, link, a, img, area, meta[http\-equiv=Refresh]')->each(sub {
             my $dom = shift;
-            if (my $href = $dom->{href} || $dom->{src} || ($dom->{content} =~ qr{URL=(.+)}i)[0]) {
+            if (my $href = $dom->{href} || $dom->{src} ||
+                $dom->{content} && ($dom->{content} =~ qr{URL=(.+)}i)[0]) {
                 my $context =
                         $dom->content_xml
                         || $dom->{alt}
