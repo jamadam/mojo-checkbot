@@ -117,7 +117,7 @@ our $VERSION = '0.16';
             if ($last - $offset > 100) {
                 $last = $offset + 100;
             }
-            my @diff = @$result[$offset..$last];
+            my @diff = @$result[$offset .. $last - 1];
             $c->render_json({queues => scalar @$queues, result => \@diff});
         });
         $r->route('/')->to(cb => sub {
