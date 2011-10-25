@@ -1,6 +1,8 @@
 Revision history for mojo-checkbot
 
 0.15 2011/10/25
+  - Reduced cache size
+  - Fixed a small bug on resume
 
 0.14 2011/10/25
   - Fixed a bug on fetching very large report 
