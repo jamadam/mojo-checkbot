@@ -1,6 +1,8 @@
 Revision history for mojo-checkbot
 
-0.13 2011/10/24
+0.14 2011/10/25
+
+0.13 2011/10/25
   - Redirection with meta tag also detected
   - Redirection is reported as separated requests
 
