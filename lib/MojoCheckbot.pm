@@ -120,7 +120,11 @@ our $VERSION = '0.17';
                 $last = $offset + 100;
             }
             my @diff = @$result[$offset .. $last - 1];
-            $c->render_json({queues => scalar @$queues, result => \@diff});
+            $c->render_json({
+                queues  => scalar @$queues,
+                fixed   => scalar @$result,
+                result  => \@diff
+            });
         });
         $r->route('/')->to(cb => sub {
             my $c = shift;
