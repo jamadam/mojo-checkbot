@@ -12,10 +12,10 @@ use Mojo::JSON;
 use Mojo::IOLoop;
 use Mojo::CookieJar;
 use Mojo::Cookie::Response;
+use Mojo::Util 'md5_sum';
 use Mojo::Base 'Mojolicious';
 use Encode;
 use utf8;
-use Mojo::Util 'md5_sum';
 use MojoCheckbot::FileCache;
 our $VERSION = '0.16';
     
@@ -53,14 +53,9 @@ our $VERSION = '0.16';
             'resume',
         );
         
-        my $ua;
         my $queues = [];
         my @result;
-        my $cache_id = cache_id();
-        my $cache_dir = File::Spec->catfile(File::Spec->tmpdir, 'mojo-checkbot');
-        mkdir($cache_dir);
-        my $cache =
-        MojoCheckbot::FileCache->new->path(File::Spec->catfile($cache_dir, $cache_id));
+        my $cache = MojoCheckbot::FileCache->new(cache_id());
         if ($options{resume} && $cache->exists) {
             my $resume = Mojo::JSON->new->decode($cache->slurp);
             $queues = $resume->{queues};
@@ -77,7 +72,7 @@ our $VERSION = '0.16';
             $QUEUE_KEY_LITERAL_URI  => 'N/A',
         };
         
-        $ua = Mojo::UserAgent->new->name($options{ua} || "mojo-checkbot($VERSION)");
+        my $ua = Mojo::UserAgent->new->name($options{ua} || "mojo-checkbot($VERSION)");
         $ua->keep_alive_timeout($options{timeout});
         
         if ($options{cookie}) {

@@ -3,8 +3,21 @@ use Mojo::Base -base;
 use Carp 'croak';
 use Fcntl ':flock';
 use IO::File;
+use File::Basename qw(dirname);
+use File::Spec;
 
 has 'path';
+has 'dir' => sub {
+    File::Spec->catfile(File::Spec->tmpdir, 'mojo-checkbot');
+};
+
+sub new {
+    my $self = shift->SUPER::new();
+    my $name = shift;
+    mkdir $self->dir;
+    $self->path(File::Spec->catfile($self->dir, $name));
+    return $self;
+}
 
 sub exists {
     my $self = shift;
