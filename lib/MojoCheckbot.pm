@@ -36,7 +36,6 @@ our $VERSION = '0.15';
         $self->static->root($self->home->rel_dir('public'));
         $self->renderer->root($self->home->rel_dir('templates'));
         
-        local @ARGV = @ARGV;
         GetOptionsFromArray(\@ARGV, \%options,
             'match=s' ,
             'start=s',
