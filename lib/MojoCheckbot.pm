@@ -18,6 +18,13 @@ use utf8;
 use Mojo::Util 'md5_sum';
 use MojoCheckbot::FileCache;
 our $VERSION = '0.15';
+    
+    my $QUEUE_KEY_CONTEXT       = 1;
+    my $QUEUE_KEY_LITERAL_URI   = 2;
+    my $QUEUE_KEY_RESOLVED_URI  = 3;
+    my $QUEUE_KEY_REFERER       = 4;
+    my $QUEUE_KEY_RES           = 5;
+    my $QUEUE_KEY_ERROR         = 6;
 
     my %options;
     my $fix;
@@ -64,10 +71,10 @@ our $VERSION = '0.15';
             $fix = $resume->{fix};
         }
         $queues->[0] ||= {
-            resolvedURI     => $options{start},
-            referer         => 'N/A',
-            context         => 'N/A',
-            literalURI      => 'N/A',
+            $QUEUE_KEY_RESOLVED_URI => $options{start},
+            $QUEUE_KEY_REFERER      => 'N/A',
+            $QUEUE_KEY_CONTEXT      => 'N/A',
+            $QUEUE_KEY_LITERAL_URI  => 'N/A',
         };
         
         $ua = Mojo::UserAgent->new->name($options{ua} || "mojo-checkbot($VERSION)");
@@ -82,17 +89,17 @@ our $VERSION = '0.15';
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
             my $queue = shift @$queues;
             my ($res, $new_queues) = eval {
-                check($queue->{resolvedURI}, $ua);
+                check($queue->{$QUEUE_KEY_RESOLVED_URI}, $ua);
             };
             if ($@) {
-                $queue->{error} = $@;
+                $queue->{$QUEUE_KEY_ERROR} = $@;
             } else {
                 @$new_queues = map {
-                    $_->{referer} = $queue->{resolvedURI};
+                    $_->{$QUEUE_KEY_REFERER} = $queue->{$QUEUE_KEY_RESOLVED_URI};
                     $_;
                 } @$new_queues;
                 push(@$queues, @$new_queues);
-                $queue->{res} = $res;
+                $queue->{$QUEUE_KEY_RES} = $res;
             }
             push(@result, $queue);
             if (! scalar @$queues) {
@@ -138,9 +145,9 @@ our $VERSION = '0.15';
         my @new_queues;
         if (my $location = $tx->res->headers->header('location')) {
             push(@new_queues, {
-                context     => '*Redirected by server configuration*',
-                literalURI  => $location,
-                resolvedURI => $location,
+                $QUEUE_KEY_CONTEXT      => '*Redirected by server configuration*',
+                $QUEUE_KEY_LITERAL_URI  => $location,
+                $QUEUE_KEY_RESOLVED_URI => $location,
             });
         }
         if ($code && $code == 200) {
@@ -157,7 +164,7 @@ our $VERSION = '0.15';
                 }
                 my @urls = collect_urls($dom);
                 for my $entry (@urls) {
-                    my $url2 = resolve_href($base, $entry->{literalURI});
+                    my $url2 = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
                     if ($url2->scheme !~ qr{https?|ftp}) {
                         next;
                     }
@@ -170,9 +177,9 @@ our $VERSION = '0.15';
                     }
                     $fix->{$md5} = undef;
                     push(@new_queues, {
-                        context     => $entry->{context},
-                        literalURI  => $entry->{literalURI},
-                        resolvedURI => "$url2",
+                        $QUEUE_KEY_CONTEXT      => $entry->{$QUEUE_KEY_CONTEXT},
+                        $QUEUE_KEY_LITERAL_URI  => $entry->{$QUEUE_KEY_LITERAL_URI},
+                        $QUEUE_KEY_RESOLVED_URI => "$url2",
                     });
                 }
             }
@@ -194,7 +201,10 @@ our $VERSION = '0.15';
                 $context = substr($context, 0, 300). '...';
             }
             Mojo::Util::html_escape($context);
-            return {context  => $context, literalURI => $href};
+            return {
+                $QUEUE_KEY_CONTEXT      => $context,
+                $QUEUE_KEY_LITERAL_URI  => $href,
+            };
         }
     }
 
