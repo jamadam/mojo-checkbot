@@ -24,13 +24,8 @@ our $VERSION = '0.15';
     my $fix;
     
     sub cache_id {
-        my $seed = join('\t',
-            $options{start},
-            $options{match}     || '',
-            $options{ua}        || '',
-            $options{cookie}    || '',
-            $options{timeout}   || '',
-        );
+        my @keys = qw{start match ua cookie timeout};
+        my $seed = join("\t", map {$options{$_} || ''} @keys);
         return md5_sum($seed);
     }
 
