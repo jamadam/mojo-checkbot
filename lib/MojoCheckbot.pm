@@ -57,12 +57,13 @@ our $VERSION = '0.15';
         MojoCheckbot::FileCache->new->path(File::Spec->catfile($cache_dir, $cache_id));
         if ($options{resume} && $cache->exists) {
             my $resume = Mojo::JSON->new->decode($cache->slurp);
-            warn Dumper $resume;
             $queues = $resume->{queues};
             @result = @{$resume->{result}};
+            for my $key (@$queues, @result) {
+                $fix->{md5_sum($key)} = undef;
+            }
             $fix = $resume->{fix};
         }
-        warn Dumper $fix;
         $queues->[0] ||= {
             resolvedURI     => $options{start},
             referer         => 'N/A',
@@ -105,7 +106,6 @@ our $VERSION = '0.15';
             my $cache_structure = {
                 queues  => $queues,
                 result  => \@result,
-                fix     => $fix,
             };
             my $json = Mojo::JSON->new->encode($cache_structure);
             $cache->store($json);
@@ -165,10 +165,11 @@ our $VERSION = '0.15';
                     if ($options{match} && "$url2" !~ /$options{match}/) {
                         next;
                     }
-                    if ($fix->{$url2}) {
+                    my $md5 = md5_sum($url2);
+                    if (exists $fix->{$md5}) {
                         next;
                     }
-                    $fix->{$url2} = 1;
+                    $fix->{$md5} = undef;
                     push(@new_queues, {
                         context     => $entry->{context},
                         literalURI  => $entry->{literalURI},
