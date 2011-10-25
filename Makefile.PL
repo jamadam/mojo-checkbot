@@ -9,7 +9,7 @@ WriteMakefile(
   NAME         => 'MojoCheckbot',
   VERSION_FROM => 'lib/MojoCheckbot.pm',
   AUTHOR       => 'jamadam <sugama@jamadam.com>',
-  EXE_FILES    => ['script/mojo-checkbot'],
+  EXE_FILES    => ['mojo-checkbot'],
   PREREQ_PM    => {'Mojolicious' => '2'},
   test         => {TESTS => 't/*.t'}
 );

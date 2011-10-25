@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
 0.14 2011/10/25
+  - script file moved to mojo root
 
 0.13 2011/10/25
   - Redirection with meta tag also detected
