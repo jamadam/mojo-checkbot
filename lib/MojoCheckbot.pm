@@ -49,7 +49,7 @@ our $VERSION = '0.15';
         );
         
         my $ua;
-        my $jobs = [];
+        my $queues = [];
         my @result;
         my $cache_id = cache_id();
         my $cache_dir = File::Spec->catfile(File::Spec->tmpdir, 'mojo-checkbot');
@@ -58,11 +58,11 @@ our $VERSION = '0.15';
         MojoCheckbot::FileCache->new->path(File::Spec->catfile($cache_dir, $cache_id));
         if ($options{resume} && $cache->exists) {
             my $resume = Mojo::JSON->new->decode($cache->slurp);
-            $jobs = $resume->{jobs};
+            $queues = $resume->{queues};
             @result = @{$resume->{result}};
         }
         
-        $jobs->[0] ||= {
+        $queues->[0] ||= {
             resolvedURI     => $options{start},
             referer         => 'N/A',
             context         => 'N/A',
@@ -90,42 +90,42 @@ our $VERSION = '0.15';
         
         my $loop_id;
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
-            my $job = shift @$jobs;
-            my ($res, $new_jobs) = eval {
-                check($job->{resolvedURI}, $ua);
+            my $queue = shift @$queues;
+            my ($res, $new_queues) = eval {
+                check($queue->{resolvedURI}, $ua);
             };
             if ($@) {
-                $job->{error} = $@;
+                $queue->{error} = $@;
             } else {
-                @$new_jobs = map {
-                    $_->{referer} = $job->{resolvedURI};
+                @$new_queues = map {
+                    $_->{referer} = $queue->{resolvedURI};
                     $_;
-                } @$new_jobs;
-                push(@$jobs, @$new_jobs);
-                $job->{res} = $res;
+                } @$new_queues;
+                push(@$queues, @$new_queues);
+                $queue->{res} = $res;
             }
-            push(@result, $job);
-            if (! scalar @$jobs) {
+            push(@result, $queue);
+            if (! scalar @$queues) {
                 Mojo::IOLoop->drop($loop_id);
             }
         });
         
         my $loop_id2;
         $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
-            my $json = Mojo::JSON->new->encode({jobs => $jobs, result => \@result});
+            my $json = Mojo::JSON->new->encode({queues => $queues, result => \@result});
             $cache->store($json);
-            if (! scalar @$jobs) {
+            if (! scalar @$queues) {
                 Mojo::IOLoop->drop($loop_id2);
             }
         });
         
         my $r = $self->routes;
-        $r->route('/echo')->to(cb => sub {
+        $r->route('/diff')->to(cb => sub {
             my $c = shift;
             my $offset = $c->req->param('offset');
             my $last = ($#result - $offset > 100) ? $offset + 100 : $#result;
             my @diff = @result[$offset..$last];
-            $c->render_json({remain => scalar @$jobs, result => \@diff});
+            $c->render_json({queues => scalar @$queues, result => \@diff});
         });
         $r->route('/')->to(cb => sub {
             my $c = shift;
@@ -141,9 +141,9 @@ our $VERSION = '0.15';
             my ($message) = $tx->error;
             die $message;
         }
-        my @new_jobs;
+        my @new_queues;
         if (my $location = $tx->res->headers->header('location')) {
-            push(@new_jobs, {
+            push(@new_queues, {
                 context     => '*Redirected by server configuration*',
                 literalURI  => $location,
                 resolvedURI => $location,
@@ -167,7 +167,7 @@ our $VERSION = '0.15';
                     if ($url2->scheme =~ qr{https?|ftp}
                             && $url_filter->("$url2") && ! $fix->{$url2}) {
                         $fix->{$url2} = 1;
-                        push(@new_jobs, {
+                        push(@new_queues, {
                             context     => $entry->{context},
                             literalURI  => $entry->{literalURI},
                             resolvedURI => "$url2",
@@ -176,7 +176,7 @@ our $VERSION = '0.15';
                 }
             }
         }
-        return $code, \@new_jobs;
+        return $code, \@new_queues;
     }
     
     sub collect_urls {
