@@ -161,28 +161,60 @@ our $VERSION = '0.17';
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
                 my @urls = collect_urls($dom);
-                for my $entry (@urls) {
-                    my $url2 = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
-                    if ($url2->scheme !~ qr{https?|ftp}) {
-                        next;
-                    }
-                    if ($options{match} && "$url2" !~ /$options{match}/) {
-                        next;
-                    }
-                    my $md5 = md5_sum("$url2");
-                    if (exists $fix->{$md5}) {
-                        next;
-                    }
-                    $fix->{$md5} = undef;
-                    push(@new_queues, {
-                        $QUEUE_KEY_CONTEXT      => $entry->{$QUEUE_KEY_CONTEXT},
-                        $QUEUE_KEY_LITERAL_URI  => $entry->{$QUEUE_KEY_LITERAL_URI},
-                        $QUEUE_KEY_RESOLVED_URI => "$url2",
-                    });
-                }
+                append_queues($base, \@urls, \@new_queues);
+                #for my $entry (@urls) {
+                #    my $url2 = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
+                #    if ($url2->scheme !~ qr{https?|ftp}) {
+                #        next;
+                #    }
+                #    if ($options{match} && "$url2" !~ /$options{match}/) {
+                #        next;
+                #    }
+                #    my $md5 = md5_sum("$url2");
+                #    if (exists $fix->{$md5}) {
+                #        next;
+                #    }
+                #    $fix->{$md5} = undef;
+                #    push(@new_queues, {
+                #        $QUEUE_KEY_CONTEXT      => $entry->{$QUEUE_KEY_CONTEXT},
+                #        $QUEUE_KEY_LITERAL_URI  => $entry->{$QUEUE_KEY_LITERAL_URI},
+                #        $QUEUE_KEY_RESOLVED_URI => "$url2",
+                #    });
+                #}
+            }
+            if ($res->headers->content_type =~ qr{text/(text|css)}) {
+                my $base = $tx->req->url;
+                my $charset = guess_encoding($res) || 'utf-8';
+                my $body = Encode::decode($charset, $res->body);
+                my @urls = collect_urls_from_css($body);
+                append_queues($base, \@urls, \@new_queues);
             }
         }
         return $code, \@new_queues;
+    }
+    
+    sub append_queues {
+        my ($base, $urls, $append_to) = @_;
+        for my $entry (@$urls) {
+            warn Dumper $urls;
+            my $url2 = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
+            if ($url2->scheme !~ qr{https?|ftp}) {
+                next;
+            }
+            if ($options{match} && "$url2" !~ /$options{match}/) {
+                next;
+            }
+            my $md5 = md5_sum("$url2");
+            if (exists $fix->{$md5}) {
+                next;
+            }
+            $fix->{$md5} = undef;
+            push(@$append_to, {
+                $QUEUE_KEY_CONTEXT      => $entry->{$QUEUE_KEY_CONTEXT},
+                $QUEUE_KEY_LITERAL_URI  => $entry->{$QUEUE_KEY_LITERAL_URI},
+                $QUEUE_KEY_RESOLVED_URI => "$url2",
+            });
+        }
     }
     
     sub _analize_dom {
@@ -215,6 +247,16 @@ our $VERSION = '0.17';
             }
         });
         return @array;
+    }
+
+    sub collect_urls_from_css {
+        my $str = shift;
+        $str =~ s{/\*.+?\*/}{}gs;
+        my @urls = ($str =~ m{url\(['"]?(.+?)['"]?\)}g);
+        return map {{
+            $QUEUE_KEY_CONTEXT      => '',
+            $QUEUE_KEY_LITERAL_URI  => $_,
+        }} @urls;
     }
     
     sub guess_encoding {
