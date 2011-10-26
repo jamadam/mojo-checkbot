@@ -1,4 +1,4 @@
-mojo-checkbot 0.17 beta
+mojo-checkbot 0.18 beta
 ---------------
 
 ## SYNOPSIS
