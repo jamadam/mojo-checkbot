@@ -1,9 +1,9 @@
-mojo-checkbot 0.18 beta
+mojo-checkbot 0.19 beta
 ---------------
 
 ## SYNOPSIS
     
-    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds] [--resume]
+    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds] [--resume] [--noevacuate]
 
 ## DESCRIPTION
 
@@ -29,6 +29,7 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
     --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
     --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
     --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
+    --noevacuate            [EXPERIMENTAL]resume用のファイル出力を無効化します。
     
     レポートサーバーオプション
     

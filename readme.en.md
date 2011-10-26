@@ -1,9 +1,9 @@
-mojo-checkbot 0.18 beta
+mojo-checkbot 0.19 beta
 ---------------
 
 ## SYNOPSIS
     
-    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds] [--resume]
+    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds] [--resume] [--noevacuate]
 
 ## DESCRIPTION
 
@@ -30,6 +30,7 @@ These options are available:
     --cookie <string>       Set cookie string sent to servers
     --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
     --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
+    --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
     
     Report server options
     

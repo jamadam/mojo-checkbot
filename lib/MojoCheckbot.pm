@@ -16,7 +16,7 @@ use Mojo::Base 'Mojolicious';
 use Encode;
 use utf8;
 use MojoCheckbot::FileCache;
-our $VERSION = '0.18';
+our $VERSION = '0.19';
     
     my $QUEUE_KEY_CONTEXT       = 1;
     my $QUEUE_KEY_LITERAL_URI   = 2;
@@ -50,6 +50,7 @@ our $VERSION = '0.18';
             'cookie=s',
             'timeout=s',
             'resume',
+            'noevacuate',
         );
         
         my $queues = [];
@@ -103,13 +104,15 @@ our $VERSION = '0.18';
             }
         });
         
-        my $loop_id2;
-        $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
-            $cache->store({queues  => $queues, result  => $result});
-            if (! scalar @$queues) {
-                Mojo::IOLoop->drop($loop_id2);
-            }
-        });
+        if (! $options{noevacuate}) {
+            my $loop_id2;
+            $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
+                $cache->store({queues  => $queues, result  => $result});
+                if (! scalar @$queues) {
+                    Mojo::IOLoop->drop($loop_id2);
+                }
+            });
+        }
         
         my $r = $self->routes;
         $r->route('/diff')->to(cb => sub {
