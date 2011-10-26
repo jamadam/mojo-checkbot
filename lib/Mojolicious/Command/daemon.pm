@@ -9,7 +9,7 @@ $description{'ja_JP'}= <<"EOF";
 mojo-checkbotを開始します。
 EOF
 
-my $lang = ($ENV{LANG} =~ qr{^([^\.]+)})[0];
+my $lang = $ENV{LANG} ? ($ENV{LANG} =~ qr{^([^\.]+)})[0] : '';
 
 if ($description{$lang}) {
   has description => $description{$lang};
