@@ -56,6 +56,13 @@ use MojoCheckbot;
 	$tmp = MojoCheckbot::resolve_href($base, '/hoge.html#fragment');
 	is($tmp, 'http://example.com/hoge.html');
 	
+	$base = Mojo::URL->new('https://example.com/');
+	$tmp = MojoCheckbot::resolve_href($base, '//example2.com/hoge.html');
+	is($tmp, 'https://example2.com/hoge.html');
+	$base = Mojo::URL->new('https://example.com/');
+	$tmp = MojoCheckbot::resolve_href($base, '//example2.com:8080/hoge.html');
+	is($tmp, 'https://example2.com:8080/hoge.html');
+	
 	my $html = <<EOF;
 <html>
 <body>

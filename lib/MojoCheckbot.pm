@@ -152,7 +152,8 @@ our $VERSION = '0.17';
             my $tx = $ua->max_redirects(0)->get($url);
             my $res = $tx->res;
             $code = $res->code;
-            if ($res->headers->content_type =~ qr{text/(html|xml)}) {
+            my $type = $res->headers->content_type;
+            if ($type && $type =~ qr{text/(html|xml)}) {
                 my $charset = guess_encoding($res) || 'utf-8';
                 my $body = Encode::decode($charset, $res->body);
                 my $dom = Mojo::DOM->new($body);
@@ -162,8 +163,7 @@ our $VERSION = '0.17';
                 }
                 my @urls = collect_urls($dom);
                 append_queues($base, \@urls, \@new_queues);
-            }
-            if ($res->headers->content_type =~ qr{text/(text|css)}) {
+            } elsif ($type && $type =~ qr{text/(text|css)}) {
                 my $base = $tx->req->url;
                 my $charset = guess_encoding_css($res) || 'utf-8';
                 my $body = Encode::decode($charset, $res->body);
@@ -226,6 +226,12 @@ our $VERSION = '0.17';
                 push(@array, $queue);
             }
         });
+        $dom->find('style')->each(sub {
+            my $dom = shift;
+            if (my $c = $dom->content_xml) {
+                push(@array, collect_urls_from_css($c));
+            }
+        });
         return @array;
     }
 
@@ -274,6 +280,12 @@ our $VERSION = '0.17';
         }
         $new->path($temp->path->to_string);
         $new->path->canonicalize;
+        if ($temp->host) {
+            $new->host($temp->host);
+        }
+        if ($temp->port) {
+            $new->port($temp->port);
+        }
         $new->query($temp->query);
         while ($new->path->parts->[0] && $new->path->parts->[0] =~ /^\./) {
             shift @{$new->path->parts};

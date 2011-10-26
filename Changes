@@ -3,7 +3,8 @@ Revision history for mojo-checkbot
 0.17 2011/10/26
   - Improved status filter on report
   - Reduced undef warnings on detecting lang on windows
-  - URLs in stylesheets also checked
+  - URLs in stylesheets are also checked
+  - Fixed a bug on resolving schime less url
 
 0.16 2011/10/26
   - Improved internals
