@@ -21,10 +21,10 @@
 			<form action="#dummy" id="form1">
 				<div id="summary">
 					<p id="fixed">
-						<span class="label">Fixed</span>: <span class="data"></span>
+						<span class="label">Fixed</span>: <span class="data">0</span>
 					</p>
 					<p id="reported">
-						<span class="label">Reported</span>: <span class="data"></span>
+						<span class="label">Reported</span>: <span class="data">0</span>
 					</p>
 				</div>
 			</form>
