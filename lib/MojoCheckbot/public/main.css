@@ -52,11 +52,6 @@ body {
             float:left;
             margin-right:20px;
         }
-        #header form {
-            position:absolute;
-            top:10px;
-            right:30px;
-        }
         #summary {
         }
             #summary > * {
@@ -64,7 +59,14 @@ body {
                 float:left;
                 margin-right:20px;
             }
-            #summary .label {
+            #summary input {
+                /*display:none;*/
+                margin-right:5px;
+            }
+                #summary input:checked + p {
+                    background-color:#f00;
+                }
+            #summary .name {
                 text-shadow:0px 0px 1px #fff;
             }
         #header:after {content:''; display:block; height:0; clear:both;}

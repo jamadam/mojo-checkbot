@@ -18,11 +18,14 @@
 			<h1>
 				mojo-checkbot
 			</h1>
-			<div id="summary">
-			</div>
-			<form action="#dummy">
-				<div>
-					<input id="hide2xx" type="checkbox" /> <label for="hide2xx">Hide 2xx status</label>
+			<form action="#dummy" id="form1">
+				<div id="summary">
+					<p id="fixed">
+						<span class="label">Fixed</span>: <span class="data"></span>
+					</p>
+					<p id="reported">
+						<span class="label">Reported</span>: <span class="data"></span>
+					</p>
 				</div>
 			</form>
 		</div>
