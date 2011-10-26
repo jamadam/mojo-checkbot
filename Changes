@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
 0.18 2011/10/26
+  - Fixed oops on test
 
 0.17 2011/10/26
   - Improved status filter on report
