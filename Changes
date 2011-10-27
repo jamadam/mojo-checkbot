@@ -1,6 +1,9 @@
 Revision history for mojo-checkbot
 
-0.19 2011/10/26
+0.20 2011/10/27
+  - Fixed a bug on sleep option that hasn't block next queue propery
+
+0.19 2011/10/27
   - Added noevacuate option
   - Improved command API
 
