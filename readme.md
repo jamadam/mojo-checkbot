@@ -28,8 +28,9 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
     --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
     --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
     --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
-    --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
+    --evacuate <seconds>    [EXPERIMENTAL]レポートをテンポラリーファイルに出力する間隔を指定します。
     --noevacuate            [EXPERIMENTAL]resume用のファイル出力を無効化します。
+    --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
     
     レポートサーバーオプション
     
