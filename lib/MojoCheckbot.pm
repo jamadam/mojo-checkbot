@@ -51,6 +51,7 @@ our $VERSION = '0.21';
             'timeout=s',
             'resume',
             'noevacuate',
+            'evacuate=i',
         );
         
         $options{sleep} ||= 1;
@@ -112,7 +113,8 @@ our $VERSION = '0.21';
         
         if (! $options{noevacuate}) {
             my $loop_id2;
-            $loop_id2 = MojoCheckbot::IOLoop->recurring(5 => sub {
+            my $interval = $options{evacuate} || 30;
+            $loop_id2 = MojoCheckbot::IOLoop->recurring($interval => sub {
                 $cache->store({queues  => $queues, result  => $result});
                 if (! scalar @$queues) {
                     MojoCheckbot::IOLoop->drop($loop_id2);
