@@ -66,7 +66,9 @@ our $VERSION = '0.20';
             $queues = $resume->{queues};
             $result = $resume->{result};
             for my $entry (@$queues, @$result) {
-                $fix->{md5_sum($entry->{$QUEUE_KEY_RESOLVED_URI})} = undef;
+                my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
+                            $entry->{$QUEUE_KEY_LITERAL_URI};
+                $fix->{md5_sum($url)} = undef;
             }
         }
         
