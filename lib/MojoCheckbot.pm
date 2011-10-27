@@ -8,7 +8,7 @@ use Getopt::Long 'GetOptionsFromArray';
 use Mojo::UserAgent;
 use Mojo::DOM;
 use Mojo::URL;
-use Mojo::IOLoop;
+#use Mojo::IOLoop;
 use Mojo::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Util 'md5_sum';
@@ -16,6 +16,7 @@ use Mojo::Base 'Mojolicious';
 use Encode;
 use utf8;
 use MojoCheckbot::FileCache;
+use MojoCheckbot::IOLoop;
 our $VERSION = '0.19';
     
     my $QUEUE_KEY_CONTEXT       = 1;
@@ -53,6 +54,8 @@ our $VERSION = '0.19';
             'noevacuate',
         );
         
+        $options{sleep} ||= 1;
+        
         my $queues = [];
         my $result = [];
         
@@ -83,7 +86,7 @@ our $VERSION = '0.19';
         }
         
         my $loop_id;
-        $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
+        $loop_id = MojoCheckbot::IOLoop->blocked_recurring($options{sleep} => sub {
             my $queue = shift @$queues;
             my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                         $queue->{$QUEUE_KEY_LITERAL_URI};
@@ -102,16 +105,16 @@ our $VERSION = '0.19';
             }
             push(@$result, $queue);
             if (! scalar @$queues) {
-                Mojo::IOLoop->drop($loop_id);
+                MojoCheckbot::IOLoop->drop($loop_id);
             }
         });
         
         if (! $options{noevacuate}) {
             my $loop_id2;
-            $loop_id2 = Mojo::IOLoop->recurring(5 => sub {
+            $loop_id2 = MojoCheckbot::IOLoop->recurring(5 => sub {
                 $cache->store({queues  => $queues, result  => $result});
                 if (! scalar @$queues) {
-                    Mojo::IOLoop->drop($loop_id2);
+                    MojoCheckbot::IOLoop->drop($loop_id2);
                 }
             });
         }
@@ -153,6 +156,7 @@ our $VERSION = '0.19';
             });
         }
         if ($code && $code == 200) {
+            sleep $options{sleep};
             my $tx = $ua->max_redirects(0)->get($url);
             my $res = $tx->res;
             $code = $res->code;
