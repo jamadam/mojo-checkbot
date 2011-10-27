@@ -3,7 +3,7 @@ mojo-checkbot 0.19 beta
 
 ## SYNOPSIS
     
-    mojo-checkbot daemon [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds] [--resume] [--noevacuate]
+    mojo checkbot [--start start URL] [--match match string] [--sleep seconds] [--ua useragent header] [--cookie cookie string] [--timeout seconds] [--resume] [--noevacuate]
 
 ## DESCRIPTION
 
@@ -50,7 +50,7 @@ These options are available:
 
 ### EXAMPLE1
 
-    $ mojo-checkbot daemon --start http://example.com --match http://example.com/ --sleep 2
+    $ mojo checkbot --start http://example.com --match http://example.com/ --sleep 2
     [Mon Oct 17 23:18:35 2011] [info] Server listening (http://*:3000)
     Server available at http://127.0.0.1:3000.
 
@@ -59,11 +59,11 @@ These options are available:
 Since this program is based on Mojolicious, the options provided by it is
 also available.
 
-    $ mojo-checkbot daemon --listen http://*:3001 --start http://example.com
+    $ mojo checkbot --listen http://*:3001 --start http://example.com
 
 ### EXAMPLE3
 
-    $ mojo-checkbot daemon --start http://example.com --cookie \
+    $ mojo checkbot --start http://example.com --cookie \
         'key=value; Version=1; Domain=example.com; Path=/; expires=Fri, \
         28 Oct 2011 15:26:47 GMT'
 

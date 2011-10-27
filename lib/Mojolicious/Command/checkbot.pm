@@ -1,5 +1,6 @@
-package Mojolicious::Command::daemon;
-use Mojo::Base 'Mojo::Command';
+package Mojolicious::Command::checkbot;
+#use Mojo::Base 'Mojo::Command';
+use Mojo::Base 'Mojolicious::Commands';
 
 use Getopt::Long 'GetOptions';
 use Mojo::Server::Daemon;
@@ -91,6 +92,7 @@ EOF
 #  Why do they call it that?
 #  Cause it has no pigment."
 sub run {
+  $ENV{MOJO_APP} ||= 'MojoCheckbot';
   my $self   = shift;
   my $daemon = Mojo::Server::Daemon->new;
 
@@ -103,7 +105,7 @@ sub run {
     'group=s'     => sub { $daemon->group($_[1]) },
     'keepalive=i' => sub { $daemon->keep_alive_timeout($_[1]) },
     'listen=s'    => \@listen,
-    'proxy' => sub { $ENV{MOJO_REVERSE_PROXY} = 1 },
+    'proxy'       => sub { $ENV{MOJO_REVERSE_PROXY} = 1 },
     'requests=i'  => sub { $daemon->max_requests($_[1]) },
     'user=s'      => sub { $daemon->user($_[1]) },
     'websocket=i' => sub { $daemon->websocket_timeout($_[1]) }
