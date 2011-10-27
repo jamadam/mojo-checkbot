@@ -91,7 +91,7 @@ our $VERSION = '0.20';
             my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                         $queue->{$QUEUE_KEY_LITERAL_URI};
             my ($res, $new_queues) = eval {
-                check($url, $ua);
+                check($url, $ua, $options{sleep});
             };
             if ($@) {
                 $queue->{$QUEUE_KEY_ERROR} = $@;
@@ -141,7 +141,7 @@ our $VERSION = '0.20';
     }
     
     sub check {
-        my ($url, $ua) = @_;
+        my ($url, $ua, $interval) = @_;
         my $tx = $ua->max_redirects(0)->head($url);
         my $code = $tx->res->code;
         if (! $code) {
@@ -156,7 +156,7 @@ our $VERSION = '0.20';
             });
         }
         if ($code && $code == 200) {
-            sleep $options{sleep};
+            sleep($interval || '1');
             my $tx = $ua->max_redirects(0)->get($url);
             my $res = $tx->res;
             $code = $res->code;
