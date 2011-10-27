@@ -85,14 +85,16 @@ our $VERSION = '0.19';
         my $loop_id;
         $loop_id = Mojo::IOLoop->recurring($options{sleep} => sub {
             my $queue = shift @$queues;
+            my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
+                        $queue->{$QUEUE_KEY_LITERAL_URI};
             my ($res, $new_queues) = eval {
-                check($queue->{$QUEUE_KEY_RESOLVED_URI}, $ua);
+                check($url, $ua);
             };
             if ($@) {
                 $queue->{$QUEUE_KEY_ERROR} = $@;
             } else {
                 @$new_queues = map {
-                    $_->{$QUEUE_KEY_REFERER} = $queue->{$QUEUE_KEY_RESOLVED_URI};
+                    $_->{$QUEUE_KEY_REFERER} = $url;
                     $_;
                 } @$new_queues;
                 push(@$queues, @$new_queues);
@@ -148,7 +150,6 @@ our $VERSION = '0.19';
             push(@new_queues, {
                 $QUEUE_KEY_CONTEXT      => '*Redirected by server configuration*',
                 $QUEUE_KEY_LITERAL_URI  => $location,
-                $QUEUE_KEY_RESOLVED_URI => $location,
             });
         }
         if ($code && $code == 200) {
@@ -184,19 +185,23 @@ our $VERSION = '0.19';
             if ($url2->scheme !~ qr{https?|ftp}) {
                 next;
             }
-            if ($options{match} && "$url2" !~ /$options{match}/) {
+            $url2 = "$url2";
+            if ($options{match} && $url2 !~ /$options{match}/) {
                 next;
             }
-            my $md5 = md5_sum("$url2");
+            my $md5 = md5_sum($url2);
             if (exists $fix->{$md5}) {
                 next;
             }
             $fix->{$md5} = undef;
-            push(@$append_to, {
+            my $queue = {
                 $QUEUE_KEY_CONTEXT      => $entry->{$QUEUE_KEY_CONTEXT},
                 $QUEUE_KEY_LITERAL_URI  => $entry->{$QUEUE_KEY_LITERAL_URI},
-                $QUEUE_KEY_RESOLVED_URI => "$url2",
-            });
+            };
+            if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $url2) {
+                $queue->{$QUEUE_KEY_RESOLVED_URI} = $url2;
+            }
+            push(@$append_to, $queue);
         }
     }
     
