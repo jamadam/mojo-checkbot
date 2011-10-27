@@ -25,7 +25,13 @@ our $VERSION = '0.21';
     my $QUEUE_KEY_RES           = 5;
     my $QUEUE_KEY_ERROR         = 6;
 
-    my %options;
+    my %options = (
+        sleep       => 1,
+        ua          => "mojo-checkbot($VERSION)",
+        timeout     => 15,
+        evacuate    => 30,
+    );
+    
     my $fix;
     
     sub cache_id {
@@ -54,8 +60,6 @@ our $VERSION = '0.21';
             'evacuate=i',
         );
         
-        $options{sleep} ||= 1;
-        
         my $queues = [];
         my $result = [];
         
@@ -79,7 +83,7 @@ our $VERSION = '0.21';
             $QUEUE_KEY_LITERAL_URI  => 'N/A',
         };
         
-        my $ua = Mojo::UserAgent->new->name($options{ua} || "mojo-checkbot($VERSION)");
+        my $ua = Mojo::UserAgent->new->name($options{ua});
         $ua->keep_alive_timeout($options{timeout});
         
         if ($options{cookie}) {
@@ -113,7 +117,7 @@ our $VERSION = '0.21';
         
         if (! $options{noevacuate}) {
             my $loop_id2;
-            my $interval = $options{evacuate} || 30;
+            my $interval = $options{evacuate};
             $loop_id2 = MojoCheckbot::IOLoop->recurring($interval => sub {
                 $cache->store({queues  => $queues, result  => $result});
                 if (! scalar @$queues) {
