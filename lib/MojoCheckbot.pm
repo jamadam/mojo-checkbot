@@ -5,7 +5,6 @@ use File::Basename 'dirname';
 use File::Spec;
 use Data::Dumper;
 use Getopt::Long 'GetOptionsFromArray';
-use Mojo::UserAgent;
 use Mojo::DOM;
 use Mojo::URL;
 use Mojo::CookieJar;
@@ -16,6 +15,7 @@ use Encode;
 use utf8;
 use MojoCheckbot::FileCache;
 use MojoCheckbot::IOLoop;
+use MojoCheckbot::UserAgent;
 our $VERSION = '0.22';
     
     my $QUEUE_KEY_CONTEXT       = 1;
@@ -83,8 +83,9 @@ our $VERSION = '0.22';
             $QUEUE_KEY_LITERAL_URI  => 'N/A',
         };
         
-        my $ua = Mojo::UserAgent->new->name($options{ua});
+        my $ua = MojoCheckbot::UserAgent->new->name($options{ua});
         $ua->keep_alive_timeout($options{timeout});
+        $ua->interval($options{sleep});
         
         if ($options{cookie}) {
             my $cookies = Mojo::Cookie::Response->parse($options{cookie});
@@ -92,7 +93,7 @@ our $VERSION = '0.22';
         }
         
         my $loop_id;
-        $loop_id = MojoCheckbot::IOLoop->blocked_recurring($options{sleep} => sub {
+        $loop_id = MojoCheckbot::IOLoop->blocked_recurring(0 => sub {
             my $queue = shift @$queues;
             my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                         $queue->{$QUEUE_KEY_LITERAL_URI};
@@ -163,7 +164,6 @@ our $VERSION = '0.22';
             });
         }
         if ($code && $code == 200) {
-            sleep($interval || '1');
             my $tx = $ua->max_redirects(0)->get($url);
             my $res = $tx->res;
             $code = $res->code;
