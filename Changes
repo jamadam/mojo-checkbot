@@ -1,6 +1,8 @@
 Revision history for mojo-checkbot
 
-0.22 2011/10/27
+0.22 2011/10/30
+  - Mojolicious v2.17 bundled
+  - Fixed a small bug that ioloop hasn't droped when queue is empty.
 
 0.21 2011/10/27
   - Added evacuate option to set interval for temporary file output
