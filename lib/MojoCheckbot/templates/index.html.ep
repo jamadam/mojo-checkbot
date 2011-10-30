@@ -152,7 +152,7 @@
 				AUTHENTICATION REQUIRED
 			</h2>
 			
-			<form>
+			<form id="authForm" action="dummy">
 				<table>
 					<tr>
 						<th>
@@ -167,7 +167,7 @@
 							Username
 						</th>
 						<td>
-							<input type="text" />
+							<input class="username" type="text" />
 						</td>
 					</tr>
 					<tr>
@@ -175,10 +175,13 @@
 							Password
 						</th>
 						<td>
-							<input type="text" />
+							<input class="password" type="text" />
 						</td>
 					</tr>
 				</table>
+				<div>
+					<input type="submit" />
+				</div>
 			</form>
 		</div>
 		<div id="loadingContainer">

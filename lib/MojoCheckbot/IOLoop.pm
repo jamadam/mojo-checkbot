@@ -11,11 +11,12 @@ sub blocked_recurring {
     my $id;
     $wrap = sub {
         $self->$cb(pop);
-        if (exists $ids{id}) {
+        if (exists $ids{$id}) {
             $ids{$id} = $self->iowatcher->timer($after => $wrap);
         }
     };
     $id = $self->iowatcher->timer($after => $wrap);
+    $ids{$id} = $id;
     return $id;
 }
 

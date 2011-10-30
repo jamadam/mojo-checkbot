@@ -95,30 +95,28 @@ our $VERSION = '0.22';
         
         my $loop_id;
         $loop_id = MojoCheckbot::IOLoop->blocked_recurring(0 => sub {
-            my $queue = shift @$queues;
-            my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
-                        $queue->{$QUEUE_KEY_LITERAL_URI};
-            my ($res, $new_queues) = eval {
-                check($url, $ua, $options{sleep});
-            };
-            if ($@) {
-                $queue->{$QUEUE_KEY_ERROR} = $@;
-            } else {
-                @$new_queues = map {
-                    $_->{$QUEUE_KEY_REFERER} = $url;
-                    $_;
-                } @$new_queues;
-                push(@$queues, @$new_queues);
-                if (ref $res) {
-                    $queue->{$QUEUE_KEY_RES}    = $res->{code};
-                    $queue->{$QUEUE_KEY_DIALOG} = $res->{dialog};
+            if (my $queue = shift @$queues) {
+                my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
+                            $queue->{$QUEUE_KEY_LITERAL_URI};
+                my ($res, $new_queues) = eval {
+                    check($url, $ua, $options{sleep});
+                };
+                if ($@) {
+                    $queue->{$QUEUE_KEY_ERROR} = $@;
                 } else {
-                    $queue->{$QUEUE_KEY_RES}    = $res;
+                    @$new_queues = map {
+                        $_->{$QUEUE_KEY_REFERER} = $url;
+                        $_;
+                    } @$new_queues;
+                    push(@$queues, @$new_queues);
+                    if (ref $res) {
+                        $queue->{$QUEUE_KEY_RES}    = $res->{code};
+                        $queue->{$QUEUE_KEY_DIALOG} = $res->{dialog};
+                    } else {
+                        $queue->{$QUEUE_KEY_RES}    = $res;
+                    }
                 }
-            }
-            push(@$result, $queue);
-            if (! scalar @$queues) {
-                MojoCheckbot::IOLoop->drop($loop_id);
+                push(@$result, $queue);
             }
         });
         
@@ -147,6 +145,19 @@ our $VERSION = '0.22';
                 fixed   => scalar @$result,
                 result  => \@diff
             });
+        });
+        $r->route('/auth')->to(cb => sub {
+            my $c = shift;
+            my $url = $c->req->param('url');
+            my $new_url = Mojo::URL->new($url);
+            my $un = $c->req->param('username');
+            my $pw = $c->req->param('password');
+            $new_url->userinfo("$un:$pw");
+            push(@$queues, {
+                $QUEUE_KEY_RESOLVED_URI => "$new_url"
+            });
+            warn $new_url;
+            $c->render_json({result => 'success'});
         });
         $r->route('/')->to(cb => sub {
             my $c = shift;
