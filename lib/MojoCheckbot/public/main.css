@@ -154,6 +154,16 @@ body {
         height:auto;
         overflow:hidden;
     }
+        .lightbox form {
+            margin-bottom:1em;
+        }
+        .lightbox *:last-child {
+            margin-bottom:0;
+        }
+        .lightbox h2 {
+            font-weight:bold;
+            margin-bottom:0.5em;
+        }
         .lightbox th {
             border:1px solid #ccc;
         }

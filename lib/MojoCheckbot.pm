@@ -24,6 +24,7 @@ our $VERSION = '0.22';
     my $QUEUE_KEY_REFERER       = 4;
     my $QUEUE_KEY_RES           = 5;
     my $QUEUE_KEY_ERROR         = 6;
+    my $QUEUE_KEY_DIALOG        = 7;
 
     my %options = (
         sleep       => 1,
@@ -108,7 +109,12 @@ our $VERSION = '0.22';
                     $_;
                 } @$new_queues;
                 push(@$queues, @$new_queues);
-                $queue->{$QUEUE_KEY_RES} = $res;
+                if (ref $res) {
+                    $queue->{$QUEUE_KEY_RES}    = $res->{code};
+                    $queue->{$QUEUE_KEY_DIALOG} = $res->{dialog};
+                } else {
+                    $queue->{$QUEUE_KEY_RES}    = $res;
+                }
             }
             push(@$result, $queue);
             if (! scalar @$queues) {
@@ -185,6 +191,15 @@ our $VERSION = '0.22';
                 my @urls = collect_urls_from_css($body);
                 append_queues($base, \@urls, \@new_queues);
             }
+        } elsif($code && $code == 401) {
+            my $tx = $ua->max_redirects(0)->get($url);
+            my $res = $tx->res;
+            $code = {
+                code    => $res->code,
+                dialog  => {
+                    'www-authenticate' => $res->headers->header('www-authenticate'),
+                }
+            };
         }
         return $code, \@new_queues;
     }

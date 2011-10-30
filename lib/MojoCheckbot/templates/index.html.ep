@@ -102,6 +102,85 @@
 				</table>
 			</form>
 		</div>
+		<div id="trLightbox401" class="lightbox" style="display:none;">
+			<form action="#dummy">
+				<table>
+					<tr>
+						<th>
+							Context
+						</th>
+						<td class="context">
+							<textarea rows="1" cols="10"></textarea>
+						</td>
+					</tr>
+					<tr>
+						<th>
+							URI(Literal)
+						</th>
+						<td class="literalURI">
+							<textarea rows="1" cols="10"></textarea>
+						</td>
+					</tr>
+					<tr>
+						<th>
+							URI(Resolved)
+						</th>
+						<td class="resolvedURI">
+							<textarea rows="1" cols="10"></textarea>
+						</td>
+					</tr>
+					<tr>
+						<th>
+							Status Code
+						</th>
+						<td class="statusCode">
+							<textarea rows="1" cols="10"></textarea>
+						</td>
+					</tr>
+					<tr>
+						<th>
+							Referer
+						</th>
+						<td class="referer">
+							<textarea rows="1" cols="10"></textarea>
+						</td>
+					</tr>
+				</table>
+			</form>
+			
+			<h2>
+				AUTHENTICATION REQUIRED
+			</h2>
+			
+			<form>
+				<table>
+					<tr>
+						<th>
+							Type
+						</th>
+						<td class="realm">
+							
+						</td>
+					</tr>
+					<tr>
+						<th>
+							Username
+						</th>
+						<td>
+							<input type="text" />
+						</td>
+					</tr>
+					<tr>
+						<th>
+							Password
+						</th>
+						<td>
+							<input type="text" />
+						</td>
+					</tr>
+				</table>
+			</form>
+		</div>
 		<div id="loadingContainer">
 		</div>
 	</body>
