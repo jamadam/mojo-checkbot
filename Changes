@@ -3,7 +3,7 @@ Revision history for mojo-checkbot
 0.22 2011/10/27
 
 0.21 2011/10/27
-  Added evacuate option to set interval for temporary file output
+  - Added evacuate option to set interval for temporary file output
 
 0.20 2011/10/27
   - Fixed a bug on sleep option that hasn't block next queue propery

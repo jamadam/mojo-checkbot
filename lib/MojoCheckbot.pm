@@ -122,6 +122,7 @@ our $VERSION = '0.22';
             $loop_id2 = MojoCheckbot::IOLoop->recurring($interval => sub {
                 $cache->store({queues  => $queues, result  => $result});
                 if (! scalar @$queues) {
+                    warn 'a';
                     MojoCheckbot::IOLoop->drop($loop_id2);
                 }
             });

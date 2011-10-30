@@ -1,16 +1,32 @@
 package MojoCheckbot::IOLoop;
 use Mojo::Base 'Mojo::IOLoop';
 
+my %ids = ();
+
 sub blocked_recurring {
     my ($self, $after, $cb) = @_;
     $self = $self->singleton unless ref $self;
     weaken $self;
     my $wrap;
+    my $id;
     $wrap = sub {
         $self->$cb(pop);
-        $self->iowatcher->timer($after => $wrap);
+        if (exists $ids{id}) {
+            $ids{$id} = $self->iowatcher->timer($after => $wrap);
+        }
     };
-    return $self->iowatcher->timer($after => $wrap);
+    $id = $self->iowatcher->timer($after => $wrap);
+    return $id;
+}
+
+sub drop {
+    my ($self, $id) = @_;
+    if ($ids{$id}) {
+        my $map_to = $ids{$id};
+        delete $ids{$id};
+        $id = $map_to;
+    }
+    return $self->SUPER::drop($id);
 }
 
 1;
