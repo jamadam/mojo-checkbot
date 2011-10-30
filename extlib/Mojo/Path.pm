@@ -87,8 +87,8 @@ sub parse {
   $path //= '';
 
   # Leading and trailing slash
-  $path =~ /^\// ? $self->leading_slash(1)  : $self->leading_slash(undef);
-  $path =~ /\/$/ ? $self->trailing_slash(1) : $self->trailing_slash(undef);
+  $path =~ m#^/# ? $self->leading_slash(1)  : $self->leading_slash(undef);
+  $path =~ m#/$# ? $self->trailing_slash(1) : $self->trailing_slash(undef);
 
   # Parse
   url_unescape $path;
@@ -107,8 +107,7 @@ sub parse {
 
 sub to_abs_string {
   my $self = shift;
-  return $self->to_string if $self->leading_slash;
-  return '/' . $self->to_string;
+  return $self->leading_slash ? $self->to_string : ('/' . $self->to_string);
 }
 
 sub to_string {
@@ -230,7 +229,6 @@ Parse path.
   my $string = $path->to_abs_string;
 
 Turn path into an absolute string.
-Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<to_string>
 

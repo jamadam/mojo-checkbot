@@ -53,9 +53,8 @@ EOF
 
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_request {
-  warn <<EOF;
-Mojo::Server->on_request is DEPRECATED in favor of using Mojo::Server->on!
-EOF
+  warn
+    "Mojo::Server->on_request is DEPRECATED in favor of Mojo::Server->on!\n";
   shift->on(request => shift);
 }
 
@@ -86,7 +85,7 @@ Mojo::Server - HTTP server base class
     # Get a transaction
     my $tx = $self->build_tx;
 
-    # Emit request
+    # Emit "request" event
     $self->emit(request => $tx);
   }
 
@@ -106,6 +105,7 @@ L<Mojo::Server> can emit the following events.
 
 Emitted when a request is ready and needs to be handled.
 
+  $server->unsubscribe('request');
   $server->on(request => sub {
     my ($server, $tx) = @_;
     $tx->res->code(200);
@@ -142,7 +142,7 @@ implements the following new ones.
 
   my $server = Mojo::Server->new;
 
-Construct a new L<Mojo::Server> object.
+Construct a new L<Mojo::Server> object and register default C<request> event.
 
 =head2 C<build_tx>
 
@@ -155,7 +155,6 @@ Let application build a transaction.
   my $app = $server->load_app('./myapp.pl');
 
 Load application from script.
-Note that this method is EXPERIMENTAL and might change without warning!
 
   say Mojo::Server->new->load_app('./myapp.pl')->home;
 

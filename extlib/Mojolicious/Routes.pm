@@ -15,7 +15,7 @@ has cache => sub { Mojo::Cache->new };
 has [qw/children conditions/] => sub { [] };
 has controller_base_class => 'Mojolicious::Controller';
 has [qw/dictionary shortcuts/] => sub { {} };
-has hidden  => sub { [qw/new app attr has render req res stash tx/] };
+has hidden  => sub { [qw/new attr has/] };
 has pattern => sub { Mojolicious::Routes::Pattern->new };
 
 # "Yet thanks to my trusty safety sphere,
@@ -113,7 +113,7 @@ sub dispatch {
   # Path
   my $req  = $c->req;
   my $path = $c->stash->{path};
-  if (defined $path) { $path = "/$path" if $path !~ /^\// }
+  if (defined $path) { $path = "/$path" if $path !~ m#^/# }
   else               { $path = $req->url->path->to_abs_string }
 
   # Match
@@ -246,7 +246,7 @@ sub render {
 
   # Format
   if ((my $format = $values->{format}) && !$self->parent) {
-    $path .= ".$format" unless $path =~ /\.[^\/]+$/;
+    $path .= ".$format" unless $path =~ m#\.[^/]+$#;
   }
 
   # Parent
@@ -551,6 +551,9 @@ sub _generate_route {
   return $route;
 }
 
+# "Stop being such a spineless jellyfish!
+#  You know full well I'm more closely related to the sea cucumber.
+#  Not where it counts."
 sub _walk_stack {
   my ($self, $c) = @_;
 

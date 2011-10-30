@@ -180,7 +180,7 @@ sub is_limit_exceeded { shift->{limit} }
 
 sub last_modified { scalar shift->header('Last-Modified' => @_) }
 
-sub leftovers { shift->{buffer} }
+sub leftovers { delete shift->{buffer} }
 
 sub location { scalar shift->header(Location => @_) }
 
@@ -486,8 +486,6 @@ Parse headers from a hash.
   $headers   = $headers->header('Content-Type' => 'text/plain');
 
 Get or replace the current header values.
-Note that this method is context sensitive and will turn all header lines
-into a single one in scalar context.
 
   # Multiple headers with the same name
   for my $header ($headers->header('Set-Cookie')) {

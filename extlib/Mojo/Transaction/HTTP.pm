@@ -143,7 +143,7 @@ sub keep_alive {
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_request {
   warn <<EOF;
-Mojo::Transaction::HTTP->on_request is DEPRECATED in favor of using
+Mojo::Transaction::HTTP->on_request is DEPRECATED in favor of
 Mojo::Transaction::HTTP->on!
 EOF
   shift->on(request => shift);
@@ -380,7 +380,7 @@ implements the following new ones.
 
 =head2 C<client_read>
 
-  $tx = $tx->client_read($chunk);
+  $tx->client_read($chunk);
 
 Read and process client data.
 
@@ -404,7 +404,7 @@ Leftovers from the server request, used for pipelining.
 
 =head2 C<server_read>
 
-  $tx = $tx->server_read($chunk);
+  $tx->server_read($chunk);
 
 Read and process server data.
 

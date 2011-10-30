@@ -85,8 +85,7 @@ sub need_proxy {
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_start {
   warn <<EOF;
-Mojo::UserAgent->on_start is DEPRECATED in favor of using
-Mojo::UserAgent->on!
+Mojo::UserAgent->on_start is DEPRECATED in favor of Mojo::UserAgent->on!
 EOF
   shift->on(start => shift);
 }
@@ -601,15 +600,15 @@ Mojo::UserAgent - Non-blocking I/O HTTP 1.1 and WebSocket user agent
     ->res->content->asset->move_to('/Users/sri/mojo.tar.gz');
 
   # Parallel requests
-  my $t = Mojo::IOLoop->trigger;
+  my $delay = Mojo::IOLoop->delay;
   for my $url ('mojolicio.us', 'cpan.org') {
-    $t->begin;
+    $delay->begin;
     $ua->get($url => sub {
       my ($ua, $tx) = @_;
-      $t->end($tx->res->dom->at('title')->text);
+      $delay->end($tx->res->dom->at('title')->text);
     });
   }
-  my @titles = $t->start;
+  my @titles = $delay->wait;
 
   # TLS certificate authentication
   my $tx = $ua->cert('tls.crt')->key('tls.key')->get('https://mojolicio.us');
@@ -749,7 +748,6 @@ Value for C<User-Agent> request header, defaults to C<Mojolicious (Perl)>.
   $ua          = $ua->no_proxy(['localhost', 'intranet.mojolicio.us']);
 
 Domains that don't require a proxy server to be used.
-Note that this attribute is EXPERIMENTAL and might change without warning!
 
 =head2 C<transactor>
 
@@ -863,7 +861,6 @@ You can also append a callback to perform requests non-blocking.
   my $success = $ua->need_proxy('intranet.mojolicio.us');
 
 Check if request for domain would use a proxy server.
-Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<post>
 

@@ -426,7 +426,7 @@ sub punycode_decode {
   my @output;
 
   # Delimiter
-  if ($_[0] =~ s/(.*)$DELIMITER//os) { push @output, split //, $1 }
+  if ($_[0] =~ s/(.*)$DELIMITER//s) { push @output, split //, $1 }
 
   # Decode (direct translation of RFC 3492)
   while (length $_[0]) {
@@ -676,7 +676,6 @@ Mojo::Util - Portable utility functions
 =head1 DESCRIPTION
 
 L<Mojo::Util> provides portable utility functions for L<Mojo>.
-
 Note that this module is EXPERIMENTAL and might change without warning!
 
 =head1 FUNCTIONS

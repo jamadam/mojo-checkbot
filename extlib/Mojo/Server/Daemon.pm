@@ -21,18 +21,18 @@ has max_clients        => 1000;
 has max_requests       => 25;
 has websocket_timeout  => 300;
 
-# Regex for listen sockets
-my $SOCKET_RE = qr/^
-  (http(?:s)?)\:\/\/   # Scheme
-  (.+)                 # Host
-  \:(\d+)              # Port
+my $SOCKET_RE = qr|
+  ^
+  (?<scheme>http(?:s)?)\://   # Scheme
+  (?<address>.+)                # Address
+  \:(?<port>\d+)                # Port
   (?:
-    \:(.*?)          # Certificate
-    \:(.*?)          # Key
-    (?:\:(.+)?)?     # Certificate Authority
+    \:(?<cert>.*?)              # Certificate
+    \:(?<key>.*?)               # Key
+    (?:\:(?<ca>.+)?)?           # Certificate Authority
   )?
   $
-/x;
+|x;
 
 sub DESTROY {
   my $self = shift;
@@ -223,12 +223,12 @@ sub _listen {
   croak qq/Invalid listen value "$listen"/ unless $listen =~ $SOCKET_RE;
   my $options = {};
   my $tls;
-  $tls = $options->{tls} = 1 if $1 eq 'https';
-  $options->{address}  = $2 if $2 ne '*';
-  $options->{port}     = $3;
-  $options->{tls_cert} = $4 if $4;
-  $options->{tls_key}  = $5 if $5;
-  $options->{tls_ca}   = $6 if $6;
+  $tls = $options->{tls} = 1 if $+{scheme} eq 'https';
+  $options->{address}  = $+{address} if $+{address} ne '*';
+  $options->{port}     = $+{port};
+  $options->{tls_cert} = $+{cert} if $+{cert};
+  $options->{tls_key}  = $+{key} if $+{key};
+  $options->{tls_ca}   = $+{ca} if $+{ca};
 
   # Listen backlog size
   my $backlog = $self->backlog;
@@ -269,7 +269,7 @@ sub _listen {
   # Friendly message
   return if $self->silent;
   $self->app->log->info("Server listening ($listen)");
-  $listen =~ s/^(https?\:\/\/)\*/${1}127.0.0.1/i;
+  $listen =~ s|^(https?\://)\*|${1}127.0.0.1|i;
   say "Server available at $listen.";
 }
 
@@ -280,7 +280,7 @@ sub _read {
   # Make sure we have a transaction
   my $c = $self->{connections}->{$id};
   my $tx = $c->{transaction} || $c->{websocket};
-  $tx = $c->{transaction} = $self->_build_tx($id, $c) unless $tx;
+  $tx ||= $c->{transaction} = $self->_build_tx($id, $c);
 
   # Parse chunk
   $tx->server_read($chunk);
@@ -312,16 +312,25 @@ sub _write {
 
   # Get chunk
   my $chunk = $tx->server_write;
+  warn "> $chunk\n" if DEBUG;
 
   # Write
+  my $loop = $self->ioloop;
+  $loop->write($id, $chunk);
+
+  # Finish or continue writing
   weaken $self;
   my $cb = sub { $self->_write($id) };
   if ($tx->is_finished) {
-    $self->_finish($id, $tx);
-    $cb = undef unless $c->{transaction} || $c->{websocket};
+    if ($tx->has_subscribers('finish')) {
+      $cb = sub { $self->_finish($id, $tx) }
+    }
+    else {
+      $self->_finish($id, $tx);
+      return unless $c->{transaction} || $c->{websocket};
+    }
   }
-  $self->ioloop->write($id, $chunk, $cb);
-  warn "> $chunk\n" if DEBUG;
+  $loop->write($id, '', $cb);
 }
 
 1;
@@ -336,7 +345,7 @@ Mojo::Server::Daemon - Non-blocking I/O HTTP 1.1 and WebSocket server
   use Mojo::Server::Daemon;
 
   my $daemon = Mojo::Server::Daemon->new(listen => ['http://*:8080']);
-  $daemon->unsubscribe_all('request');
+  $daemon->unsubscribe('request');
   $daemon->on(request => sub {
     my ($daemon, $tx) = @_;
 

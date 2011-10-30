@@ -142,20 +142,20 @@ sub flash {
 }
 
 # "My parents may be evil, but at least they're stupid."
-sub on_finish {
-  my ($self, $cb) = @_;
-  return $self->tx->on(finish => sub { shift and $self->$cb(@_) });
+sub on {
+  my ($self, $name, $cb) = @_;
+  my $tx = $self->tx;
+  $self->rendered(101) if $tx->is_websocket;
+  $tx->on($name => sub { shift and $self->$cb(@_) });
 }
 
-# "I like being a women.
-#  Now when I say something stupid, everyone laughs and buys me things."
-sub on_message {
-  my ($self, $cb) = @_;
-  my $tx = $self->tx;
-  Carp::croak('No WebSocket connection to receive messages from')
-    unless $tx->is_websocket;
-  $self->rendered(101);
-  return $tx->on(message => sub { shift and $self->$cb(@_) });
+# DEPRECATED in Leaf Fluttering In Wind!
+sub on_finish {
+  warn <<EOF;
+Mojolicious::Controller->on_finish is DEPRECATED in favor of
+Mojolicious::Controller->on!
+EOF
+  shift->on(finish => @_);
 }
 
 # "Just make a simple cake. And this time, if someone's going to jump out of
@@ -206,19 +206,13 @@ sub redirect_to {
 sub render {
   my $self = shift;
 
-  # Recursion
-  my $stash = $self->stash;
-  if ($stash->{'mojo.rendering'}) {
-    $self->app->log->debug(qq/Can't render in "before_render" hook./);
-    return '';
-  }
-
   # Template may be first argument
   my $template;
   $template = shift if @_ % 2 && !ref $_[0];
   my $args = ref $_[0] ? $_[0] : {@_};
 
   # Template
+  my $stash = $self->stash;
   $args->{template} = $template if $template;
   unless ($stash->{template} || $args->{template}) {
 
@@ -238,12 +232,7 @@ sub render {
   }
 
   # Render
-  my $app = $self->app;
-  {
-    local $stash->{'mojo.rendering'} = 1;
-    $app->plugins->run_hook_reverse(before_render => $self, $args);
-  }
-  my ($output, $type) = $app->renderer->render($self, $args);
+  my ($output, $type) = $self->app->renderer->render($self, $args);
   return unless defined $output;
   return $output if $args->{partial};
 
@@ -578,7 +567,7 @@ sub url_for {
   my $target = shift || '';
 
   # Absolute URL
-  return Mojo::URL->new($target) if $target =~ /^\w+\:\/\//;
+  return Mojo::URL->new($target) if $target =~ m#^\w+\://#;
 
   # Base
   my $url = Mojo::URL->new;
@@ -589,14 +578,14 @@ sub url_for {
 
   # Relative URL
   my $path = $url->path;
-  if ($target =~ /^\//) {
+  if ($target =~ m#^/#) {
     if (my $e = $self->stash->{path}) {
       my $real = $req->url->path->to_abs_string;
       Mojo::Util::url_unescape($real);
       my $backup = $real;
       Mojo::Util::decode('UTF-8', $real);
       $real //= $backup;
-      $real =~ s/\/?$e$/$target/;
+      $real =~ s|/?$e$|$target|;
       $target = $real;
     }
     $url->parse($target);
@@ -749,27 +738,23 @@ Gracefully end WebSocket connection or long poll stream.
 
 Data storage persistent only for the next request, stored in the session.
 
-=head2 C<on_finish>
+=head2 C<on>
 
-  my $cb = $c->on_finish(sub {...});
+  my $cb = $c->on(finish => sub {...});
 
-Register C<finish> event with transaction, which will be emitted when the
-transaction has been finished.
+Register event with C<tx>, which is usually a L<Mojo::Transaction::HTTP> or
+L<Mojo::Transaction::WebSocket> object.
 
-  $c->on_finish(sub {
+  # Emitted when the transaction has been finished
+  $c->on(finish => sub {
     my $c = shift;
+    say 'We are done!';
   });
 
-=head2 C<on_message>
-
-  my $cb = $c->on_message(sub {...});
-
-Register C<message> event with transaction, which will be emitted when new
-WebSocket messages arrive.
-Note that this method is EXPERIMENTAL and might change without warning!
-
-  $c->on_message(sub {
+  # Emitted when new WebSocket messages arrive
+  $c->on(message => sub {
     my ($c, $message) = @_;
+    say "Message: $message";
   });
 
 =head2 C<param>
@@ -819,7 +804,6 @@ It will set a default template to use based on the controller and action name
 or fall back to the route name.
 You can call it with a hash of options which can be preceded by an optional
 template name.
-It will also run the C<before_render> plugin hook.
 
 =head2 C<render_content>
 
@@ -980,7 +964,8 @@ Cookies failing signature verification will be automatically discarded.
   $c        = $c->stash({foo => 'bar'});
   $c        = $c->stash(foo => 'bar');
 
-Non persistent data storage and exchange.
+Non persistent data storage and exchange, application wide default values can
+be set with L<Mojolicious/"defaults">.
 
   $c->stash->{foo} = 'bar';
   my $foo = $c->stash->{foo};
@@ -990,7 +975,8 @@ Non persistent data storage and exchange.
 
   my $ua = $c->ua;
     
-A L<Mojo::UserAgent> prepared for the current environment.
+Alias for C<$c-E<gt>app-E<gt>ua>.
+Usually refers to a L<Mojo::UserAgent> object.
 
   # Blocking
   my $tx = $c->ua->get('http://mojolicio.us');
@@ -1003,15 +989,15 @@ A L<Mojo::UserAgent> prepared for the current environment.
   });
 
   # Parallel non-blocking
-  my $t = Mojo::IOLoop->trigger(sub {
-    my ($t, @titles) = @_;
+  my $delay = Mojo::IOLoop->delay(sub {
+    my ($delay, @titles) = @_;
     $c->render_json(\@titles);
   });
   for my $url ('http://mojolicio.us', 'https://metacpan.org') {
-    $t->begin;
+    $delay->begin;
     $c->ua->get($url => sub {
       my ($ua, $tx) = @_;
-      $t->end($tx->res->dom->html->head->title->text);
+      $delay->end($tx->res->dom->html->head->title->text);
     });
   }
 

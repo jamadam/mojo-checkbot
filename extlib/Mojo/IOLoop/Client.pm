@@ -54,8 +54,8 @@ sub _cleanup {
   return unless my $resolver = $self->{resolver};
   return unless my $loop     = $resolver->ioloop;
   return unless my $watcher  = $loop->iowatcher;
-  $watcher->cancel($self->{timer})  if $self->{timer};
-  $watcher->remove($self->{handle}) if $self->{handle};
+  $watcher->drop_timer($self->{timer})   if $self->{timer};
+  $watcher->drop_handle($self->{handle}) if $self->{handle};
 }
 
 sub _connect {
@@ -121,7 +121,7 @@ sub _connect {
 
   # Start writing right away
   $self->{handle} = $handle;
-  $watcher->add(
+  $watcher->watch(
     $handle,
     on_readable => sub { $self->_connecting },
     on_writable => sub { $self->_connecting }
@@ -138,8 +138,8 @@ sub _connecting {
   my $watcher = $self->resolver->ioloop->iowatcher;
   if ($self->{tls} && !$handle->connect_SSL) {
     my $error = $IO::Socket::SSL::SSL_ERROR;
-    if    ($error == TLS_READ)  { $watcher->not_writing($handle) }
-    elsif ($error == TLS_WRITE) { $watcher->writing($handle) }
+    if    ($error == TLS_READ)  { $watcher->change($handle, 1, 0) }
+    elsif ($error == TLS_WRITE) { $watcher->change($handle, 1, 1) }
     return;
   }
 
@@ -180,7 +180,6 @@ Mojo::IOLoop::Client - IOLoop socket client
 
 L<Mojo::IOLoop::Client> performs non-blocking socket connections for
 L<Mojo::IOLoop>.
-
 Note that this module is EXPERIMENTAL and might change without warning!
 
 =head1 EVENTS

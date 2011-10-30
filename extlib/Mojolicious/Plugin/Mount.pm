@@ -9,7 +9,7 @@ sub register {
   # Extract host and path
   my $prefix = (keys %$conf)[0];
   my ($host, $path);
-  if ($prefix =~ /^(\*\.)?([^\/]+)(\/.*)?$/) {
+  if ($prefix =~ m#^(\*\.)?([^/]+)(/.*)?$#) {
     $host = quotemeta $2;
     $host = "(?:.*\\.)?$host" if $1;
     $path = defined $3 ? $3 : '/';
@@ -58,7 +58,6 @@ Mojolicious::Plugin::Mount - Application mount plugin
 
 L<Mojolicious::Plugin::Mount> is a plugin that allows you to mount whole
 L<Mojolicious> applications.
-
 Note that this module is EXPERIMENTAL and might change without warning!
 
 =head1 METHODS

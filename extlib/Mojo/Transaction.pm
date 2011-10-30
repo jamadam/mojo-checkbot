@@ -41,8 +41,7 @@ sub is_writing {
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_finish {
   warn <<EOF;
-Mojo::Transaction->on_finish is DEPRECATED in favor of using
-Mojo::Transaction->on!
+Mojo::Transaction->on_finish is DEPRECATED in favor of Mojo::Transaction->on!
 EOF
   shift->on(finish => shift);
 }
@@ -50,8 +49,7 @@ EOF
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_resume {
   warn <<EOF;
-Mojo::Transaction->on_resume is DEPRECATED in favor of using
-Mojo::Transaction->on!
+Mojo::Transaction->on_resume is DEPRECATED in favor of Mojo::Transaction->on!
 EOF
   shift->on(resume => shift);
 }
@@ -196,13 +194,13 @@ implements the following new ones.
 
 =head2 C<client_close>
 
-  $tx = $tx->client_close;
+  $tx->client_close;
 
 Transaction closed.
 
 =head2 C<client_read>
 
-  $tx = $tx->client_read($chunk);
+  $tx->client_read($chunk);
 
 Read and process client data.
 
@@ -257,13 +255,13 @@ Resume transaction.
 
 =head2 C<server_close>
 
-  $tx = $tx->server_close;
+  $tx->server_close;
 
 Transaction closed.
 
 =head2 C<server_read>
 
-  $tx = $tx->server_read($chunk);
+  $tx->server_read($chunk);
 
 Read and process server data.
 

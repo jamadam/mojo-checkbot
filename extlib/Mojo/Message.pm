@@ -74,12 +74,12 @@ sub body_params {
   $type =~ /charset="?(\S+)"?/ and $params->charset($1);
 
   # "x-application-urlencoded" and "application/x-www-form-urlencoded"
-  if ($type =~ /(?:x-application|application\/x-www-form)-urlencoded/i) {
+  if ($type =~ m#(?:x-application|application/x-www-form)-urlencoded#i) {
     $params->parse($self->content->asset->slurp);
   }
 
   # "multipart/formdata"
-  elsif ($type =~ /multipart\/form-data/i) {
+  elsif ($type =~ m#multipart/form-data#i) {
     my $formdata = $self->_parse_formdata;
 
     # Formdata
@@ -185,7 +185,7 @@ sub dom {
   my $charset;
   ($self->headers->content_type || '') =~ /charset="?([^"\s;]+)"?/
     and $charset = $1;
-  my $dom = $self->dom_class->new(charset => $charset)->parse($self->body);
+  my $dom = $self->dom_class->new->charset($charset)->parse($self->body);
 
   # Find right away
   return $dom->find(@_) if @_;
@@ -312,16 +312,15 @@ sub max_line_size { shift->headers->max_line_size(@_) }
 
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_finish {
-  warn <<EOF;
-Mojo::Message->on_finish is DEPRECATED in favor of using Mojo::Message->on!
-EOF
+  warn
+    "Mojo::Message->on_finish is DEPRECATED in favor of Mojo::Message->on!\n";
   shift->on(finish => shift);
 }
 
 # DEPRECATED in Smiling Face With Sunglasses!
 sub on_progress {
   warn <<EOF;
-Mojo::Message->on_progress is DEPRECATED in favor of using Mojo::Message->on!
+Mojo::Message->on_progress is DEPRECATED in favor of Mojo::Message->on!
 EOF
   shift->on(progress => shift);
 }
