@@ -175,7 +175,7 @@
 							Password
 						</th>
 						<td>
-							<input class="password" type="text" />
+							<input class="password" type="password" />
 						</td>
 					</tr>
 				</table>
