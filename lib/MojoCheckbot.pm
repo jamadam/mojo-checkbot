@@ -320,7 +320,7 @@ our $VERSION = '0.22';
         my $temp = Mojo::URL->new($href);
         
         # Reject tel, mailto
-        if ($temp->path->parts->[0] =~ /(.+):/) {
+        if ($temp->path->parts->[0] && $temp->path->parts->[0] =~ /(.+):/) {
             $temp->scheme($1);
             return $temp;
         }
