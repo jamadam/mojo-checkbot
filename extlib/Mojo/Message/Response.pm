@@ -149,7 +149,7 @@ sub _parse_start_line {
   }
 
   # We have a full HTTP 1.0+ response line
-  return unless defined(my $line = get_line $self->{buffer});
+  return unless defined(my $line = get_line \$self->{buffer});
   return $self->error('Bad response start line.')
     unless $line =~ $START_LINE_RE;
   $self->version($+{version});
@@ -225,6 +225,8 @@ implements the following new ones.
   $req        = $req->cookies({name => 'foo', value => 'bar'});
 
 Access response cookies, usually L<Mojo::Cookie::Response> objects.
+
+  say $res->cookies->[1]->value;
 
 =head2 C<default_message>
 

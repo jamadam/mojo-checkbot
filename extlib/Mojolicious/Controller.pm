@@ -259,10 +259,8 @@ sub render_content {
 
     # Reset with multiple values
     if (@_) {
-      $c->{$name} = '';
-      for my $part (@_, $content) {
-        $c->{$name} .= ref $part eq 'CODE' ? $part->() : $part;
-      }
+      $c->{$name} =
+        join('', map({ref $_ eq 'CODE' ? $_->() : $_} @_, $content));
     }
 
     # First come
@@ -332,7 +330,7 @@ sub render_json {
   return $self->render($args);
 }
 
-sub render_later { shift->stash->{'mojo.rendered'} = 1 }
+sub render_later { shift->stash->{'mojo.rendered'}++ }
 
 # "Excuse me, sir, you're snowboarding off the trail.
 #  Lick my frozen metal ass."
@@ -407,12 +405,11 @@ sub rendered {
 
   # Finish transaction
   my $stash = $self->stash;
-  unless ($stash->{'mojo.finished'}) {
+  unless ($stash->{'mojo.finished'}++) {
     $res->code(200) unless $res->code;
     my $app = $self->app;
-    $app->plugins->run_hook_reverse(after_dispatch => $self);
+    $app->plugins->emit_hook_reverse(after_dispatch => $self);
     $app->sessions->store($self);
-    $stash->{'mojo.finished'} = 1;
   }
   $self->tx->resume;
 
@@ -580,11 +577,8 @@ sub url_for {
   my $path = $url->path;
   if ($target =~ m#^/#) {
     if (my $e = $self->stash->{path}) {
-      my $real = $req->url->path->to_abs_string;
-      Mojo::Util::url_unescape($real);
-      my $backup = $real;
-      Mojo::Util::decode('UTF-8', $real);
-      $real //= $backup;
+      my $real = Mojo::Util::url_unescape($req->url->path->to_abs_string);
+      $real = Mojo::Util::decode('UTF-8', $real) // $real;
       $real =~ s|/?$e$|$target|;
       $target = $real;
     }
@@ -608,7 +602,7 @@ sub url_for {
   # Make path absolute
   my $base_path = $base->path;
   unshift @{$path->parts}, @{$base_path->parts};
-  $base_path->parts([]);
+  $base_path->parts([])->trailing_slash(0);
 
   return $url;
 }
@@ -693,6 +687,8 @@ implements the following new ones.
 A reference back to the L<Mojolicious> application that dispatched to this
 controller, defaults to a L<Mojolicious> object.
 
+  $c->app->log->debug('Hello Mojo!');
+
 =head2 C<match>
 
   my $m = $c->match;
@@ -709,6 +705,8 @@ L<Mojolicious::Routes::Match> object.
 The transaction that is currently being processed, usually a
 L<Mojo::Transaction::HTTP> or L<Mojo::Transaction::WebSocket> object.
 
+  my $address = $c->tx->remote_address;
+
 =head1 METHODS
 
 L<Mojolicious::Controller> inherits all methods from L<Mojo::Base> and
@@ -722,6 +720,8 @@ implements the following new ones.
   my @values = $c->cookie('foo');
 
 Access request cookie values and create new response cookies.
+
+  my $foo = $c->cookie('foo')->value;
 
 =head2 C<finish>
 
@@ -853,7 +853,7 @@ Disable auto rendering, especially for long polling this can be quite useful.
 
   $c->render_not_found;
   $c->render_not_found($resource);
-    
+
 Render the not found template C<not_found.$mode.$format.*> or
 C<not_found.$format.*> and set the response status code to C<404>.
 
@@ -861,7 +861,7 @@ C<not_found.$format.*> and set the response status code to C<404>.
 
   my $output = $c->render_partial('menubar');
   my $output = $c->render_partial('menubar', format => 'txt');
-    
+
 Same as C<render> but returns the rendered result.
 
 =head2 C<render_static>
@@ -898,12 +898,16 @@ Finalize response and run C<after_dispatch> plugin hook.
 Alias for C<$c-E<gt>tx-E<gt>req>.
 Usually refers to a L<Mojo::Message::Request> object.
 
+  $c->render_json({url => $c->req->url->to_abs->to_string});
+
 =head2 C<res>
 
   my $res = $c->res;
 
 Alias for C<$c-E<gt>tx-E<gt>res>.
 Usually refers to a L<Mojo::Message::Response> object.
+
+  $c->res->headers->content_disposition('attachment; filename=foo.png;');
 
 =head2 C<respond_to>
 
@@ -974,7 +978,7 @@ be set with L<Mojolicious/"defaults">.
 =head2 C<ua>
 
   my $ua = $c->ua;
-    
+
 Alias for C<$c-E<gt>app-E<gt>ua>.
 Usually refers to a L<Mojo::UserAgent> object.
 

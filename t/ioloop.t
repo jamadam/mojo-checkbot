@@ -1,5 +1,9 @@
 #!/usr/bin/env perl
 use Mojo::Base -strict;
+use File::Basename 'dirname';
+use File::Spec;
+use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '../extlib';
+use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '../lib';
 
 # Disable Bonjour, IPv6 and libev
 BEGIN {

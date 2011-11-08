@@ -468,6 +468,8 @@ supported transparently and used if installed.
 
 A TLS certificate and key are also built right in to make writing test
 servers as easy as possible.
+Also note that for convenience the C<PIPE> signal will be set to C<IGNORE>
+when L<Mojo::IOLoop> is loaded.
 
 =head1 ATTRIBUTES
 
@@ -653,7 +655,6 @@ Path to the TLS key file.
 =head2 C<connection_timeout>
 
   my $timeout = Mojo::IOLoop->connection_timeout($id);
-  $loop       = Mojo::IOLoop->connection_timeout($id => 45);
   my $timeout = $loop->connection_timeout($id);
   $loop       = $loop->connection_timeout($id => 45);
 
@@ -872,11 +873,10 @@ The remote port.
 
   my $loop = Mojo::IOLoop->singleton;
 
-The global loop object, used to access a single shared loop instance from
-everywhere inside the process.
-Many methods also allow you to take shortcuts when using the L<Mojo::IOLoop>
-singleton.
+The global L<Mojo::IOLoop> singleton, used to access a single shared loop
+instance from everywhere inside the process.
 
+  # Many methods also allow you to take shortcuts
   Mojo::IOLoop->timer(2 => sub { Mojo::IOLoop->stop });
   Mojo::IOLoop->start;
 

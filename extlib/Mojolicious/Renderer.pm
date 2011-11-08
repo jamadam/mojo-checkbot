@@ -2,7 +2,6 @@ package Mojolicious::Renderer;
 use Mojo::Base -base;
 
 use File::Spec;
-use Mojo::ByteStream 'b';
 use Mojo::Cache;
 use Mojo::Command;
 use Mojo::Home;
@@ -109,14 +108,14 @@ sub render {
   my $content = $stash->{'mojo.content'} ||= {};
   if (defined $text) {
     $self->handlers->{text}->($self, $c, \$output, {text => $text});
-    $content->{content} = b("$output")
+    $content->{content} = $output
       if ($c->stash->{extends} || $c->stash->{layout});
   }
 
   # Data
   elsif (defined $data) {
     $self->handlers->{data}->($self, $c, \$output, {data => $data});
-    $content->{content} = b("$output")
+    $content->{content} = $output
       if ($c->stash->{extends} || $c->stash->{layout});
   }
 
@@ -124,14 +123,14 @@ sub render {
   elsif (defined $json) {
     $self->handlers->{json}->($self, $c, \$output, {json => $json});
     $format = 'json';
-    $content->{content} = b("$output")
+    $content->{content} = $output
       if ($c->stash->{extends} || $c->stash->{layout});
   }
 
   # Template or templateless handler
   else {
     return unless $self->_render_template($c, \$output, $options);
-    $content->{content} = b($output)
+    $content->{content} = $output
       if ($c->stash->{extends} || $c->stash->{layout});
   }
 
@@ -142,12 +141,15 @@ sub render {
     $options->{format}         = $stash->{format} || $self->default_format;
     $options->{template}       = $extends;
     $self->_render_template($c, \$output, $options);
+    $content->{content} = $output
+      if $content->{content} !~ /\S/ && $output =~ /\S/;
   }
 
   # Encoding (JSON is already encoded)
   unless ($partial) {
     my $encoding = $options->{encoding};
-    encode $encoding, $output if $encoding && $output && !$json && !$data;
+    $output = encode $encoding, $output
+      if $encoding && $output && !$json && !$data;
   }
 
   return $output, $c->app->types->type($format) || 'text/plain';
@@ -350,7 +352,7 @@ Directory to look for layouts in, defaults to C<layouts>.
 
   my $root  = $renderer->root;
   $renderer = $renderer->root('/foo/bar/templates');
-   
+
 Directory to look for templates in.
 
 =head1 METHODS
@@ -367,7 +369,7 @@ Construct a new renderer.
 =head2 C<add_handler>
 
   $renderer = $renderer->add_handler(epl => sub {...});
-    
+
 Add a new handler to the renderer.
 See L<Mojolicious::Plugin::EPRenderer> for a sample renderer.
 
@@ -407,7 +409,7 @@ See L<Mojolicious::Controller/"render"> for a more user friendly interface.
     format   => 'html',
     handler  => 'epl'
   });
-    
+
 Builds a template name based on an options hash with C<template>, C<format>
 and C<handler>.
 

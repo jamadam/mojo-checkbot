@@ -514,25 +514,18 @@ sub _parse_formdata {
     my $value      = $part;
 
     # Unescape
-    url_unescape $name     if $name;
-    url_unescape $filename if $filename;
+    $name     = url_unescape $name     if $name;
+    $filename = url_unescape $filename if $filename;
     if ($charset) {
-      my $backup = $name;
-      decode $charset, $name if $name;
-      $name //= $backup;
-      $backup = $filename;
-      decode $charset, $filename if $filename;
-      $filename //= $backup;
+      $name     = decode($charset, $name)     // $name     if $name;
+      $filename = decode($charset, $filename) // $filename if $filename;
     }
 
     # Form value
     unless ($filename) {
       $value = $part->asset->slurp;
-      if ($charset && !$part->headers->content_transfer_encoding) {
-        my $backup = $value;
-        decode $charset, $value;
-        $value //= $backup;
-      }
+      $value = decode($charset, $value) // $value
+        if $charset && !$part->headers->content_transfer_encoding;
     }
 
     push @formdata, [$name, $filename, $value];
@@ -663,6 +656,8 @@ which will be emitted when new data arrives.
 
 C<POST> parameters, usually a L<Mojo::Parameters> object.
 
+  say $message->body_params->param('foo');
+
 =head2 C<body_size>
 
   my $size = $message->body_size;
@@ -695,6 +690,8 @@ Render start line.
 Access message cookies, usually L<Mojo::Cookie::Request> or
 L<Mojo::Cookie::Response> objects.
 
+  say $message->cookie('foo')->value;
+
 =head2 C<dom>
 
   my $dom        = $message->dom;
@@ -702,6 +699,12 @@ L<Mojo::Cookie::Response> objects.
 
 Turns content into a L<Mojo::DOM> object and takes an optional selector to
 perform a C<find> on it right away, which returns a collection.
+
+  # Perform "find" right away
+  $message->dom('h1, h2, h3')->each(sub { say $_->text });
+
+  # Use everything else Mojo::DOM has to offer
+  say $message->dom->at('title')->text;
 
 =head2 C<error>
 
@@ -755,6 +758,8 @@ Size of headers in bytes.
 
 Message headers, defaults to a L<Mojo::Headers> object.
 
+  say $message->headers->content_type;
+
 =head2 C<is_chunked>
 
   my $success = $message->is_chunked;
@@ -794,6 +799,8 @@ Check if message content is a L<Mojo::Content::MultiPart> object.
 
 Decode JSON message body directly using L<Mojo::JSON> if possible, returns
 C<undef> otherwise.
+
+  say $message->json->{foo}->{bar}->[23];
 
 =head2 C<leftovers>
 
@@ -846,11 +853,15 @@ Render whole message.
 
 Access C<multipart/form-data> file uploads, usually L<Mojo::Upload> objects.
 
+  say $message->upload('foo')->asset->slurp;
+
 =head2 C<uploads>
 
   my $uploads = $message->uploads;
 
 All C<multipart/form-data> file uploads, usually L<Mojo::Upload> objects.
+
+  say $message->uploads->[2]->filename;
 
 =head2 C<version>
 

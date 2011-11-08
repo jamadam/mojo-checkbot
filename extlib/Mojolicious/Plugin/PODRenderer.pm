@@ -46,7 +46,7 @@ sub register {
 
   # Perldoc
   $app->routes->any(
-    '/perldoc/(*module)' => {module => 'Mojolicious/Guides'} => sub {
+    '/perldoc/*module' => {module => 'Mojolicious/Guides'} => sub {
       my $self = shift;
 
       # Find module
@@ -94,7 +94,7 @@ sub register {
           my $text   = $tag->all_text;
           my $anchor = $text;
           $anchor =~ s/\s+/_/g;
-          url_escape $anchor, 'A-Za-z0-9_';
+          $anchor = url_escape $anchor, 'A-Za-z0-9_';
           $anchor =~ s/\%//g;
           push @$sections, [] if $tag->type eq 'h1' || !@$sections;
           push @{$sections->[-1]}, $text, $url->fragment($anchor)->to_abs;
@@ -115,7 +115,7 @@ sub register {
       # Combine everything to a proper response
       $self->content_for(mojobar => $self->include(inline => $MOJOBAR));
       $self->content_for(perldoc => "$dom");
-      $self->app->plugins->run_hook(before_perldoc => $self);
+      $self->app->plugins->emit_hook(before_perldoc => $self);
       $self->render(
         inline   => $PERLDOC,
         title    => $title,

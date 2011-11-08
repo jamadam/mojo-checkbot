@@ -79,15 +79,13 @@ sub fix_headers {
 
   # Basic authorization
   if ((my $u = $url->userinfo) && !$headers->authorization) {
-    b64_encode $u, '';
-    $headers->authorization("Basic $u");
+    $headers->authorization('Basic ' . b64_encode($u, ''));
   }
 
   # Basic proxy authorization
   if (my $proxy = $self->proxy) {
     if ((my $u = $proxy->userinfo) && !$headers->proxy_authorization) {
-      b64_encode $u, '';
-      $headers->proxy_authorization("Basic $u");
+      $headers->proxy_authorization('Basic ' . b64_encode($u, ''));
     }
   }
 
@@ -236,9 +234,7 @@ sub _build_start_line {
 sub _parse_basic_auth {
   my ($self, $header) = @_;
   return unless $header =~ /Basic (.+)$/;
-  my $auth = $1;
-  b64_decode $auth;
-  return $auth;
+  return b64_decode $1;
 }
 
 sub _parse_env {
@@ -330,8 +326,8 @@ sub _parse_start_line {
   my $self = shift;
 
   # Ignore any leading empty lines
-  my $line = get_line $self->{buffer};
-  $line = get_line $self->{buffer}
+  my $line = get_line \$self->{buffer};
+  $line = get_line \$self->{buffer}
     while ((defined $line) && ($line =~ m/^\s*$/));
   return unless defined $line;
 
@@ -432,6 +428,8 @@ Note that this method is EXPERIMENTAL and might change without warning!
 
 Access request cookies, usually L<Mojo::Cookie::Request> objects.
 
+  say $req->cookies->[1]->value;
+
 =head2 C<fix_headers>
 
   $req = $req->fix_headers;
@@ -462,6 +460,8 @@ Access C<GET> and C<POST> parameters.
 
 All C<GET> and C<POST> parameters, usually a L<Mojo::Parameters> object.
 
+  say $req->params->param('foo');
+
 =head2 C<parse>
 
   $req = $req->parse('GET /foo/bar HTTP/1.1');
@@ -483,6 +483,8 @@ Proxy URL for message.
   my $params = $req->query_params;
 
 All C<GET> parameters, usually a L<Mojo::Parameters> object.
+
+  say $req->query_params->param('foo');
 
 =head1 SEE ALSO
 
