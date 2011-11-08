@@ -255,9 +255,8 @@ our $VERSION = '0.22';
             if (length($context) > 300) {
                 $context = substr($context, 0, 300). '...';
             }
-            Mojo::Util::html_escape($context);
             return {
-                $QUEUE_KEY_CONTEXT      => $context,
+                $QUEUE_KEY_CONTEXT      => Mojo::Util::html_escape($context),
                 $QUEUE_KEY_LITERAL_URI  => $href,
             };
         }
