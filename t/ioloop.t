@@ -1,9 +1,5 @@
 #!/usr/bin/env perl
 use Mojo::Base -strict;
-use File::Basename 'dirname';
-use File::Spec;
-use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '../extlib';
-use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '../lib';
 
 # Disable Bonjour, IPv6 and libev
 BEGIN {
@@ -11,13 +7,18 @@ BEGIN {
   $ENV{MOJO_IOWATCHER} = 'Mojo::IOWatcher';
 }
 
-use Test::More tests => 22;
+use Test::More tests => 32;
 
 # "Marge, you being a cop makes you the man!
 #  Which makes me the woman, and I have no interest in that,
 #  besides occasionally wearing the underwear,
 #  which as we discussed, is strictly a comfort thing."
 use_ok 'MojoCheckbot::IOLoop';
+use_ok 'Mojo::IOLoop::Client';
+use_ok 'Mojo::IOLoop::Delay';
+use_ok 'Mojo::IOLoop::Resolver';
+use_ok 'Mojo::IOLoop::Server';
+use_ok 'Mojo::IOLoop::Stream';
 
 # Custom watcher
 package MyWatcher;
@@ -139,15 +140,15 @@ MojoCheckbot::IOLoop->listen(
     $loop->drop($id);
   }
 );
-my $t = MojoCheckbot::IOLoop->trigger;
+my $delay = MojoCheckbot::IOLoop->delay;
 MojoCheckbot::IOLoop->connect(
   address    => 'localhost',
   port       => $port,
-  on_connect => $t->begin,
+  on_connect => $delay->begin,
   on_close   => sub { $buffer .= 'should not happen' },
   on_error   => sub { $buffer .= 'should not happen either' },
 );
-$handle = MojoCheckbot::IOLoop->stream($t->start)->steal_handle;
+$handle = MojoCheckbot::IOLoop->stream($delay->wait)->steal_handle;
 my $stream = MojoCheckbot::IOLoop->singleton->stream_class->new($handle);
 $id = MojoCheckbot::IOLoop->stream(
   $stream => {
@@ -221,3 +222,14 @@ MojoCheckbot::IOLoop->timer('0.5' => sub { shift->stop });
 MojoCheckbot::IOLoop->start;
 is $server_close, 1, 'server emitted close event once';
 is $client_close, 1, 'client emitted close event once';
+
+# Defaults
+is Mojo::IOLoop::Client->new->resolver->ioloop, MojoCheckbot::IOLoop->singleton,
+  'right default';
+is Mojo::IOLoop::Delay->new->ioloop, MojoCheckbot::IOLoop->singleton, 'right default';
+is Mojo::IOLoop::Resolver->new->ioloop, MojoCheckbot::IOLoop->singleton,
+  'right default';
+is Mojo::IOLoop::Server->new->iowatcher,
+  Mojo::IOLoop->singleton->iowatcher, 'right default';
+is Mojo::IOLoop::Stream->new->iowatcher, MojoCheckbot::IOLoop->singleton->iowatcher,
+  'right default';

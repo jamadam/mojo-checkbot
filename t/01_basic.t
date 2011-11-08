@@ -24,7 +24,7 @@ use MojoCheckbot;
 	$tmp = MojoCheckbot::resolve_href($base, 'http://example2.com/hoge.html');
 	is($tmp, 'http://example2.com/hoge.html');
 	$tmp = MojoCheckbot::resolve_href($base, 'http://example2.com//hoge.html');
-	is($tmp, 'http://example2.com/hoge.html');
+	is($tmp, 'http://example2.com//hoge.html');
 	
 	$base = Mojo::URL->new('http://example.com/dir/');
 	$tmp = MojoCheckbot::resolve_href($base, './hoge.html');

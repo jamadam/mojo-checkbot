@@ -318,6 +318,13 @@ our $VERSION = '0.22';
         my ($base, $href) = @_;
         my $new = $base->clone;
         my $temp = Mojo::URL->new($href);
+        
+        # Reject tel, mailto
+        if ($temp->path->parts->[0] =~ /(.+):/) {
+            $temp->scheme($1);
+            return $temp;
+        }
+        
         $temp->fragment('');
         if ($temp->scheme) {
             return $temp;
