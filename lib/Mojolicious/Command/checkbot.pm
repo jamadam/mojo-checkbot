@@ -33,6 +33,9 @@ hoge usage: $0 daemon [OPTIONS]
   --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
   --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
   --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
+  --evacuate <seconds>    [EXPERIMENTAL]レポートをテンポラリーファイルに出力する間隔を指定します。
+  --noevacuate            [EXPERIMENTAL]resume用のファイル出力を無効化します。
+  --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
   
   レポートサーバーオプション
   
@@ -62,12 +65,19 @@ These options are available:
   Crawler options
   
   --start <URL>           Set start URL for crawling.
-  --match <regexp>        Set regexp to judge whether or not the URL should be
+  --match <regexp>        [Deprecated]Set regexp to judge whether or not the URL
+                          should be checked.
+  --match-for-check <regexp> Set regexp to judge whether or not the URL should be
                           checked.
+  --match-for-crawl <regexp> Set regexp to judge whether or not the URL should be
+                          crawled recursivly.
   --sleep <seconds>       Set interval for crawling.
   --ua <string>           Set user agent name for crawler header
   --cookie <string>       Set cookie string sent to servers
   --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
+  --evacuate <seconds>    [EXPERIMENTAL]Set interval for temporary file output.
+  --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
+  --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
   
   Report server options
   

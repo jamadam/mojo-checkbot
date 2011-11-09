@@ -25,8 +25,12 @@ These options are available:
     Crawler options
     
     --start <URL>           Set start URL for crawling.
-    --match <regexp>        Set regexp to judge whether or not the URL should be
+    --match <regexp>        [Deprecated]Set regexp to judge whether or not the
+                            URL should be checked.
+    --match-for-check <regexp> Set regexp to judge whether or not the URL should be
                             checked.
+    --match-for-crawl <regexp> Set regexp to judge whether or not the URL should be
+                            crawled recursivly.
     --sleep <seconds>       Set interval for crawling.
     --ua <string>           Set user agent name for crawler header
     --cookie <string>       Set cookie string sent to servers

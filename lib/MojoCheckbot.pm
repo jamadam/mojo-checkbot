@@ -51,6 +51,8 @@ our $VERSION = '0.22';
         
         GetOptionsFromArray(\@ARGV, \%options,
             'match=s' ,
+            'match-for-check=s' ,
+            'match-for-crawl=s' ,
             'start=s',
             'sleep=i',
             'ua=s',
@@ -184,22 +186,25 @@ our $VERSION = '0.22';
             my $res = $tx->res;
             $code = $res->code;
             my $type = $res->headers->content_type;
-            if ($type && $type =~ qr{text/(html|xml)}) {
-                my $charset = guess_encoding($res) || 'utf-8';
-                my $body = Encode::decode($charset, $res->body);
-                my $dom = Mojo::DOM->new($body);
-                my $base = $tx->req->url;
-                if (my $base_tag = $dom->at('base')) {
-                    $base = Mojo::URL->new($base_tag->attrs('href'));
+            if (! $options{'match-for-crawl'} ||
+                                        $url =~ /$options{'match-for-crawl'}/) {
+                if ($type && $type =~ qr{text/(html|xml)}) {
+                    my $charset = guess_encoding($res) || 'utf-8';
+                    my $body = Encode::decode($charset, $res->body);
+                    my $dom = Mojo::DOM->new($body);
+                    my $base = $tx->req->url;
+                    if (my $base_tag = $dom->at('base')) {
+                        $base = Mojo::URL->new($base_tag->attrs('href'));
+                    }
+                    my @urls = collect_urls($dom);
+                    append_queues($base, \@urls, \@new_queues);
+                } elsif ($type && $type =~ qr{text/(text|css)}) {
+                    my $base = $tx->req->url;
+                    my $charset = guess_encoding_css($res) || 'utf-8';
+                    my $body = Encode::decode($charset, $res->body);
+                    my @urls = collect_urls_from_css($body);
+                    append_queues($base, \@urls, \@new_queues);
                 }
-                my @urls = collect_urls($dom);
-                append_queues($base, \@urls, \@new_queues);
-            } elsif ($type && $type =~ qr{text/(text|css)}) {
-                my $base = $tx->req->url;
-                my $charset = guess_encoding_css($res) || 'utf-8';
-                my $body = Encode::decode($charset, $res->body);
-                my @urls = collect_urls_from_css($body);
-                append_queues($base, \@urls, \@new_queues);
             }
         } elsif($code && $code == 401) {
             my $tx = $ua->max_redirects(0)->get($url);
@@ -227,6 +232,9 @@ our $VERSION = '0.22';
             }
             $url2 = "$url2";
             if ($options{match} && $url2 !~ /$options{match}/) {
+                next;
+            }
+            if ($options{'match-for-check'} && $url2 !~ /$options{'match-for-check'}/) {
                 next;
             }
             my $md5 = md5_sum($url2);
