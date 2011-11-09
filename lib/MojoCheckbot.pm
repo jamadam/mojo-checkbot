@@ -156,7 +156,6 @@ our $VERSION = '0.22';
             push(@$queues, {
                 $QUEUE_KEY_RESOLVED_URI => "$new_url"
             });
-            warn $new_url;
             $c->render_json({result => 'success'});
         });
         $r->route('/')->to(cb => sub {
@@ -218,7 +217,7 @@ our $VERSION = '0.22';
     sub append_queues {
         my ($base, $urls, $append_to) = @_;
         for my $entry (@$urls) {
-            if ($entry->{$QUEUE_KEY_LITERAL_URI} =~ qr{^([^/]+):}
+            if ($entry->{$QUEUE_KEY_LITERAL_URI} =~ qr{^(\w+):}
                                         && ! ( $1 ~~ [qw(http https ws wss)])) {
                 next;
             }

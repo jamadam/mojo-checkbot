@@ -30,6 +30,7 @@ use MojoCheckbot;
 <map name="m_map" id="m_map">
 	<area href="index3.html" coords="" title="E" />
 </map>
+<a href="#a:b">F</a>
 </body>
 </html>
 EOF
@@ -51,7 +52,7 @@ EOF
 	{
 		my ($res, $jobs) = MojoCheckbot::check("http://localhost:$port/", $ua);
 		is($res, 200);
-		is(scalar @$jobs, 7);
+		is(scalar @$jobs, 8);
 	}
 
 1;
