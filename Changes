@@ -1,7 +1,7 @@
 Revision history for mojo-checkbot
 
-0.22 2011/10/30
-  - Mojolicious v2.17 bundled
+0.22 2011/11/08
+  - Mojolicious v2.24 bundled
   - Fixed a small bug that ioloop hasn't droped when queue is empty.
 
 0.21 2011/10/27
