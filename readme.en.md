@@ -15,8 +15,7 @@ makes the report view available at http://127.0.0.1:3000. The report will
 automatically be updated until the jobs queue is empty.
 
 This requires Perl v5.10.1 or higher. If not, please upgrade, or google
-'perlbrew', or try to put [Mojolicious v1.99] into extlib directory.
-[Mojolicious v1.99]:https://github.com/kraih/mojo/tree/v1.99
+'perlbrew'.
 
 ## OPTIONS
 

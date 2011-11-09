@@ -14,9 +14,7 @@ mojo-checkbot 0.22 beta
 リンクの収集とステータスコードの収集は再帰的に延々続きますので、matchオプションでURLフィルタをかけておくと、
 そのうち止まるかもしれません。
 
-Perl v5.10.1以上が必要です。もし古い場合は、アップグレードするか、perlbrewでググるか、
-同梱のextlibディレクトリに[Mojolicious v1.99]を入れて見てください。
-[Mojolicious v1.99]:https://github.com/kraih/mojo/tree/v1.99
+Perl v5.10.1以上が必要です。もし古い場合は、アップグレードするか、perlbrewでググってください。
 
 ## OPTIONS
 
