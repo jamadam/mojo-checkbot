@@ -218,6 +218,10 @@ our $VERSION = '0.22';
     sub append_queues {
         my ($base, $urls, $append_to) = @_;
         for my $entry (@$urls) {
+            if ($entry->{$QUEUE_KEY_LITERAL_URI} =~ qr{^([^/]+):}
+                                        && ! ( $1 ~~ [qw(http https ws wss)])) {
+                next;
+            }
             my $url2 = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
             if ($url2->scheme !~ qr{https?|ftp}) {
                 next;
@@ -318,12 +322,6 @@ our $VERSION = '0.22';
         my ($base, $href) = @_;
         my $new = $base->clone;
         my $temp = Mojo::URL->new($href);
-        
-        # Reject tel, mailto
-        if ($temp->path->parts->[0] && $temp->path->parts->[0] =~ /(.+):/) {
-            $temp->scheme($1);
-            return $temp;
-        }
         
         $temp->fragment('');
         if ($temp->scheme) {
