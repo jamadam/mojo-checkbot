@@ -135,9 +135,9 @@ our $VERSION = '0.23';
         
         my $r = $self->routes;
         $r->route('/diff')->to(cb => sub {
-            my $c = shift;
-            my $offset = $c->req->param('offset');
-            my $last = scalar @$result;
+            my $c       = shift;
+            my $offset  = $c->req->param('offset');
+            my $last    = scalar @$result;
             if ($last - $offset > 100) {
                 $last = $offset + 100;
             }
@@ -151,8 +151,8 @@ our $VERSION = '0.23';
         $r->route('/auth')->to(cb => sub {
             my $c = shift;
             my $url = Mojo::URL->new($c->req->param('url'));
-            my $un = $c->req->param('username');
-            my $pw = $c->req->param('password');
+            my $un  = $c->req->param('username');
+            my $pw  = $c->req->param('password');
             $ua->userinfo->{$url->scheme. '://'. $url->host} = "$un:$pw";
             push(@$queues, {
                 $QUEUE_KEY_RESOLVED_URI => "$url"
@@ -167,8 +167,8 @@ our $VERSION = '0.23';
     
     sub check {
         my ($url, $ua, $interval) = @_;
-        my $tx = $ua->max_redirects(0)->head($url);
-        my $code = $tx->res->code;
+        my $tx      = $ua->max_redirects(0)->head($url);
+        my $code    = $tx->res->code;
         if (! $code) {
             my ($message) = $tx->error;
             die $message;
@@ -181,32 +181,32 @@ our $VERSION = '0.23';
             });
         }
         if ($code && $code == 200) {
-            my $tx = $ua->max_redirects(0)->get($url);
+            my $tx  = $ua->max_redirects(0)->get($url);
             my $res = $tx->res;
-            $code = $res->code;
+            $code   = $res->code;
             my $type = $res->headers->content_type;
             if (! $options{'match-for-crawl'} ||
                                         $url =~ /$options{'match-for-crawl'}/) {
                 if ($type && $type =~ qr{text/(html|xml)}) {
-                    my $charset = guess_encoding($res) || 'utf-8';
-                    my $body = Encode::decode($charset, $res->body);
-                    my $dom = Mojo::DOM->new($body);
-                    my $base = $tx->req->url;
+                    my $encode = guess_encoding($res) || 'utf-8';
+                    my $body    = Encode::decode($encode, $res->body);
+                    my $dom     = Mojo::DOM->new($body);
+                    my $base    = $tx->req->url;
                     if (my $base_tag = $dom->at('base')) {
                         $base = Mojo::URL->new($base_tag->attrs('href'));
                     }
                     my @urls = collect_urls($dom);
                     append_queues($base, \@urls, \@new_queues);
                 } elsif ($type && $type =~ qr{text/(text|css)}) {
-                    my $base = $tx->req->url;
-                    my $charset = guess_encoding_css($res) || 'utf-8';
-                    my $body = Encode::decode($charset, $res->body);
-                    my @urls = collect_urls_from_css($body);
+                    my $base    = $tx->req->url;
+                    my $encode  = guess_encoding_css($res) || 'utf-8';
+                    my $body    = Encode::decode($encode, $res->body);
+                    my @urls    = collect_urls_from_css($body);
                     append_queues($base, \@urls, \@new_queues);
                 }
             }
         } elsif($code && $code == 401) {
-            my $tx = $ua->max_redirects(0)->get($url);
+            my $tx  = $ua->max_redirects(0)->get($url);
             my $res = $tx->res;
             $code = {
                 code    => $res->code,
@@ -300,8 +300,8 @@ our $VERSION = '0.23';
     }
     
     sub guess_encoding_css {
-        my $res = shift;
-        my $type = $res->headers->content_type;
+        my $res     = shift;
+        my $type    = $res->headers->content_type;
         my $charset = ($type =~ qr{; ?charset=([^;\$]+)})[0];
         if (! $charset) {
             $charset = ($res->body =~ qr{^\s*\@charset ['"](.+?)['"];}is)[0];
@@ -310,8 +310,8 @@ our $VERSION = '0.23';
     }
     
     sub guess_encoding {
-        my $res = shift;
-        my $type = $res->headers->content_type;
+        my $res     = shift;
+        my $type    = $res->headers->content_type;
         my $charset = ($type =~ qr{; ?charset=([^;\$]+)})[0];
         if (! $charset) {
             my $head = ($res->body =~ qr{<head>(.+)</head>}is)[0];
