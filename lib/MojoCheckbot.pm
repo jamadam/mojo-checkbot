@@ -150,13 +150,12 @@ our $VERSION = '0.22';
         });
         $r->route('/auth')->to(cb => sub {
             my $c = shift;
-            my $url = $c->req->param('url');
-            my $new_url = Mojo::URL->new($url);
+            my $url = Mojo::URL->new($c->req->param('url'));
             my $un = $c->req->param('username');
             my $pw = $c->req->param('password');
-            $new_url->userinfo("$un:$pw");
+            $ua->userinfo->{$url->scheme. '://'. $url->host} = "$un:$pw";
             push(@$queues, {
-                $QUEUE_KEY_RESOLVED_URI => "$new_url"
+                $QUEUE_KEY_RESOLVED_URI => "$url"
             });
             $c->render_json({result => 'success'});
         });
