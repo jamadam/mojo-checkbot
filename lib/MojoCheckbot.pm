@@ -100,7 +100,7 @@ our $VERSION = '0.23';
             if (my $queue = shift @$queues) {
                 my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                             $queue->{$QUEUE_KEY_LITERAL_URI};
-                my ($res, $new_queues) = eval {
+                my ($res, $new_queues, $dialogs) = eval {
                     check($url, $ua, $options{sleep});
                 };
                 if ($@) {
@@ -110,7 +110,12 @@ our $VERSION = '0.23';
                         $_->{$QUEUE_KEY_REFERER} = $url;
                         $_;
                     } @$new_queues;
+                    @$dialogs = map {
+                        $_->{$QUEUE_KEY_REFERER} = $url;
+                        $_;
+                    } @$dialogs;
                     push(@$queues, @$new_queues);
+                    push(@$result, @$dialogs);
                     if (ref $res) {
                         $queue->{$QUEUE_KEY_RES}    = $res->{code};
                         $queue->{$QUEUE_KEY_DIALOG} = $res->{dialog};
@@ -174,6 +179,7 @@ our $VERSION = '0.23';
             die $message;
         }
         my @new_queues;
+        my @dialogs;
         if (my $location = $tx->res->headers->header('location')) {
             push(@new_queues, {
                 $QUEUE_KEY_CONTEXT      => '*Redirected by server configuration*',
@@ -195,8 +201,11 @@ our $VERSION = '0.23';
                     if (my $base_tag = $dom->at('base')) {
                         $base = Mojo::URL->new($base_tag->attrs('href'));
                     }
-                    my @urls = collect_urls($dom);
-                    append_queues($base, \@urls, \@new_queues);
+                    my @a       = collect_urls($dom);
+                    my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
+                    my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
+                    append_queues($base, \@q, \@new_queues);
+                    push(@dialogs, @dialog);
                 } elsif ($type && $type =~ qr{text/(text|css)}) {
                     my $base    = $tx->req->url;
                     my $encode  = guess_encoding_css($res) || 'utf-8';
@@ -215,7 +224,7 @@ our $VERSION = '0.23';
                 }
             };
         }
-        return $code, \@new_queues;
+        return $code, \@new_queues, \@dialogs;
     }
     
     sub append_queues {
@@ -271,12 +280,32 @@ our $VERSION = '0.23';
             };
         }
     }
-
+    
+    sub _analize_form_dom {
+        my $dom = shift;
+        if (my $href = $dom->{action}) {
+            my @names;
+            $dom->find('[name]')->each(sub {
+                push(@names, shift->attrs('name'));
+            });
+            return {
+                $QUEUE_KEY_CONTEXT      => 'FORM',
+                $QUEUE_KEY_LITERAL_URI  => $href,
+                $QUEUE_KEY_DIALOG       => {names => \@names},
+            };
+        }
+    }
+    
     sub collect_urls {
         my ($dom) = @_;
         my @array;
         $dom->find('script, link, a, img, area, meta[http\-equiv=Refresh]')->each(sub {
             if (my $queue = _analize_dom(shift)) {
+                push(@array, $queue);
+            }
+        });
+        $dom->find('form')->each(sub {
+            if (my $queue = _analize_form_dom(shift)) {
                 push(@array, $queue);
             }
         });
