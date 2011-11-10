@@ -283,11 +283,12 @@ our $VERSION = '0.23';
     
     sub _analize_form_dom {
         my $dom = shift;
-        if (my $href = $dom->{action}) {
+        if ((my $href = $dom->{action}) && $dom->{action} !~ /^javascript:/) {
             my @names;
             $dom->find('[name]')->each(sub {
                 push(@names, shift->attrs('name'));
             });
+            @names = do { my %h; grep { !$h{$_}++ } @names};
             return {
                 $QUEUE_KEY_CONTEXT      => 'FORM',
                 $QUEUE_KEY_LITERAL_URI  => $href,
