@@ -25,6 +25,8 @@ our $VERSION = '0.23';
     my $QUEUE_KEY_RES           = 5;
     my $QUEUE_KEY_ERROR         = 6;
     my $QUEUE_KEY_DIALOG        = 7;
+    my $QUEUE_KEY_METHOD        = 8;
+    my $QUEUE_KEY_PARAM         = 9;
 
     my %options = (
         sleep       => 1,
@@ -100,8 +102,13 @@ our $VERSION = '0.23';
             if (my $queue = shift @$queues) {
                 my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                             $queue->{$QUEUE_KEY_LITERAL_URI};
+                my $param;
+                if ($queue->{$QUEUE_KEY_PARAM}) {
+                    $param = Mojo::JSON->new->decode($queue->{$QUEUE_KEY_PARAM});
+                }
                 my ($res, $new_queues, $dialogs) = eval {
-                    check($url, $ua, $options{sleep});
+                    check($url, $ua, $options{sleep},
+                        $queue->{$QUEUE_KEY_METHOD}, $param);
                 };
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
@@ -164,6 +171,16 @@ our $VERSION = '0.23';
             });
             $c->render_json({result => 'success'});
         });
+        $r->route('/form')->to(cb => sub {
+            my $c = shift;
+            my $url = Mojo::URL->new($c->req->param('url'));
+            my $param = $c->req->param('param');
+            push(@$queues, {
+                $QUEUE_KEY_RESOLVED_URI => "$url",
+                $QUEUE_KEY_PARAM        => $param,
+            });
+            $c->render_json({result => 'success'});
+        });
         $r->route('/')->to(cb => sub {
             my $c = shift;
             $c->render('index');
@@ -171,7 +188,7 @@ our $VERSION = '0.23';
     }
     
     sub check {
-        my ($url, $ua, $interval) = @_;
+        my ($url, $ua, $interval, $method, $param) = @_;
         my $tx      = $ua->max_redirects(0)->head($url);
         my $code    = $tx->res->code;
         if (! $code) {
@@ -187,7 +204,16 @@ our $VERSION = '0.23';
             });
         }
         if ($code && $code == 200) {
-            my $tx  = $ua->max_redirects(0)->get($url);
+            my $tx;
+            if ($method && $method =~ /post/i) {
+                $tx  = $ua->max_redirects(0)->post_form($url, $param);
+            } else {
+                my $url = Mojo::URL->new($url);
+                if ($param) {
+                    $url->query->append(@$param);
+                }
+                $tx  = $ua->max_redirects(0)->get($url);
+            }
             my $res = $tx->res;
             $code   = $res->code;
             my $type = $res->headers->content_type;
@@ -293,6 +319,7 @@ our $VERSION = '0.23';
                 $QUEUE_KEY_CONTEXT      => 'FORM',
                 $QUEUE_KEY_LITERAL_URI  => $href,
                 $QUEUE_KEY_DIALOG       => {names => \@names},
+                $QUEUE_KEY_METHOD       => lc ($dom->{method} || 'get'),
             };
         }
     }
