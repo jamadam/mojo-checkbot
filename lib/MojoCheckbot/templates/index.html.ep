@@ -235,14 +235,16 @@
 			</h2>
 			
 			<form id="commonForm" action="dummy">
-				<table>
-					<tr>
-						<th>
-						</th>
-						<td>
-						</td>
-					</tr>
-				</table>
+				<div class="tableWrapper">
+					<table>
+						<tr>
+							<th>
+							</th>
+							<td>
+							</td>
+						</tr>
+					</table>
+				</div>
 				<div>
 					<input type="submit" />
 				</div>

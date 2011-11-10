@@ -151,6 +151,7 @@ body {
         border:3px solid #00a;
         width:auto;
         max-width:80%;
+        max-height:90%;
         height:auto;
         overflow:hidden;
     }
@@ -182,3 +183,9 @@ body {
                 background-color:transparent;
                 font-family:monospace;
             }
+        #commonForm .tableWrapper {
+            max-height:200px;
+            overflow-y:scroll;
+            border:1px solid #ccc;
+            margin-bottom:5px;
+        }
