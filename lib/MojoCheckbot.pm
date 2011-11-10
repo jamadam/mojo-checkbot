@@ -16,7 +16,7 @@ use utf8;
 use MojoCheckbot::FileCache;
 use MojoCheckbot::IOLoop;
 use MojoCheckbot::UserAgent;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
     
     my $QUEUE_KEY_CONTEXT       = 1;
     my $QUEUE_KEY_LITERAL_URI   = 2;
