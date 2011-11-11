@@ -62,7 +62,7 @@ EOF
 		is($res, 200);
 		is(scalar @$queues, 8);
 		is(scalar @$dialogs, 2);
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'FORM', 'right context');
+		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '*FORM*', 'right context');
 		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form.html', 'right uri');
 		like(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, qr{.+/form.html}, 'right abs uri');
 		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_METHOD}, 'post', 'right method');
