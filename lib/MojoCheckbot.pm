@@ -109,7 +109,6 @@ our $VERSION = '0.24';
         
         my $ua = MojoCheckbot::UserAgent->new->name($options{ua});
         $ua->keep_alive_timeout($options{timeout});
-        $ua->interval($options{sleep});
         
         if ($options{cookie}) {
             my $cookies = Mojo::Cookie::Response->parse($options{cookie});
@@ -117,12 +116,12 @@ our $VERSION = '0.24';
         }
         
         my $loop_id;
-        $loop_id = MojoCheckbot::IOLoop->blocked_recurring(0 => sub {
+        $loop_id = MojoCheckbot::IOLoop->blocked_recurring($options{sleep} => sub {
             if (my $queue = shift @$queues) {
                 my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                             $queue->{$QUEUE_KEY_LITERAL_URI};
                 my ($res, $new_queues, $dialogs) = eval {
-                    check($url, $ua, $options{sleep},
+                    check($url, $ua,
                         $queue->{$QUEUE_KEY_METHOD}, $queue->{$QUEUE_KEY_PARAM});
                 };
                 if ($@) {
@@ -203,7 +202,7 @@ our $VERSION = '0.24';
     }
     
     sub check {
-        my ($url, $ua, $interval, $method, $param) = @_;
+        my ($url, $ua, $method, $param) = @_;
         my @new_queues;
         my @dialogs;
         my $tx;
