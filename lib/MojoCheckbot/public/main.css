@@ -158,6 +158,9 @@ body {
         .lightbox form {
             margin-bottom:1em;
         }
+        .lightbox p {
+            margin-bottom:1em;
+        }
         .lightbox *:last-child {
             margin-bottom:0;
         }

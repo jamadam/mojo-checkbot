@@ -341,7 +341,7 @@ our $VERSION = '0.23';
             });
             @names = do { my %h; grep { !$h{$_->{name}}++ } @names};
             return {
-                $QUEUE_KEY_CONTEXT      => 'FORM',
+                $QUEUE_KEY_CONTEXT      => '*FORM*',
                 $QUEUE_KEY_LITERAL_URI  => $href,
                 $QUEUE_KEY_DIALOG       => {names => \@names},
                 $QUEUE_KEY_METHOD       => lc ($dom->{method} || 'get'),

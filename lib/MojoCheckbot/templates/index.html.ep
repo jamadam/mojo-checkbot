@@ -233,7 +233,9 @@
 			<h2>
 				FORM found
 			</h2>
-			
+			<p>
+				Checkbot can crawl beyond the form. Submit data by the form below.
+			</p>
 			<form id="commonForm" action="dummy">
 				<div class="tableWrapper">
 					<table>
