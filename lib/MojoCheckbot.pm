@@ -18,15 +18,15 @@ use MojoCheckbot::IOLoop;
 use MojoCheckbot::UserAgent;
 our $VERSION = '0.23';
     
-    my $QUEUE_KEY_CONTEXT       = 1;
-    my $QUEUE_KEY_LITERAL_URI   = 2;
-    my $QUEUE_KEY_RESOLVED_URI  = 3;
-    my $QUEUE_KEY_REFERER       = 4;
-    my $QUEUE_KEY_RES           = 5;
-    my $QUEUE_KEY_ERROR         = 6;
-    my $QUEUE_KEY_DIALOG        = 7;
-    my $QUEUE_KEY_METHOD        = 8;
-    my $QUEUE_KEY_PARAM         = 9;
+    our $QUEUE_KEY_CONTEXT       = 1;
+    our $QUEUE_KEY_LITERAL_URI   = 2;
+    our $QUEUE_KEY_RESOLVED_URI  = 3;
+    our $QUEUE_KEY_REFERER       = 4;
+    our $QUEUE_KEY_RES           = 5;
+    our $QUEUE_KEY_ERROR         = 6;
+    our $QUEUE_KEY_DIALOG        = 7;
+    our $QUEUE_KEY_METHOD        = 8;
+    our $QUEUE_KEY_PARAM         = 9;
     
     my @QUEUE_KEYS = (
         $QUEUE_KEY_CONTEXT,
@@ -39,6 +39,11 @@ our $VERSION = '0.23';
         $QUEUE_KEY_METHOD,
         $QUEUE_KEY_PARAM,
     );
+    
+    sub queue_key {
+        no strict 'refs';
+        return ${__PACKAGE__.'::QUEUE_KEY_'. uc shift};
+    }
     
     my %options = (
         sleep       => 1,

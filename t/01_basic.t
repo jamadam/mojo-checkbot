@@ -10,7 +10,9 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 20;
+	use Test::More tests => 21;
+
+	ok MojoCheckbot::queue_key('LITERAL_URI'), 'right queue key';
 	
 	my $base;
 	my $tmp;

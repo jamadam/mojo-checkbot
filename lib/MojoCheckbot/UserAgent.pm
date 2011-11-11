@@ -7,20 +7,22 @@ use Time::HiRes qw{sleep time};
     has userinfo        => sub {{}};
     
     sub start {
-        my ($self, $tx) = @_;
+        my ($self, $tx, $cb) = @_;
         my $url = $tx->req->url;
-        my $scheme_n_host = $url->scheme. '://'. $url->host;
-        if (my $userinfo = $url->userinfo) {
-            $self->userinfo->{$scheme_n_host} = "$userinfo";
-        } elsif ($self->userinfo->{$scheme_n_host}) {
-            $url->userinfo($self->userinfo->{$scheme_n_host});
+        if ($url->is_abs) {
+            my $scheme_n_host = $url->scheme. '://'. $url->host;
+            if (my $userinfo = $url->userinfo) {
+                $self->userinfo->{$scheme_n_host} = "$userinfo";
+            } elsif ($self->userinfo->{$scheme_n_host}) {
+                $url->userinfo($self->userinfo->{$scheme_n_host});
+            }
         }
         my $now = time;
         my $sleep = $self->interval - (time - $self->last_finish_ts);
         if ($sleep > 0) {
             sleep($sleep);
         }
-        $tx = $self->SUPER::start($tx);
+        $tx = $self->SUPER::start($tx, $cb);
         $self->last_finish_ts(time);
         return $tx;
     }

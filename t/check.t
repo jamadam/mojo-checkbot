@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 2;
+	use Test::More tests => 15;
 	
 	my $html = <<EOF;
 <html>
@@ -30,6 +30,14 @@ use MojoCheckbot;
 <map name="m_map" id="m_map">
 	<area href="index3.html" coords="" title="E" />
 </map>
+<form action="form.html" method="post">
+	<input type="hidden" name="key1" value="val1" />
+	<input type="hidden" name="key2" value="val2" />
+</form>
+<form action="form2.html" method="post">
+	<input type="hidden" name="key3" value="val3" />
+	<input type="hidden" name="key4" value="val4" />
+</form>
 <a href="#a:b">F</a>
 </body>
 </html>
@@ -50,9 +58,24 @@ EOF
 	);
 	
 	{
-		my ($res, $jobs) = MojoCheckbot::check("http://localhost:$port/", $ua);
+		my ($res, $queues, $dialogs) = MojoCheckbot::check("http://localhost:$port/", $ua);
 		is($res, 200);
-		is(scalar @$jobs, 8);
+		is(scalar @$queues, 8);
+		is(scalar @$dialogs, 2);
+		is(scalar $dialogs->[0]->{MojoCheckbot::queue_key('CONTEXT')}, 'FORM', 'right context');
+		is(scalar $dialogs->[0]->{MojoCheckbot::queue_key('LITERAL_URI')}, 'form.html', 'right uri');
+		like(scalar $dialogs->[0]->{MojoCheckbot::queue_key('RESOLVED_URI')}, qr{.+/form.html}, 'right abs uri');
+		is(scalar $dialogs->[0]->{MojoCheckbot::queue_key('METHOD')}, 'post', 'right method');
+		is(scalar $dialogs->[0]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[0]->{name}, 'key1', 'right key');
+		is(scalar $dialogs->[0]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[0]->{value}, 'val1', 'right value');
+		is(scalar $dialogs->[0]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[1]->{name}, 'key2', 'right key');
+		is(scalar $dialogs->[0]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[1]->{value}, 'val2', 'right value');
+		is(scalar $dialogs->[1]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[0]->{name}, 'key3', 'right key');
+		is(scalar $dialogs->[1]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[0]->{value}, 'val3', 'right value');
+		is(scalar $dialogs->[1]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[1]->{name}, 'key4', 'right key');
+		is(scalar $dialogs->[1]->{MojoCheckbot::queue_key('DIALOG')}->{names}->[1]->{value}, 'val4', 'right value');
+		use Data::Dumper;
+		#warn Dumper $dialogs;
 	}
 
 1;
