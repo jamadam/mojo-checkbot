@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
-0.24 2011/11/11
+0.24 2011/11/12
+  - Fixed a bug performance coused by sleep option
 
 0.23 2011/11/11
   - Added form dialog allowing to crawl beyond forms.
