@@ -40,11 +40,6 @@ our $VERSION = '0.23';
         $QUEUE_KEY_PARAM,
     );
     
-    sub queue_key {
-        no strict 'refs';
-        return ${__PACKAGE__.'::QUEUE_KEY_'. uc shift};
-    }
-    
     my %options = (
         sleep       => 1,
         ua          => "mojo-checkbot($VERSION)",
