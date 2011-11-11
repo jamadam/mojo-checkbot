@@ -1,9 +1,11 @@
 Revision history for mojo-checkbot
 
-0.23 2011/11/010
+0.24 2011/11/11
+
+0.23 2011/11/11
   - Added form dialog allowing to crawl beyond forms.
 
-0.22 2011/11/010
+0.22 2011/11/10
   - Mojolicious v2.25 bundled
   - Fixed a small bug that ioloop hasn't droped when queue is empty.
   - Added match-for-check and match-for-crawl option.
