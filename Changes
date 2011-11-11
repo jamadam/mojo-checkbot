@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
 0.23 2011/11/010
+  - Added form dialog
 
 0.22 2011/11/010
   - Mojolicious v2.25 bundled

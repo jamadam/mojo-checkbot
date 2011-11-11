@@ -27,7 +27,19 @@ our $VERSION = '0.23';
     my $QUEUE_KEY_DIALOG        = 7;
     my $QUEUE_KEY_METHOD        = 8;
     my $QUEUE_KEY_PARAM         = 9;
-
+    
+    my @QUEUE_KEYS = (
+        $QUEUE_KEY_CONTEXT,
+        $QUEUE_KEY_LITERAL_URI,
+        $QUEUE_KEY_RESOLVED_URI,
+        $QUEUE_KEY_REFERER,
+        $QUEUE_KEY_RES,
+        $QUEUE_KEY_ERROR,
+        $QUEUE_KEY_DIALOG,
+        $QUEUE_KEY_METHOD,
+        $QUEUE_KEY_PARAM,
+    );
+    
     my %options = (
         sleep       => 1,
         ua          => "mojo-checkbot($VERSION)",
@@ -41,6 +53,12 @@ our $VERSION = '0.23';
         my @keys = qw{start match ua cookie timeout};
         my $seed = join("\t", map {$options{$_} || ''} @keys);
         return md5_sum($seed);
+    }
+    
+    sub fix_key {
+        my ($method, $url) = @_;
+        $method ||= '';
+        return md5_sum($method. "\t". $url);
     }
 
     sub startup {
@@ -77,7 +95,7 @@ our $VERSION = '0.23';
             for my $entry (@$queues, @$result) {
                 my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
                             $entry->{$QUEUE_KEY_LITERAL_URI};
-                $fix->{md5_sum($url)} = undef;
+                $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url)} = undef;
             }
         }
         
@@ -173,12 +191,12 @@ our $VERSION = '0.23';
         });
         $r->route('/form')->to(cb => sub {
             my $c = shift;
-            my $url = Mojo::URL->new($c->req->param('url'));
-            my $param = $c->req->param('param');
-            push(@$queues, {
-                $QUEUE_KEY_RESOLVED_URI => "$url",
-                $QUEUE_KEY_PARAM        => $param,
-            });
+            my $url = Mojo::URL->new($c->req->param($QUEUE_KEY_RESOLVED_URI));
+            my $queue = {};
+            for my $key (@QUEUE_KEYS) {
+                $queue->{$key} = $c->req->param('key_'. $key);
+            }
+            push(@$queues, $queue);
             $c->render_json({result => 'success'});
         });
         $r->route('/')->to(cb => sub {
@@ -231,7 +249,7 @@ our $VERSION = '0.23';
                     my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
                     my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
                     append_queues($base, \@q, \@new_queues);
-                    push(@dialogs, @dialog);
+                    append_queues($base, \@dialog, \@dialogs);
                 } elsif ($type && $type =~ qr{text/(text|css)}) {
                     my $base    = $tx->req->url;
                     my $encode  = guess_encoding_css($res) || 'utf-8';
@@ -271,7 +289,7 @@ our $VERSION = '0.23';
             if ($options{'match-for-check'} && $url2 !~ /$options{'match-for-check'}/) {
                 next;
             }
-            my $md5 = md5_sum($url2);
+            my $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2);
             if (exists $fix->{$md5}) {
                 next;
             }
@@ -282,6 +300,12 @@ our $VERSION = '0.23';
             };
             if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $url2) {
                 $queue->{$QUEUE_KEY_RESOLVED_URI} = $url2;
+            }
+            if ($entry->{$QUEUE_KEY_DIALOG}) {
+                $queue->{$QUEUE_KEY_DIALOG} = $entry->{$QUEUE_KEY_DIALOG};
+            }
+            if ($entry->{$QUEUE_KEY_METHOD}) {
+                $queue->{$QUEUE_KEY_METHOD} = $entry->{$QUEUE_KEY_METHOD};
             }
             push(@$append_to, $queue);
         }
@@ -312,9 +336,14 @@ our $VERSION = '0.23';
         if ((my $href = $dom->{action}) && $dom->{action} !~ /^javascript:/) {
             my @names;
             $dom->find('[name]')->each(sub {
-                push(@names, shift->attrs('name'));
+                my $dom = shift;
+                my $a = {name => $dom->attrs('name')};
+                if (my $value = Mojo::Util::html_escape($dom->attrs('value') || $dom->text)) {
+                    $a->{value} = $value;
+                }
+                push(@names, $a);
             });
-            @names = do { my %h; grep { !$h{$_}++ } @names};
+            @names = do { my %h; grep { !$h{$_->{name}}++ } @names};
             return {
                 $QUEUE_KEY_CONTEXT      => 'FORM',
                 $QUEUE_KEY_LITERAL_URI  => $href,
