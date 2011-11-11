@@ -11,6 +11,7 @@ use Mojo::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Util 'md5_sum';
 use Mojo::Base 'Mojolicious';
+use Mojo::Parameters;
 use Encode;
 use utf8;
 use MojoCheckbot::FileCache;
@@ -120,13 +121,9 @@ our $VERSION = '0.23';
             if (my $queue = shift @$queues) {
                 my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                             $queue->{$QUEUE_KEY_LITERAL_URI};
-                my $param;
-                if ($queue->{$QUEUE_KEY_PARAM}) {
-                    $param = Mojo::JSON->new->decode($queue->{$QUEUE_KEY_PARAM});
-                }
                 my ($res, $new_queues, $dialogs) = eval {
                     check($url, $ua, $options{sleep},
-                        $queue->{$QUEUE_KEY_METHOD}, $param);
+                        $queue->{$QUEUE_KEY_METHOD}, $queue->{$QUEUE_KEY_PARAM});
                 };
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
@@ -224,11 +221,12 @@ our $VERSION = '0.23';
         if ($code && $code == 200) {
             my $tx;
             if ($method && $method =~ /post/i) {
-                $tx  = $ua->max_redirects(0)->post_form($url, $param);
+                my $body_data = Mojo::Parameters->new($param)->to_hash;
+                $tx  = $ua->max_redirects(0)->post_form($url, $body_data);
             } else {
                 my $url = Mojo::URL->new($url);
                 if ($param) {
-                    $url->query->append(@$param);
+                    $url->query->merge(Mojo::Parameters->new($param));
                 }
                 $tx  = $ua->max_redirects(0)->get($url);
             }
