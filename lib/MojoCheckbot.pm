@@ -204,34 +204,33 @@ our $VERSION = '0.23';
     
     sub check {
         my ($url, $ua, $interval, $method, $param) = @_;
-        my $tx      = $ua->max_redirects(0)->head($url);
-        my $code    = $tx->res->code;
+        my @new_queues;
+        my @dialogs;
+        my $tx;
+        if ($method && $method =~ /post/i) {
+            my $body_data = Mojo::Parameters->new($param)->to_hash;
+            $tx  = $ua->max_redirects(0)->post_form($url, $body_data);
+        } else {
+            my $url = Mojo::URL->new($url);
+            if ($param) {
+                $url->query->merge(Mojo::Parameters->new($param));
+            }
+            $tx  = $ua->max_redirects(0)->get($url);
+        }
+        my $res     = $tx->res;
+        my $code    = $res->code;
+        my $base    = $tx->req->url;
         if (! $code) {
             my ($message) = $tx->error;
             die $message;
         }
-        my @new_queues;
-        my @dialogs;
         if (my $location = $tx->res->headers->header('location')) {
-            push(@new_queues, {
+            append_queues($base, \@new_queues, [{
                 $QUEUE_KEY_CONTEXT      => '*Redirected by server configuration*',
                 $QUEUE_KEY_LITERAL_URI  => $location,
-            });
+            }]);
         }
         if ($code && $code == 200) {
-            my $tx;
-            if ($method && $method =~ /post/i) {
-                my $body_data = Mojo::Parameters->new($param)->to_hash;
-                $tx  = $ua->max_redirects(0)->post_form($url, $body_data);
-            } else {
-                my $url = Mojo::URL->new($url);
-                if ($param) {
-                    $url->query->merge(Mojo::Parameters->new($param));
-                }
-                $tx  = $ua->max_redirects(0)->get($url);
-            }
-            my $res = $tx->res;
-            $code   = $res->code;
             my $type = $res->headers->content_type;
             if (! $options{'match-for-crawl'} ||
                                         $url =~ /$options{'match-for-crawl'}/) {
@@ -239,21 +238,20 @@ our $VERSION = '0.23';
                     my $encode = guess_encoding($res) || 'utf-8';
                     my $body    = Encode::decode($encode, $res->body);
                     my $dom     = Mojo::DOM->new($body);
-                    my $base    = $tx->req->url;
                     if (my $base_tag = $dom->at('base')) {
                         $base = Mojo::URL->new($base_tag->attrs('href'));
                     }
                     my @a       = collect_urls($dom);
                     my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
                     my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
-                    append_queues($base, \@q, \@new_queues);
-                    append_queues($base, \@dialog, \@dialogs);
+                    append_queues($base, \@new_queues, \@q);
+                    append_queues($base, \@dialogs, \@dialog);
                 } elsif ($type && $type =~ qr{text/(text|css)}) {
                     my $base    = $tx->req->url;
                     my $encode  = guess_encoding_css($res) || 'utf-8';
                     my $body    = Encode::decode($encode, $res->body);
                     my @urls    = collect_urls_from_css($body);
-                    append_queues($base, \@urls, \@new_queues);
+                    append_queues($base, \@new_queues, \@urls);
                 }
             }
         } elsif($code && $code == 401) {
@@ -270,7 +268,7 @@ our $VERSION = '0.23';
     }
     
     sub append_queues {
-        my ($base, $urls, $append_to) = @_;
+        my ($base, $append_to, $urls) = @_;
         for my $entry (@$urls) {
             if ($entry->{$QUEUE_KEY_LITERAL_URI} =~ qr{^(\w+):}
                                         && ! ( $1 ~~ [qw(http https ws wss)])) {
