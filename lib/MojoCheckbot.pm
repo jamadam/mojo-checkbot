@@ -127,14 +127,10 @@ our $VERSION = '0.25';
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
                 } else {
-                    @$new_queues = map {
-                        $_->{$QUEUE_KEY_REFERER} = $url;
-                        $_;
-                    } @$new_queues;
-                    @$dialogs = map {
-                        $_->{$QUEUE_KEY_REFERER} = $url;
-                        $_;
-                    } @$dialogs;
+                    @$new_queues =
+                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @$new_queues;
+                    @$dialogs =
+                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @$dialogs;
                     push(@$queues, @$new_queues);
                     push(@$result, @$dialogs);
                     if (ref $res) {
