@@ -317,7 +317,7 @@ our $VERSION = '0.25';
     
     sub _analize_form_dom {
         my $dom = shift;
-        if ((my $href = $dom->{action}) && $dom->{action} !~ /^javascript:/) {
+        if (my $href = $dom->{action}) {
             my @names;
             $dom->find('[name]')->each(sub {
                 my $dom = shift;

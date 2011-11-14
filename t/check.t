@@ -39,6 +39,9 @@ use MojoCheckbot;
 	<input type="hidden" name="key4" value="val4" />
 </form>
 <a href="#a:b">F</a>
+<a href="javascript:void(0)">D</a>
+<form action="javascript:void(0)" method="post">
+</form>
 </body>
 </html>
 EOF
