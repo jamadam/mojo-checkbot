@@ -43,7 +43,7 @@ our $VERSION = '0.25';
     
     my %options = (
         sleep       => 1,
-        ua          => "mojo-checkbot($VERSION)",
+        ua          => "mojo-checkbot/$VERSION (+https://github.com/jamadam/mojo-checkbot)",
         timeout     => 15,
         evacuate    => 30,
     );
