@@ -1,6 +1,6 @@
 Revision history for mojo-checkbot
 
-0.25 2011/11/12
+0.25 2011/11/14
   - Improved dom analizer to detect embed, frame, iframe and input for src url.
   - Fixed a bug on forms that caused dialogs to appere only once per action url.
   - Changed default ua name
