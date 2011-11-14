@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 51;
+	use Test::More tests => 63;
 	
 	my $html = <<EOF;
 <html>
@@ -46,6 +46,12 @@ use MojoCheckbot;
 <a href="javascript:void(0)">D</a>
 <form action="javascript:void(0)" method="post">
 </form>
+<embed src="../images/embed1.swf">
+<frame src="frame1.html"></frame>
+<iframe src="iframe1.html"></iframe>
+<form>
+	<input src="input.gif" />
+</form>
 </body>
 </html>
 EOF
@@ -68,7 +74,7 @@ EOF
 		
 		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
 		is $res->{code}, 200, 'right status code';
-		is scalar @{$res->{queue}}, 8, 'right queue number';
+		is scalar @{$res->{queue}}, 12, 'right queue number';
 		is keys %{$res->{queue}->[0]}, 3, 'right key number';
 		is $res->{queue}->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;', 'right context';
 		is $res->{queue}->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/css1.css", 'right resolved uri';
@@ -94,6 +100,19 @@ EOF
 		is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'F', 'right context';
 		is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/", 'right resolved uri';
 		is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, '#a:b', 'right literal uri';
+		is $res->{queue}->[8]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;embed src=&quot;../images/embed1.swf&quot; /&gt;', 'right context';
+		is $res->{queue}->[8]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/images/embed1.swf", 'right resolved uri';
+		is $res->{queue}->[8]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, '../images/embed1.swf', 'right literal uri';
+		is $res->{queue}->[9]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;frame src=&quot;frame1.html&quot;&gt;&lt;/frame&gt;', 'right context';
+		is $res->{queue}->[9]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/frame1.html", 'right resolved uri';
+		is $res->{queue}->[9]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'frame1.html', 'right literal uri';
+		is $res->{queue}->[10]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;iframe src=&quot;iframe1.html&quot;&gt;&lt;/iframe&gt;', 'right context';
+		is $res->{queue}->[10]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/iframe1.html", 'right resolved uri';
+		is $res->{queue}->[10]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'iframe1.html', 'right literal uri';
+		is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;input src=&quot;input.gif&quot; /&gt;', 'right context';
+		is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/input.gif", 'right resolved uri';
+		is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'input.gif', 'right literal uri';
+
 		is scalar @{$res->{dialog}}, 3, 'right dialog number';
 		is scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '*FORM*', 'right context';
 		is scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form.html', 'right uri';

@@ -345,7 +345,7 @@ our $VERSION = '0.25';
     sub collect_urls {
         my ($dom) = @_;
         my @array;
-        $dom->find('script, link, a, img, area, meta[http\-equiv=Refresh]')->each(sub {
+        $dom->find('script, link, a, img, area, embed, frame, iframe, input, meta[http\-equiv=Refresh]')->each(sub {
             if (my $queue = _analize_dom(shift)) {
                 push(@array, $queue);
             }
