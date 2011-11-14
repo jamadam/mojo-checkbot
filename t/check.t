@@ -44,20 +44,21 @@ use MojoCheckbot;
 EOF
 	my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
 	my $port;
-	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
-			$loop->write(
-				$id => "HTTP/1.1 200 OK\x0d\x0a"
-					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-				sub { shift->drop(shift) }
-			);
-		},
-	);
 	
 	{
+		$port = Mojo::IOLoop->generate_port;
+		Mojo::IOLoop->listen(
+			port      => $port,
+			on_read => sub {
+				my ($loop, $id, $chunk) = @_;
+				$loop->write(
+					$id => "HTTP/1.1 200 OK\x0d\x0a"
+						. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
+					sub {shift->drop(shift) }
+				);
+			},
+		);
+		
 		my ($res, $queues, $dialogs) = MojoCheckbot::check("http://localhost:$port/", $ua);
 		is $res, 200, 'right status code';
 		is scalar @$queues, 8, 'right queue number';
@@ -99,6 +100,57 @@ EOF
 		is scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{value}, 'val3', 'right value';
 		is scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{name}, 'key4', 'right key';
 		is scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{value}, 'val4', 'right value';
+		
+		is $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_METHOD}, 'post', 'right method';
+		is $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, "*FORM*", 'right resolved uri';
+		is $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/form.html", 'right literal uri';
+		is_deeply $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}, {
+                     'names' => [
+                                  {
+                                    'value' => 'val1',
+                                    'name' => 'key1'
+                                  },
+                                  {
+                                    'value' => 'val2',
+                                    'name' => 'key2'
+                                  }
+                                ]
+                   }, 'right dialog';
+		is $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form2.html', 'right literal uri';
+		is $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_METHOD}, 'post', 'right method';
+		is $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, "*FORM*", 'right resolved uri';
+		is $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/form2.html", 'right literal uri';
+		is_deeply $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}, {
+                     'names' => [
+                                  {
+                                    'value' => 'val3',
+                                    'name' => 'key3'
+                                  },
+                                  {
+                                    'value' => 'val4',
+                                    'name' => 'key4'
+                                  }
+                                ]
+                   }, 'right dialog';
+		is $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form2.html', 'right literal uri';
+	}
+	
+	{
+		$port = Mojo::IOLoop->generate_port;
+		Mojo::IOLoop->listen(
+			port      => $port,
+			on_read => sub {
+				my ($loop, $id, $chunk) = @_;
+				like $chunk, qr{^GET /\?a=b&c=d}, 'right request';
+				$loop->write(
+					$id => "HTTP/1.1 200 OK\x0d\x0a"
+						. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
+					sub { shift->drop(shift) }
+				);
+			},
+		);
+		
+		my ($res, $queues, $dialogs) = MojoCheckbot::check("http://localhost:$port/", $ua, 'get', 'a=b&c=d');
 	}
 
 1;
