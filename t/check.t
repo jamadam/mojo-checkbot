@@ -39,8 +39,32 @@ use MojoCheckbot;
 	<input type="hidden" name="key4" value="val4" />
 </form>
 <form action="form2.html" method="post"><!-- same action url twice -->
+	<input type="hidden" name="key5" value="val3" />
+	<input type="hidden" name="key6" value="val4" />
+</form>
+<form action="form2.html" method="post"><!-- same action & same form parts -->
+	<input type="hidden" name="key5" value="val3" />
+	<input type="hidden" name="key6" value="val4" />
+</form>
+<form action="form2.html" method="post"><!-- same action & same form parts -->
+	<input type="hidden" name="key6" value="val4" />
+	<input type="hidden" name="key5" value="val3" />
+</form>
+<form action="form.html" method="get">
+	<input type="hidden" name="key1" value="val1" />
+	<input type="hidden" name="key2" value="val2" />
+</form>
+<form action="form2.html" method="get">
 	<input type="hidden" name="key3" value="val3" />
 	<input type="hidden" name="key4" value="val4" />
+</form>
+<form action="form2.html" method="get"><!-- same action url twice -->
+	<input type="hidden" name="key5" value="val3" />
+	<input type="hidden" name="key6" value="val4" />
+</form>
+<form action="form2.html" method="get"><!-- same action & same form parts -->
+	<input type="hidden" name="key5" value="val3" />
+	<input type="hidden" name="key6" value="val4" />
 </form>
 <a href="#a:b">F</a>
 <a href="javascript:void(0)">D</a>
@@ -113,7 +137,7 @@ EOF
 		is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/input.gif", 'right resolved uri';
 		is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'input.gif', 'right literal uri';
 
-		is scalar @{$res->{dialog}}, 3, 'right dialog number';
+		is scalar @{$res->{dialog}}, 6, 'right dialog number';
 		is scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '*FORM*', 'right context';
 		is scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form.html', 'right uri';
 		like scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, qr{.+/form.html}, 'right abs uri';

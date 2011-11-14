@@ -57,8 +57,7 @@ our $VERSION = '0.26';
     }
     
     sub fix_key {
-        my ($url) = @_;
-        return md5_sum($url);
+        return md5_sum(join('\t', map {defined $_ ? $_ : ''} @_));
     }
 
     sub startup {
@@ -95,8 +94,13 @@ our $VERSION = '0.26';
             for my $entry (@$queues, @$result) {
                 my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
                             $entry->{$QUEUE_KEY_LITERAL_URI};
-                if ($entry->{$QUEUE_KEY_METHOD} || $entry->{$QUEUE_KEY_METHOD} !~ /post/) {
-                    $fix->{fix_key($url)} = undef;
+                if ($entry->{$QUEUE_KEY_CONTEXT} && $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
+                    my @names =
+                        sort {$a cmp $b}
+                        map {$_->{name}} @{$entry->{$QUEUE_KEY_DIALOG}->{names}};
+                    $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url, @names)} = undef;
+                } else {
+                    $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url)} = undef;
                 }
             }
         }
@@ -285,13 +289,19 @@ our $VERSION = '0.26';
             if ($options{'match-for-check'} && $url2 !~ /$options{'match-for-check'}/) {
                 next;
             }
-            if (! $entry->{$QUEUE_KEY_METHOD} || $entry->{$QUEUE_KEY_METHOD} !~ /post/) {
-                my $md5 = fix_key($url2);
-                if (exists $fix->{$md5}) {
-                    next;
-                }
-                $fix->{$md5} = undef;
+            my $md5;
+            if ($entry->{$QUEUE_KEY_CONTEXT} && $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
+                my @names =
+                    sort {$a cmp $b}
+                    map {$_->{name}} @{$entry->{$QUEUE_KEY_DIALOG}->{names}};
+                $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2, @names);
+            } else {
+                $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2);
             }
+            if (exists $fix->{$md5}) {
+                next;
+            }
+            $fix->{$md5} = undef;
             if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $url2) {
                 $entry->{$QUEUE_KEY_RESOLVED_URI} = $url2;
             }
