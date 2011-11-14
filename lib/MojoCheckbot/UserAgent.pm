@@ -9,6 +9,9 @@ use Time::HiRes qw{sleep time};
         my $url = $tx->req->url;
         if ($url->is_abs) {
             my $scheme_n_host = $url->scheme. '://'. $url->host;
+            if ($url->port) {
+               $scheme_n_host .= ':'. $url->port;
+            }
             if (my $userinfo = $url->userinfo) {
                 $self->userinfo->{$scheme_n_host} = "$userinfo";
             } elsif ($self->userinfo->{$scheme_n_host}) {
