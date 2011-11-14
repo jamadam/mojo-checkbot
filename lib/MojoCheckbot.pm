@@ -57,9 +57,8 @@ our $VERSION = '0.26';
     }
     
     sub fix_key {
-        my ($method, $url) = @_;
-        $method ||= '';
-        return md5_sum($method. "\t". $url);
+        my ($url) = @_;
+        return md5_sum($url);
     }
 
     sub startup {
@@ -97,7 +96,7 @@ our $VERSION = '0.26';
                 my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
                             $entry->{$QUEUE_KEY_LITERAL_URI};
                 if ($entry->{$QUEUE_KEY_METHOD} || $entry->{$QUEUE_KEY_METHOD} !~ /post/) {
-                    $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url)} = undef;
+                    $fix->{fix_key($url)} = undef;
                 }
             }
         }
@@ -287,7 +286,7 @@ our $VERSION = '0.26';
                 next;
             }
             if (! $entry->{$QUEUE_KEY_METHOD} || $entry->{$QUEUE_KEY_METHOD} !~ /post/) {
-                my $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2);
+                my $md5 = fix_key($url2);
                 if (exists $fix->{$md5}) {
                     next;
                 }
