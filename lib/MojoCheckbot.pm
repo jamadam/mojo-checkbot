@@ -96,7 +96,9 @@ our $VERSION = '0.25';
             for my $entry (@$queues, @$result) {
                 my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
                             $entry->{$QUEUE_KEY_LITERAL_URI};
-                $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url)} = undef;
+                if ($entry->{$QUEUE_KEY_METHOD} || $entry->{$QUEUE_KEY_METHOD} !~ /post/) {
+                    $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url)} = undef;
+                }
             }
         }
         
@@ -188,7 +190,8 @@ our $VERSION = '0.25';
             for my $key (@QUEUE_KEYS) {
                 $queue->{$key} = $c->req->param('key_'. $key);
             }
-            push(@$queues, $queue);
+            append_queues($queue->{$QUEUE_KEY_REFERER}, $queues, [$queue]);
+            #push(@$queues, $queue);
             $c->render_json({result => 'success'});
         });
         $r->route('/')->to(cb => sub {
@@ -283,11 +286,13 @@ our $VERSION = '0.25';
             if ($options{'match-for-check'} && $url2 !~ /$options{'match-for-check'}/) {
                 next;
             }
-            my $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2);
-            if (exists $fix->{$md5}) {
-                next;
+            if (! $entry->{$QUEUE_KEY_METHOD} || $entry->{$QUEUE_KEY_METHOD} !~ /post/) {
+                my $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2);
+                if (exists $fix->{$md5}) {
+                    next;
+                }
+                $fix->{$md5} = undef;
             }
-            $fix->{$md5} = undef;
             if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $url2) {
                 $entry->{$QUEUE_KEY_RESOLVED_URI} = $url2;
             }
@@ -396,6 +401,9 @@ our $VERSION = '0.25';
     
     sub resolve_href {
         my ($base, $href) = @_;
+        if (! ref $base) {
+            $base = Mojo::URL->new($base);
+        }
         my $new = $base->clone;
         my $temp = Mojo::URL->new($href);
         

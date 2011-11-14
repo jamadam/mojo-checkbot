@@ -38,6 +38,10 @@ use MojoCheckbot;
 	<input type="hidden" name="key3" value="val3" />
 	<input type="hidden" name="key4" value="val4" />
 </form>
+<form action="form2.html" method="post"><!-- same action url twice -->
+	<input type="hidden" name="key3" value="val3" />
+	<input type="hidden" name="key4" value="val4" />
+</form>
 <a href="#a:b">F</a>
 <a href="javascript:void(0)">D</a>
 <form action="javascript:void(0)" method="post">
@@ -90,7 +94,7 @@ EOF
 		is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'F', 'right context';
 		is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/", 'right resolved uri';
 		is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, '#a:b', 'right literal uri';
-		is scalar @{$res->{dialog}}, 2, 'right dialog number';
+		is scalar @{$res->{dialog}}, 3, 'right dialog number';
 		is scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '*FORM*', 'right context';
 		is scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form.html', 'right uri';
 		like scalar $res->{dialog}->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, qr{.+/form.html}, 'right abs uri';
