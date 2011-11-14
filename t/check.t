@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 40;
+	use Test::More tests => 51;
 	
 	my $html = <<EOF;
 <html>
