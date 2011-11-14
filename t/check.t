@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 15;
+	use Test::More tests => 40;
 	
 	my $html = <<EOF;
 <html>
@@ -59,23 +59,46 @@ EOF
 	
 	{
 		my ($res, $queues, $dialogs) = MojoCheckbot::check("http://localhost:$port/", $ua);
-		is($res, 200);
-		is(scalar @$queues, 8);
-		is(scalar @$dialogs, 2);
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '*FORM*', 'right context');
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form.html', 'right uri');
-		like(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, qr{.+/form.html}, 'right abs uri');
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_METHOD}, 'post', 'right method');
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{name}, 'key1', 'right key');
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{value}, 'val1', 'right value');
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{name}, 'key2', 'right key');
-		is(scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{value}, 'val2', 'right value');
-		is(scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{name}, 'key3', 'right key');
-		is(scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{value}, 'val3', 'right value');
-		is(scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{name}, 'key4', 'right key');
-		is(scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{value}, 'val4', 'right value');
-		use Data::Dumper;
-		#warn Dumper $dialogs;
+		is $res, 200, 'right status code';
+		is scalar @$queues, 8, 'right queue number';
+		is keys %{$queues->[0]}, 3, 'right key number';
+		is $queues->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;', 'right context';
+		is $queues->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/css1.css", 'right resolved uri';
+		is $queues->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'css1.css', 'right literal uri';
+		is $queues->[1]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;', 'right context';
+		is $queues->[1]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/css2.css", 'right resolved uri';
+		is $queues->[1]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'css2.css', 'right literal uri';
+		is $queues->[2]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;', 'right context';
+		is $queues->[2]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/js1.js", 'right resolved uri';
+		is $queues->[2]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'js1.js', 'right literal uri';
+		is $queues->[3]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;script src=&quot;js2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;', 'right context';
+		is $queues->[3]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/js2.js", 'right resolved uri';
+		is $queues->[3]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'js2.js', 'right literal uri';
+		is $queues->[4]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'A', 'right context';
+		is $queues->[4]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/index1.html", 'right resolved uri';
+		is $queues->[4]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'index1.html', 'right literal uri';
+		is $queues->[5]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'B', 'right context';
+		is $queues->[5]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/index2.html", 'right resolved uri';
+		is $queues->[5]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'index2.html', 'right literal uri';
+		is $queues->[6]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'E', 'right context';
+		is $queues->[6]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/index3.html", 'right resolved uri';
+		is $queues->[6]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'index3.html', 'right literal uri';
+		is $queues->[7]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'F', 'right context';
+		is $queues->[7]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/", 'right resolved uri';
+		is $queues->[7]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, '#a:b', 'right literal uri';
+		is scalar @$dialogs, 2, 'right dialog number';
+		is scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '*FORM*', 'right context';
+		is scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'form.html', 'right uri';
+		like scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, qr{.+/form.html}, 'right abs uri';
+		is scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_METHOD}, 'post', 'right method';
+		is scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{name}, 'key1', 'right key';
+		is scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{value}, 'val1', 'right value';
+		is scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{name}, 'key2', 'right key';
+		is scalar $dialogs->[0]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{value}, 'val2', 'right value';
+		is scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{name}, 'key3', 'right key';
+		is scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[0]->{value}, 'val3', 'right value';
+		is scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{name}, 'key4', 'right key';
+		is scalar $dialogs->[1]->{$MojoCheckbot::QUEUE_KEY_DIALOG}->{names}->[1]->{value}, 'val4', 'right value';
 	}
 
 1;
