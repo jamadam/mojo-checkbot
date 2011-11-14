@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 10;
+	use Test::More tests => 13;
 	
 	my $html = <<EOF;
 <html>
@@ -45,6 +45,24 @@ EOF
 	is_deeply(shift @array, {2 => 'index3.html', 1 => 'E'});
 	is(shift @array, undef);
 
+    {
+        my $css = <<EOF;
+body {
+    background-image:url('/image/a.png');
+}
+div {
+    background-image:url('/image/b.png');
+}
+div {
+    background: #fff url('/image/c.png');
+}
+EOF
+        my @array = MojoCheckbot::collect_urls_from_css($css);
+        is_deeply shift @array, {1 => '', 2 => '/image/a.png'};
+        is_deeply shift @array, {1 => '', 2 => '/image/b.png'};
+        is_deeply shift @array, {1 => '', 2 => '/image/c.png'};
+    }
+    
 1;
 
 __END__
