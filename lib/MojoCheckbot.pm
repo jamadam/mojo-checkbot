@@ -43,7 +43,8 @@ our $VERSION = '0.26';
     
     my %options = (
         sleep       => 1,
-        ua          => "mojo-checkbot/$VERSION (+https://github.com/jamadam/mojo-checkbot)",
+        ua          =>
+            "mojo-checkbot/$VERSION (+https://github.com/jamadam/mojo-checkbot)",
         timeout     => 15,
         evacuate    => 30,
     );
@@ -94,7 +95,8 @@ our $VERSION = '0.26';
             for my $entry (@$queues, @$result) {
                 my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
                             $entry->{$QUEUE_KEY_LITERAL_URI};
-                if ($entry->{$QUEUE_KEY_CONTEXT} && $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
+                if ($entry->{$QUEUE_KEY_CONTEXT} &&
+                                    $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
                     my @names =
                         sort {$a cmp $b}
                         map {$_->{name}} @{$entry->{$QUEUE_KEY_DIALOG}->{names}};
@@ -260,7 +262,8 @@ our $VERSION = '0.26';
             push(@dialogs, {
                 $QUEUE_KEY_LITERAL_URI  => $url,
                 $QUEUE_KEY_DIALOG       => {
-                    'www-authenticate' => scalar $res->headers->header('www-authenticate'),
+                    'www-authenticate' =>
+                            scalar $res->headers->header('www-authenticate'),
                 },
             });
         }
@@ -286,11 +289,13 @@ our $VERSION = '0.26';
             if ($options{match} && $url2 !~ /$options{match}/) {
                 next;
             }
-            if ($options{'match-for-check'} && $url2 !~ /$options{'match-for-check'}/) {
+            if ($options{'match-for-check'} &&
+                                    $url2 !~ /$options{'match-for-check'}/) {
                 next;
             }
             my $md5;
-            if ($entry->{$QUEUE_KEY_CONTEXT} && $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
+            if ($entry->{$QUEUE_KEY_CONTEXT} &&
+                                    $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
                 my @names =
                     sort {$a cmp $b}
                     map {$_->{name}} @{$entry->{$QUEUE_KEY_DIALOG}->{names}};
@@ -336,7 +341,8 @@ our $VERSION = '0.26';
             $dom->find('[name]')->each(sub {
                 my $dom = shift;
                 my $a = {name => $dom->attrs('name')};
-                if (my $value = Mojo::Util::html_escape($dom->attrs('value') || $dom->text)) {
+                if (my $value = Mojo::Util::html_escape($dom->attrs('value') ||
+                                                                $dom->text)) {
                     $a->{value} = $value;
                 }
                 push(@names, $a);
@@ -354,7 +360,8 @@ our $VERSION = '0.26';
     sub collect_urls {
         my ($dom) = @_;
         my @array;
-        $dom->find('script, link, a, img, area, embed, frame, iframe, input, meta[http\-equiv=Refresh]')->each(sub {
+        $dom->find('script, link, a, img, area, embed, frame, iframe, input,
+                                        meta[http\-equiv=Refresh]')->each(sub {
             if (my $queue = _analize_dom(shift)) {
                 push(@array, $queue);
             }
