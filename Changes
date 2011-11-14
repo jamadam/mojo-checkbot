@@ -1,6 +1,6 @@
 Revision history for mojo-checkbot
 
-0.26 2011/11/14
+0.26 2011/11/15
   - Reduced form dialog for deeply same forms not to appear twice
 
 0.25 2011/11/14
