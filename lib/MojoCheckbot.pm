@@ -120,25 +120,25 @@ our $VERSION = '0.25';
             if (my $queue = shift @$queues) {
                 my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                             $queue->{$QUEUE_KEY_LITERAL_URI};
-                my ($res, $new_queues, $dialogs) = eval {
+                my $res = eval {
                     check($url, $ua,
                         $queue->{$QUEUE_KEY_METHOD}, $queue->{$QUEUE_KEY_PARAM});
                 };
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
                 } else {
-                    @$new_queues =
-                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @$new_queues;
-                    @$dialogs =
-                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @$dialogs;
-                    push(@$queues, @$new_queues);
-                    push(@$result, @$dialogs);
-                    if (ref $res) {
-                        $queue->{$QUEUE_KEY_RES}    = $res->{code};
-                        $queue->{$QUEUE_KEY_DIALOG} = $res->{dialog};
+                    my $new_queues =
+                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @{$res->{queue}};
+                    my $dialogs =
+                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @{$res->{dialog}};
+                    push(@$queues, @{$res->{queue}});
+                    if ($res->{code} == 401) {
+                        %$queue = (%$queue, %{$res->{dialog}->[0]});
                     } else {
-                        $queue->{$QUEUE_KEY_RES}    = $res;
+                        push(@$result, @{$res->{dialog}});
+                        $queue->{$QUEUE_KEY_DIALOG} = $res->{dialog};
                     }
+                    $queue->{$QUEUE_KEY_RES} = $res->{code};
                 }
                 push(@$result, $queue);
             }
@@ -201,6 +201,7 @@ our $VERSION = '0.25';
         my ($url, $ua, $method, $param) = @_;
         my @new_queues;
         my @dialogs;
+        my $auth;
         my $tx;
         if ($method && $method =~ /post/i) {
             my $body_data = Mojo::Parameters->new($param)->to_hash;
@@ -250,16 +251,18 @@ our $VERSION = '0.25';
                 }
             }
         } elsif($code && $code == 401) {
-            my $tx  = $ua->max_redirects(0)->get($url);
-            my $res = $tx->res;
-            $code = {
-                code    => $res->code,
-                dialog  => {
-                    'www-authenticate' => $res->headers->header('www-authenticate'),
-                }
-            };
+            push(@dialogs, {
+                $QUEUE_KEY_LITERAL_URI  => $url,
+                $QUEUE_KEY_DIALOG       => {
+                    'www-authenticate' => scalar $res->headers->header('www-authenticate'),
+                },
+            });
         }
-        return $code, \@new_queues, \@dialogs;
+        return {
+            code    => $code,
+            queue   => \@new_queues,
+            dialog  => \@dialogs,
+        };
     }
     
     sub append_queues {
@@ -285,20 +288,10 @@ our $VERSION = '0.25';
                 next;
             }
             $fix->{$md5} = undef;
-            my $queue = {
-                $QUEUE_KEY_CONTEXT      => $entry->{$QUEUE_KEY_CONTEXT},
-                $QUEUE_KEY_LITERAL_URI  => $entry->{$QUEUE_KEY_LITERAL_URI},
-            };
             if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $url2) {
-                $queue->{$QUEUE_KEY_RESOLVED_URI} = $url2;
+                $entry->{$QUEUE_KEY_RESOLVED_URI} = $url2;
             }
-            if ($entry->{$QUEUE_KEY_DIALOG}) {
-                $queue->{$QUEUE_KEY_DIALOG} = $entry->{$QUEUE_KEY_DIALOG};
-            }
-            if ($entry->{$QUEUE_KEY_METHOD}) {
-                $queue->{$QUEUE_KEY_METHOD} = $entry->{$QUEUE_KEY_METHOD};
-            }
-            push(@$append_to, $queue);
+            push(@$append_to, $entry);
         }
     }
     

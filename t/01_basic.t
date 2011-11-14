@@ -88,8 +88,8 @@ EOF
 	);
 	
 	{
-		my ($res, $jobs) = MojoCheckbot::check("http://localhost:$port/", $ua);
-		is($res, 404);
+		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
+		is $res->{code}, 404;
 	}
 
 	$port = Mojo::IOLoop->generate_port;
@@ -106,8 +106,8 @@ EOF
 	);
 	
 	{
-		my ($res, $jobs) = MojoCheckbot::check("http://localhost:$port/", $ua);
-		is($res, 200);
+		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
+		is $res->{code}, 200;
 	}
 
 1;
