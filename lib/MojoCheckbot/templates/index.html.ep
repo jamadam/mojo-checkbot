@@ -252,6 +252,11 @@
 				</div>
 			</form>
 		</div>
+		<div id="notifyContainer">
+			<div class="notifier">
+				test 
+			</div>
+		</div>
 		<div id="loadingContainer">
 		</div>
 	</body>
