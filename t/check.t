@@ -40,7 +40,9 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
+		my $res = MojoCheckbot::check($ua, {
+			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
+		});
 		is $res->{code}, 404;
 	}
 
@@ -58,7 +60,9 @@ EOF
 	);
 	
 	{
-		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
+		my $res = MojoCheckbot::check($ua, {
+			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
+		});
 		is $res->{code}, 200;
 	}
 
@@ -144,7 +148,9 @@ EOF
 			},
 		);
 		
-		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
+		my $res = MojoCheckbot::check($ua, {
+			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
+		});
 		is $res->{code}, 200, 'right status code';
 		is scalar @{$res->{queue}}, 12, 'right queue number';
 		is keys %{$res->{queue}->[0]}, 3, 'right key number';
@@ -248,7 +254,11 @@ EOF
 			},
 		);
 		
-		my $res = MojoCheckbot::check("http://localhost:$port/", $ua, 'get', 'a=b&c=d');
+		my $res = MojoCheckbot::check($ua, {
+			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
+			$MojoCheckbot::QUEUE_KEY_METHOD			=> 'get',
+			$MojoCheckbot::QUEUE_KEY_PARAM 			=> 'a=b&c=d'
+		});
 	}
 
 1;

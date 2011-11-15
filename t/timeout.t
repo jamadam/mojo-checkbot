@@ -31,7 +31,9 @@ use MojoCheckbot;
 	
 	{
 		my ($res, $jobs) = eval {
-			MojoCheckbot::check("http://localhost:$port/", $ua);
+			MojoCheckbot::check($ua, {
+				$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
+			});
 		};
 		like($@, qr{^Premature connection close});
 	}

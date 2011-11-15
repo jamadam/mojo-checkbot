@@ -96,6 +96,7 @@ our $VERSION = '0.27';
             'resume',
             'noevacuate',
             'evacuate=i',
+            'depth=i',
         );
         
         my $queues = [];
@@ -137,8 +138,7 @@ our $VERSION = '0.27';
                 my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
                             $queue->{$QUEUE_KEY_LITERAL_URI};
                 my $res = eval {
-                    check($url, $ua,
-                        $queue->{$QUEUE_KEY_METHOD}, $queue->{$QUEUE_KEY_PARAM});
+                    check($ua, $queue);
                 };
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
@@ -225,7 +225,11 @@ our $VERSION = '0.27';
     }
     
     sub check {
-        my ($url, $ua, $method, $param) = @_;
+        my ($ua, $queue) = @_;
+        my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
+                    $queue->{$QUEUE_KEY_LITERAL_URI};
+        my $method = $queue->{$QUEUE_KEY_METHOD};
+        my $param = $queue->{$QUEUE_KEY_PARAM};
         my @new_queues;
         my @dialogs;
         my $auth;
@@ -254,8 +258,8 @@ our $VERSION = '0.27';
             }]);
         }
         if ($code == 200 &&
-                (! $options{'match-for-crawl'} ||
-                                     $url =~ /$options{'match-for-crawl'}/)) {
+            (! $options{'match-for-crawl'} || $url =~ /$options{'match-for-crawl'}/) &&
+            (! $options{'depth'} || $queue->{$QUEUE_KEY_DEPTH} < $options{'depth'})) {
             my $type = $res->headers->content_type;
             if ($type && $type =~ qr{text/(html|xml)}) {
                 my $encode = guess_encoding($res) || 'utf-8';
