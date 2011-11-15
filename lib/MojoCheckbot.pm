@@ -70,9 +70,9 @@ our $VERSION = '0.27';
             my @names =
                 sort {$a cmp $b}
                 map {$_->{name}} @{$queue->{$QUEUE_KEY_DIALOG}->{names}};
-            return md5_sum(join('\t', $method, $url, @names));
+            return md5_sum(join("\t", $method, $url, @names));
         } else {
-            return md5_sum(join('\t', $method, $url));
+            return md5_sum(join("\t", $method, $url));
         }
     }
 
