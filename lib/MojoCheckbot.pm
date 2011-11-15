@@ -119,6 +119,8 @@ our $VERSION = '0.27';
             $QUEUE_KEY_REFERER      => 'N/A',
             $QUEUE_KEY_CONTEXT      => 'N/A',
             $QUEUE_KEY_LITERAL_URI  => 'N/A',
+            $QUEUE_KEY_DEPTH        => 1,
+            $QUEUE_KEY_PARENT       => undef,
         };
         
         my $ua = MojoCheckbot::UserAgent->new->name($options{ua});
@@ -144,6 +146,7 @@ our $VERSION = '0.27';
                     for (@{$res->{queue}}, @{$res->{dialog}}) {
                         $_->{$QUEUE_KEY_REFERER} = $url;
                         $_->{$QUEUE_KEY_PARENT} = scalar @$result;
+                        $_->{$QUEUE_KEY_DEPTH} = $queue->{$QUEUE_KEY_DEPTH} + 1;
                     }
                     push(@$queues, @{$res->{queue}});
                     if ($res->{code} == 401) {
