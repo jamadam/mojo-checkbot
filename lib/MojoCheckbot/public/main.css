@@ -192,22 +192,22 @@ body {
             border:1px solid #ccc;
             margin-bottom:5px;
         }
-    #notifyContainer {
+    #notifierContainer {
         position:absolute;
         top:10px;
         right:10px;
     }
-        #notifyContainer .notifier {
+        #notifierContainer .notifier {
             width:200px;
             height:auto;
             background-color:#000;
             opacity:0.8;
             border-radius:10px;
             color:#fff;
-            padding:10px;
+            padding:8px 12px;
             min-height:50px;
-            margin-bottom:10px;
+            margin-bottom:5px;
         }
-        #notifyContainer .notifier:hover {
-            opacity:0.6;
+        #notifierContainer .notifier:hover {
+            opacity:1;
         }

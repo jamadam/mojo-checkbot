@@ -41,6 +41,8 @@ our $VERSION = '0.27';
         $QUEUE_KEY_DIALOG,
         $QUEUE_KEY_METHOD,
         $QUEUE_KEY_PARAM,
+        $QUEUE_KEY_PARENT,
+        $QUEUE_KEY_DEPTH,
     );
     
     my %options = (
@@ -97,6 +99,7 @@ our $VERSION = '0.27';
         );
         
         my $queues = [];
+        my $dialog = [];
         my $result = [];
         
         my $cache = MojoCheckbot::FileCache->new(cache_id());
@@ -105,6 +108,7 @@ our $VERSION = '0.27';
             my $resume = $cache->slurp;
             $queues = $resume->{queues};
             $result = $resume->{result};
+            $dialog = $resume->{dialog};
             for my $entry (@$queues, @$result) {
                 my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
                             $entry->{$QUEUE_KEY_LITERAL_URI};
@@ -139,16 +143,15 @@ our $VERSION = '0.27';
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
                 } else {
-                    my $new_queues =
-                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @{$res->{queue}};
-                    my $dialogs =
-                        map {$_->{$QUEUE_KEY_REFERER} = $url; $_} @{$res->{dialog}};
+                    for (@{$res->{queue}}, @{$res->{dialog}}) {
+                        $_->{$QUEUE_KEY_REFERER} = $url;
+                        $_->{$QUEUE_KEY_PARENT} = scalar @$result;
+                    }
                     push(@$queues, @{$res->{queue}});
                     if ($res->{code} == 401) {
                         %$queue = (%$queue, %{$res->{dialog}->[0]});
                     } else {
-                        push(@$result, @{$res->{dialog}});
-                        $queue->{$QUEUE_KEY_DIALOG} = $res->{dialog};
+                        push(@$dialog, @{$res->{dialog}});
                     }
                     $queue->{$QUEUE_KEY_RES} = $res->{code};
                 }
@@ -160,7 +163,11 @@ our $VERSION = '0.27';
             my $loop_id2;
             my $interval = $options{evacuate};
             $loop_id2 = MojoCheckbot::IOLoop->recurring($interval => sub {
-                $cache->store({queues  => $queues, result  => $result});
+                $cache->store({
+                    queues  => $queues,
+                    result  => $result,
+                    dialog => $dialog,
+                });
                 if (! scalar @$queues) {
                     MojoCheckbot::IOLoop->drop($loop_id2);
                 }
@@ -169,17 +176,24 @@ our $VERSION = '0.27';
         
         my $r = $self->routes;
         $r->route('/diff')->to(cb => sub {
-            my $c       = shift;
-            my $offset  = $c->req->param('offset');
-            my $last    = scalar @$result;
+            my $c           = shift;
+            my $offset      = $c->req->param('offset');
+            my $offset_d    = $c->req->param('offset_d');
+            my $last        = scalar @$result;
+            my $last_d      = scalar @$dialog;
             if ($last - $offset > 100) {
                 $last = $offset + 100;
             }
-            my @diff = @$result[$offset .. $last - 1];
+            if ($last_d - $offset_d > 100) {
+                $last_d = $offset_d + 100;
+            }
+            my @diff    = @$result[$offset .. $last - 1];
+            my @diff_d  = @$dialog[$offset_d .. $last_d - 1];
             $c->render_json({
                 queues  => scalar @$queues,
                 fixed   => scalar @$result,
-                result  => \@diff
+                result  => \@diff,
+                dialog  => \@diff_d,
             });
         });
         $r->route('/auth')->to(cb => sub {

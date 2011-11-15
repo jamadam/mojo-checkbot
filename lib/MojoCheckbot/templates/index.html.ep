@@ -49,103 +49,11 @@
 			Copyright &copy; <a href="http://blog2.jamadam.com/">jamadam</a> Alrights Reserved. | Powered by <a href="http://mojolicio.us/">Mojolicious</a>.
 		</div>
 		<div id="trLightbox" class="lightbox" style="display:none;">
-			<form action="#dummy">
-				<table>
-					<tr>
-						<th>
-							Context
-						</th>
-						<td class="context">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							URI(Literal)
-						</th>
-						<td class="literalURI">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							URI(Resolved)
-						</th>
-						<td class="resolvedURI">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							Status Code
-						</th>
-						<td class="statusCode">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							Referer
-						</th>
-						<td class="referer">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							Error
-						</th>
-						<td class="error">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-				</table>
+			<form action="#dummy" class="propetyContainer">
 			</form>
 		</div>
 		<div id="trLightbox401" class="lightbox" style="display:none;">
-			<form action="#dummy">
-				<table>
-					<tr>
-						<th>
-							Context
-						</th>
-						<td class="context">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							URI(Literal)
-						</th>
-						<td class="literalURI">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							URI(Resolved)
-						</th>
-						<td class="resolvedURI">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							Status Code
-						</th>
-						<td class="statusCode">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							Referer
-						</th>
-						<td class="referer">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-				</table>
+			<form action="#dummy" class="propetyContainer">
 			</form>
 			
 			<h2>
@@ -185,49 +93,7 @@
 			</form>
 		</div>
 		<div id="trLightboxForm" class="lightbox" style="display:none;">
-			<form action="#dummy">
-				<table>
-					<tr>
-						<th>
-							Context
-						</th>
-						<td class="context">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							URI(Literal)
-						</th>
-						<td class="literalURI">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							URI(Resolved)
-						</th>
-						<td class="resolvedURI">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							Status Code
-						</th>
-						<td class="statusCode">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<th>
-							Referer
-						</th>
-						<td class="referer">
-							<textarea rows="1" cols="10"></textarea>
-						</td>
-					</tr>
-				</table>
+			<form action="#dummy" class="propetyContainer">
 			</form>
 			
 			<h2>
@@ -252,11 +118,53 @@
 				</div>
 			</form>
 		</div>
-		<div id="notifyContainer">
-			<div class="notifier">
-				test 
-			</div>
+		
+		<div id="notifierContainer">
 		</div>
+		
+		<table id="propetyTemplate" style="display:none">
+			<tr>
+				<th>
+					Context
+				</th>
+				<td class="context">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					URI(Literal)
+				</th>
+				<td class="literalURI">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					URI(Resolved)
+				</th>
+				<td class="resolvedURI">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					Status Code
+				</th>
+				<td class="statusCode">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					Referer
+				</th>
+				<td class="referer">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+		</table>
+		
 		<div id="loadingContainer">
 		</div>
 	</body>
