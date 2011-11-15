@@ -10,9 +10,59 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-	use Test::More tests => 63;
+	use Test::More tests => 65;
 	
-	my $html = <<EOF;
+	my $html;
+	
+	$html = <<EOF;
+<html>
+<body>
+<a href="http://example.com">example.com</a>
+<a href="/foo.html">foo.html</a>
+</body>
+</html>
+EOF
+	
+	my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
+	my $port;
+
+	$port = Mojo::IOLoop->generate_port;
+	Mojo::IOLoop->listen(
+		port      => $port,
+		on_read => sub {
+			my ($loop, $id, $chunk) = @_;
+			$loop->write(
+				$id => "HTTP/1.1 404 OK\x0d\x0a"
+					. "Content-Type: text/html\x0d\x0a\x0d\x0aNot Found",
+				sub { shift->drop(shift) }
+			);
+		},
+	);
+	
+	{
+		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
+		is $res->{code}, 404;
+	}
+
+	$port = Mojo::IOLoop->generate_port;
+	Mojo::IOLoop->listen(
+		port      => $port,
+		on_read => sub {
+			my ($loop, $id, $chunk) = @_;
+			$loop->write(
+				$id => "HTTP/1.1 200 OK\x0d\x0a"
+					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
+				sub { shift->drop(shift) }
+			);
+		},
+	);
+	
+	{
+		my $res = MojoCheckbot::check("http://localhost:$port/", $ua);
+		is $res->{code}, 200;
+	}
+
+	$html = <<EOF;
 <html>
 <head>
 	<link rel="stylesheet" type="text/css" href="css1.css" />
@@ -79,8 +129,6 @@ use MojoCheckbot;
 </body>
 </html>
 EOF
-	my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
-	my $port;
 	
 	{
 		$port = Mojo::IOLoop->generate_port;

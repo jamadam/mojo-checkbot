@@ -28,6 +28,8 @@ our $VERSION = '0.27';
     our $QUEUE_KEY_DIALOG        = 7;
     our $QUEUE_KEY_METHOD        = 8;
     our $QUEUE_KEY_PARAM         = 9;
+    our $QUEUE_KEY_PARENT        = 10;
+    our $QUEUE_KEY_DEPTH         = 11;
     
     my @QUEUE_KEYS = (
         $QUEUE_KEY_CONTEXT,
