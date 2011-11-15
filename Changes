@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
-0.28 2011/11/15
+0.28 2011/11/16
+  - Fixed a bug on lightbox initialization
 
 0.27 2011/11/15
   - Added notifier feature for activate form dialog
