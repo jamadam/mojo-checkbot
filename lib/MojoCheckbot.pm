@@ -9,7 +9,7 @@ use Mojo::DOM;
 use Mojo::URL;
 use Mojo::CookieJar;
 use Mojo::Cookie::Response;
-use Mojo::Util 'md5_sum';
+use Mojo::Util qw{md5_sum html_escape};
 use Mojo::Base 'Mojolicious';
 use Mojo::Parameters;
 use Encode;
@@ -58,7 +58,18 @@ our $VERSION = '0.27';
     }
     
     sub fix_key {
-        return md5_sum(join('\t', map {defined $_ ? $_ : ''} @_));
+        my ($queue) = @_;
+        my $context = $queue->{$QUEUE_KEY_CONTEXT};
+        my $method  = $queue->{$QUEUE_KEY_METHOD} || '';
+        my $url     = $queue->{$QUEUE_KEY_RESOLVED_URI} || $queue->{$QUEUE_KEY_LITERAL_URI};
+        if ($context eq '*FORM*') {
+            my @names =
+                sort {$a cmp $b}
+                map {$_->{name}} @{$queue->{$QUEUE_KEY_DIALOG}->{names}};
+            return md5_sum(join('\t', $method, $url, @names));
+        } else {
+            return md5_sum(join('\t', $method, $url));
+        }
     }
 
     sub startup {
@@ -95,15 +106,7 @@ our $VERSION = '0.27';
             for my $entry (@$queues, @$result) {
                 my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
                             $entry->{$QUEUE_KEY_LITERAL_URI};
-                if ($entry->{$QUEUE_KEY_CONTEXT} &&
-                                    $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
-                    my @names =
-                        sort {$a cmp $b}
-                        map {$_->{name}} @{$entry->{$QUEUE_KEY_DIALOG}->{names}};
-                    $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url, @names)} = undef;
-                } else {
-                    $fix->{fix_key($entry->{$QUEUE_KEY_METHOD}, $url)} = undef;
-                }
+                $fix->{fix_key($entry)} = undef;
             }
         }
         
@@ -196,7 +199,6 @@ our $VERSION = '0.27';
                 $queue->{$key} = $c->req->param('key_'. $key);
             }
             append_queues($queue->{$QUEUE_KEY_REFERER}, $queues, [$queue]);
-            #push(@$queues, $queue);
             $c->render_json({result => 'success'});
         });
         $r->route('/')->to(cb => sub {
@@ -234,31 +236,30 @@ our $VERSION = '0.27';
                 $QUEUE_KEY_LITERAL_URI  => $location,
             }]);
         }
-        if ($code && $code == 200) {
+        if ($code == 200 &&
+                (! $options{'match-for-crawl'} ||
+                                     $url =~ /$options{'match-for-crawl'}/)) {
             my $type = $res->headers->content_type;
-            if (! $options{'match-for-crawl'} ||
-                                        $url =~ /$options{'match-for-crawl'}/) {
-                if ($type && $type =~ qr{text/(html|xml)}) {
-                    my $encode = guess_encoding($res) || 'utf-8';
-                    my $body    = Encode::decode($encode, $res->body);
-                    my $dom     = Mojo::DOM->new($body);
-                    if (my $base_tag = $dom->at('base')) {
-                        $base = Mojo::URL->new($base_tag->attrs('href'));
-                    }
-                    my @a       = collect_urls($dom);
-                    my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
-                    my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
-                    append_queues($base, \@new_queues, \@q);
-                    append_queues($base, \@dialogs, \@dialog);
-                } elsif ($type && $type =~ qr{text/(text|css)}) {
-                    my $base    = $tx->req->url;
-                    my $encode  = guess_encoding_css($res) || 'utf-8';
-                    my $body    = Encode::decode($encode, $res->body);
-                    my @urls    = collect_urls_from_css($body);
-                    append_queues($base, \@new_queues, \@urls);
+            if ($type && $type =~ qr{text/(html|xml)}) {
+                my $encode = guess_encoding($res) || 'utf-8';
+                my $body    = Encode::decode($encode, $res->body);
+                my $dom     = Mojo::DOM->new($body);
+                if (my $base_tag = $dom->at('base')) {
+                    $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
+                my @a       = collect_urls($dom);
+                my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
+                my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
+                append_queues($base, \@new_queues, \@q);
+                append_queues($base, \@dialogs, \@dialog);
+            } elsif ($type && $type =~ qr{text/(text|css)}) {
+                my $base    = $tx->req->url;
+                my $encode  = guess_encoding_css($res) || 'utf-8';
+                my $body    = Encode::decode($encode, $res->body);
+                my @urls    = collect_urls_from_css($body);
+                append_queues($base, \@new_queues, \@urls);
             }
-        } elsif($code && $code == 401) {
+        } elsif ($code == 401) {
             push(@dialogs, {
                 $QUEUE_KEY_LITERAL_URI  => $url,
                 $QUEUE_KEY_DIALOG       => {
@@ -277,40 +278,31 @@ our $VERSION = '0.27';
     sub append_queues {
         my ($base, $append_to, $urls) = @_;
         for my $entry (@$urls) {
-            if ($entry->{$QUEUE_KEY_LITERAL_URI} =~ qr{^(\w+):}
-                                        && ! ( $1 ~~ [qw(http https ws wss)])) {
-                next;
+            if ($entry->{$QUEUE_KEY_LITERAL_URI} =~ qr{^(\w+):}) {
+                if (! ( $1 ~~ [qw(http https ftp ws wss)])) {
+                    next;
+                }
             }
-            my $url2 = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
-            if ($url2->scheme !~ qr{https?|ftp}) {
-                next;
+            my $rurl = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
+            $rurl = "$rurl";
+            if ($options{match}) {
+                if ($rurl !~ /$options{match}/) {
+                    next;
+                }
             }
-            $url2 = "$url2";
-            if ($options{match} && $url2 !~ /$options{match}/) {
-                next;
+            if ($options{'match-for-check'}) {
+                if ($rurl !~ /$options{'match-for-check'}/) {
+                    next;
+                }
             }
-            if ($options{'match-for-check'} &&
-                                    $url2 !~ /$options{'match-for-check'}/) {
-                next;
+            if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $rurl) {
+                $entry->{$QUEUE_KEY_RESOLVED_URI} = $rurl;
             }
-            my $md5;
-            if ($entry->{$QUEUE_KEY_CONTEXT} &&
-                                    $entry->{$QUEUE_KEY_CONTEXT} eq '*FORM*') {
-                my @names =
-                    sort {$a cmp $b}
-                    map {$_->{name}} @{$entry->{$QUEUE_KEY_DIALOG}->{names}};
-                $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2, @names);
-            } else {
-                $md5 = fix_key($entry->{$QUEUE_KEY_METHOD}, $url2);
+            my $md5 = fix_key($entry);
+            if (! exists $fix->{$md5}) {
+                $fix->{$md5} = undef;
+                push(@$append_to, $entry);
             }
-            if (exists $fix->{$md5}) {
-                next;
-            }
-            $fix->{$md5} = undef;
-            if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $url2) {
-                $entry->{$QUEUE_KEY_RESOLVED_URI} = $url2;
-            }
-            push(@$append_to, $entry);
         }
     }
     
@@ -328,7 +320,7 @@ our $VERSION = '0.27';
                 $context = substr($context, 0, 300). '...';
             }
             return {
-                $QUEUE_KEY_CONTEXT      => Mojo::Util::html_escape($context),
+                $QUEUE_KEY_CONTEXT      => html_escape($context),
                 $QUEUE_KEY_LITERAL_URI  => $href,
             };
         }
@@ -341,8 +333,7 @@ our $VERSION = '0.27';
             $dom->find('[name]')->each(sub {
                 my $dom = shift;
                 my $a = {name => $dom->attrs('name')};
-                if (my $value = Mojo::Util::html_escape($dom->attrs('value') ||
-                                                                $dom->text)) {
+                if (my $value = html_escape($dom->attrs('value') || $dom->text)) {
                     $a->{value} = $value;
                 }
                 push(@names, $a);
