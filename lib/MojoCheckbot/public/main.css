@@ -193,12 +193,12 @@ body {
             margin-bottom:5px;
         }
     #notifierContainer {
-        position:absolute;
+        position:fixed;
         top:10px;
         right:10px;
     }
         #notifierContainer .notifier {
-            width:200px;
+            width:250px;
             height:auto;
             background-color:#000;
             opacity:0.8;
@@ -216,6 +216,7 @@ body {
             #notifierContainer .notifier .uri {
                 white-space:nowrap;
                 text-overflow:ellipsis;
+                overflow:hidden;
                 width:100%;
             }
             #notifierContainer .notifier .context {
