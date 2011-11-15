@@ -28,7 +28,10 @@ hoge usage: $0 daemon [OPTIONS]
   クローラーオプション
   
   --start <URL>           クロールをスタートするURLを指定します。
-  --match <regexp>        チェック対象のURLを正規表現で指定します。
+  --match <regexp>        [Deprecated]チェック対象のURLを正規表現で指定します。
+  --match-for-check <regexp> チェック対象のURLを正規表現で指定します。
+  --match-for-crawl <regexp> 再帰的なクロールの対象のURLを正規表現で指定します。
+  --depth <integer>       再帰的なクロール深度の上限を指定します。
   --sleep <seconds>       クロールの間隔を指定します。
   --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
   --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
@@ -71,6 +74,7 @@ These options are available:
                           checked.
   --match-for-crawl <regexp> Set regexp to judge whether or not the URL should be
                           crawled recursivly.
+  --depth <integer>       Set max depth for recursive crawling.
   --sleep <seconds>       Set interval for crawling.
   --ua <string>           Set user agent name for crawler header
   --cookie <string>       Set cookie string sent to servers
