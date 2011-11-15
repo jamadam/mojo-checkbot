@@ -110,8 +110,6 @@ our $VERSION = '0.27';
             $result = $resume->{result};
             $dialog = $resume->{dialog};
             for my $entry (@$queues, @$result) {
-                my $url =   $entry->{$QUEUE_KEY_RESOLVED_URI} ||
-                            $entry->{$QUEUE_KEY_LITERAL_URI};
                 $fix->{fix_key($entry)} = undef;
             }
         }
