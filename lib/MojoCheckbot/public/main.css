@@ -192,6 +192,9 @@ body {
             border:1px solid #ccc;
             margin-bottom:5px;
         }
+        #commonForm input[type=text] {
+            min-width:300px;
+        }
     #notifierContainer {
         position:fixed;
         top:10px;
