@@ -163,6 +163,14 @@
 					<textarea rows="1" cols="10"></textarea>
 				</td>
 			</tr>
+			<tr>
+				<th>
+					Depth
+				</th>
+				<td class="depth">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
 		</table>
 		
 		<div id="loadingContainer">
