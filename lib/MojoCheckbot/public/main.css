@@ -207,7 +207,17 @@ body {
             padding:8px 12px;
             min-height:50px;
             margin-bottom:5px;
+            box-shadow:1px 1px 3px #888;
         }
         #notifierContainer .notifier:hover {
             opacity:1;
         }
+            #notifierContainer .notifier .context,
+            #notifierContainer .notifier .uri {
+                white-space:nowrap;
+                text-overflow:ellipsis;
+                width:100%;
+            }
+            #notifierContainer .notifier .context {
+                margin-bottom:0.8em;
+            }
