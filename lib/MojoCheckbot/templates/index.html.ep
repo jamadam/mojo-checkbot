@@ -36,7 +36,7 @@
 						<th>Context</th>
 						<th>URI(Literal)</th>
 						<th>URI(Resolved)</th>
-						<th>Status Code</th>
+						<th>Status</th>
 						<th>Referer</th>
 					</tr>
 				</thead>
@@ -149,7 +149,15 @@
 			</tr>
 			<tr>
 				<th>
-					Status Code
+					Parameter
+				</th>
+				<td class="parameter">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					Status
 				</th>
 				<td class="statusCode">
 					<textarea rows="1" cols="10"></textarea>

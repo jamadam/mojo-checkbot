@@ -17,7 +17,7 @@ use utf8;
 use MojoCheckbot::FileCache;
 use MojoCheckbot::IOLoop;
 use MojoCheckbot::UserAgent;
-our $VERSION = '0.27';
+our $VERSION = '0.29';
     
     our $QUEUE_KEY_CONTEXT       = 1;
     our $QUEUE_KEY_LITERAL_URI   = 2;
@@ -65,7 +65,8 @@ our $VERSION = '0.27';
         my ($queue) = @_;
         my $context = $queue->{$QUEUE_KEY_CONTEXT};
         my $method  = $queue->{$QUEUE_KEY_METHOD} || '';
-        my $url     = $queue->{$QUEUE_KEY_RESOLVED_URI} || $queue->{$QUEUE_KEY_LITERAL_URI};
+        my $url     =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
+                        $queue->{$QUEUE_KEY_LITERAL_URI};
         if ($context eq '*FORM*') {
             my @names =
                 sort {$a cmp $b}
