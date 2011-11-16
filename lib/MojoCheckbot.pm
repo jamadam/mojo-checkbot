@@ -135,16 +135,14 @@ our $VERSION = '0.27';
         my $loop_id;
         $loop_id = MojoCheckbot::IOLoop->blocked_recurring($options{sleep} => sub {
             if (my $queue = shift @$queues) {
-                my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
-                            $queue->{$QUEUE_KEY_LITERAL_URI};
-                my $res = eval {
-                    check($ua, $queue);
-                };
+                my $res = eval {check($ua, $queue)};
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
                 } else {
+                    my $referer =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
+                                    $queue->{$QUEUE_KEY_LITERAL_URI};
                     for (@{$res->{queue}}, @{$res->{dialog}}) {
-                        $_->{$QUEUE_KEY_REFERER} = $url;
+                        $_->{$QUEUE_KEY_REFERER} = $referer;
                         $_->{$QUEUE_KEY_PARENT} = scalar @$result;
                         $_->{$QUEUE_KEY_DEPTH} = $queue->{$QUEUE_KEY_DEPTH} + 1;
                     }
