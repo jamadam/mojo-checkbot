@@ -10,7 +10,7 @@ use Carp 'croak';
 use Mojo::Server;
 use Mojo::Template;
 use Mojo::Loader;
-use Mojo::Util qw/b64_decode camelize decamelize/;
+use Mojo::Util qw/b64_decode decamelize/;
 
 has hint => <<"EOF";
 
@@ -199,9 +199,6 @@ sub run {
     my $module;
     for my $namespace (@{$self->namespaces}) {
       last if $module = _command("${namespace}::$name");
-
-      # DEPRECATED in Smiling Face With Sunglasses!
-      last if $module = _command("${namespace}::" . camelize $name);
     }
 
     # Command missing
@@ -489,7 +486,7 @@ Portably generate an absolute path from a relative UNIX style path.
 
 =head2 C<render_data>
 
-  my $data = $command->render_data('foo_bar', @arguments);
+  my $data = $command->render_data('foo_bar', @args);
 
 Render a template from the C<DATA> section of the command class.
 

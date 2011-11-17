@@ -11,16 +11,16 @@ BEGIN {
   $ENV{MOJO_IOWATCHER} = 'Mojo::IOWatcher';
 }
 
-use Test::More tests => 32;
+use Test::More tests => 29;
 
 # "Marge, you being a cop makes you the man!
 #  Which makes me the woman, and I have no interest in that,
 #  besides occasionally wearing the underwear,
 #  which as we discussed, is strictly a comfort thing."
 use_ok 'MojoCheckbot::IOLoop';
+use_ok 'Mojo::IOLoop';
 use_ok 'Mojo::IOLoop::Client';
 use_ok 'Mojo::IOLoop::Delay';
-use_ok 'Mojo::IOLoop::Resolver';
 use_ok 'Mojo::IOLoop::Server';
 use_ok 'Mojo::IOLoop::Stream';
 
@@ -111,55 +111,52 @@ ok $count > 3, 'more than three recurring events';
 # Handle
 my $port = MojoCheckbot::IOLoop->generate_port;
 my $handle;
-$loop->listen(
-  port      => $port,
-  on_accept => sub {
-    my $self = shift;
-    $handle = $self->stream(pop)->handle;
-    $self->stop;
-  },
-  on_read  => sub { },
-  on_error => sub { }
+$loop->server(
+  port => $port,
+  sub {
+    my ($loop, $stream) = @_;
+    $handle = $stream->handle;
+    $loop->stop;
+  }
 );
-$loop->connect(
-  address  => 'localhost',
-  port     => $port,
-  on_read  => sub { },
-  on_error => sub { }
-);
+$loop->client((address => 'localhost', port => $port) => sub { });
 $loop->start;
 isa_ok $handle, 'IO::Socket', 'right reference';
 
 # Stream
 $port = MojoCheckbot::IOLoop->generate_port;
 my $buffer = '';
-MojoCheckbot::IOLoop->listen(
-  port      => $port,
-  on_accept => sub { $buffer .= 'accepted' },
-  on_read   => sub {
-    my ($loop, $id, $chunk) = @_;
-    $buffer .= $chunk;
-    return unless $buffer eq 'acceptedhello';
-    $loop->write($id => 'world');
-    $loop->drop($id);
+MojoCheckbot::IOLoop->server(
+  port => $port,
+  sub {
+    my ($loop, $stream, $id) = @_;
+    $buffer .= 'accepted';
+    $stream->on(
+      read => sub {
+        my ($stream, $chunk) = @_;
+        $buffer .= $chunk;
+        return unless $buffer eq 'acceptedhello';
+        $stream->write('world');
+        $stream->emit('close');
+      }
+    );
   }
 );
 my $delay = MojoCheckbot::IOLoop->delay;
-MojoCheckbot::IOLoop->connect(
-  address    => 'localhost',
-  port       => $port,
-  on_connect => $delay->begin,
-  on_close   => sub { $buffer .= 'should not happen' },
-  on_error   => sub { $buffer .= 'should not happen either' },
-);
-$handle = MojoCheckbot::IOLoop->stream($delay->wait)->steal_handle;
-my $stream = MojoCheckbot::IOLoop->singleton->stream_class->new($handle);
-$id = MojoCheckbot::IOLoop->stream(
-  $stream => {
-    on_close => sub { MojoCheckbot::IOLoop->stop },
-    on_read  => sub { $buffer .= pop }
+$delay->begin;
+MojoCheckbot::IOLoop->client(
+  {port => $port} => sub {
+    my ($loop, $stream, $error) = @_;
+    $delay->end($stream);
+    $stream->on(close => sub { $buffer .= 'should not happen' });
+    $stream->on(error => sub { $buffer .= 'should not happen either' });
   }
 );
+$handle = $delay->wait->steal_handle;
+my $stream = MojoCheckbot::IOLoop->singleton->stream_class->new($handle);
+$id = MojoCheckbot::IOLoop->stream($stream);
+$stream->on(close => sub { MojoCheckbot::IOLoop->stop });
+$stream->on(read => sub { $buffer .= pop });
 $stream->write('hello');
 ok MojoCheckbot::IOLoop->stream($id), 'stream exists';
 MojoCheckbot::IOLoop->start;
@@ -167,60 +164,46 @@ ok !MojoCheckbot::IOLoop->stream($id), 'stream does not exist anymore';
 is $buffer, 'acceptedhelloworld', 'right result';
 
 # Dropped listen socket
-$port  = MojoCheckbot::IOLoop->generate_port;
-$id    = $loop->listen({port => $port});
-$error = undef;
+$port = MojoCheckbot::IOLoop->generate_port;
+$id = $loop->server({port => $port} => sub { });
 my $connected;
-my %args = (
-  address    => 'localhost',
-  port       => $port,
-  on_connect => sub {
-    my $loop = shift;
+$loop->client(
+  {port => $port} => sub {
+    my ($loop, $stream) = @_;
     $loop->drop($id);
     $loop->stop;
     $connected = 1;
-  },
-  on_error => sub {
-    shift->stop;
-    $error = pop;
   }
 );
-$loop->connect(\%args);
 like $ENV{MOJO_REUSE}, qr/(?:^|\,)$port\:/, 'file descriptor can be reused';
 $loop->start;
 unlike $ENV{MOJO_REUSE}, qr/(?:^|\,)$port\:/, 'environment is clean';
 ok $connected, 'connected';
-ok !$error, 'no error';
-$connected = $error = undef;
-$loop->connect(
-  address    => 'localhost',
-  port       => $port,
-  on_connect => sub {
-    shift->stop;
-    $connected = 1;
-  },
-  on_error => sub {
+$error = undef;
+$loop->client(
+  (port => $port) => sub {
     shift->stop;
     $error = pop;
   }
 );
 $loop->start;
-ok !$connected, 'not connected';
 ok $error, 'has error';
 
 # Dropped connection
 $port = MojoCheckbot::IOLoop->generate_port;
 my ($server_close, $client_close);
-MojoCheckbot::IOLoop->listen(
-  address  => 'localhost',
-  port     => $port,
-  on_close => sub { $server_close++ }
+MojoCheckbot::IOLoop->server(
+  (port => $port) => sub {
+    my ($loop, $stream) = @_;
+    $stream->on(close => sub { $server_close++ });
+  }
 );
-MojoCheckbot::IOLoop->connect(
-  address    => 'localhost',
-  port       => $port,
-  on_close   => sub { $client_close++ },
-  on_connect => sub { shift->drop(shift) }
+$id = MojoCheckbot::IOLoop->client(
+  (port => $port) => sub {
+    my ($loop, $stream) = @_;
+    $stream->on(close => sub { $client_close++ });
+    $loop->drop($id);
+  }
 );
 MojoCheckbot::IOLoop->timer('0.5' => sub { shift->stop });
 MojoCheckbot::IOLoop->start;
@@ -228,12 +211,10 @@ is $server_close, 1, 'server emitted close event once';
 is $client_close, 1, 'client emitted close event once';
 
 # Defaults
-is Mojo::IOLoop::Client->new->resolver->ioloop, MojoCheckbot::IOLoop->singleton,
+is Mojo::IOLoop::Client->new->iowatcher, MojoCheckbot::IOLoop->singleton->iowatcher,
   'right default';
 is Mojo::IOLoop::Delay->new->ioloop, MojoCheckbot::IOLoop->singleton, 'right default';
-is Mojo::IOLoop::Resolver->new->ioloop, MojoCheckbot::IOLoop->singleton,
-  'right default';
 is Mojo::IOLoop::Server->new->iowatcher,
-  Mojo::IOLoop->singleton->iowatcher, 'right default';
+  MojoCheckbot::IOLoop->singleton->iowatcher, 'right default';
 is Mojo::IOLoop::Stream->new->iowatcher, MojoCheckbot::IOLoop->singleton->iowatcher,
   'right default';

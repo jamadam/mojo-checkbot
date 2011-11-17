@@ -35,7 +35,7 @@ has static   => sub { Mojolicious::Static->new };
 has types    => sub { Mojolicious::Types->new };
 
 our $CODENAME = 'Leaf Fluttering In Wind';
-our $VERSION  = '2.25';
+our $VERSION  = '2.27';
 
 # "These old doomsday devices are dangerously unstable.
 #  I'll rest easier not knowing where they are."
@@ -468,8 +468,8 @@ These hooks are currently available and are emitted in the listed order:
 
 =item after_build_tx
 
-Emitted in reverse order right after the transaction is built and before the
-HTTP request gets parsed.
+Emitted right after the transaction is built and before the HTTP request gets
+parsed.
 
   $app->hook(after_build_tx => sub {
     my ($tx, $app) = @_;
@@ -726,6 +726,8 @@ Ask Bjoern Hansen
 Audrey Tang
 
 Ben van Staveren
+
+Benjamin Erhart
 
 Breno G. de Oliveira
 

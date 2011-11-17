@@ -37,17 +37,17 @@ EOF
 
 	my $port;
 	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
-			$loop->write(
-				$id => "HTTP/1.1 200 OK\x0d\x0a"
+	Mojo::IOLoop->server(port => $port, sub {
+		my ($loop, $stream) = @_;
+		$stream->on(read => sub {
+			my ($stream, $chunk) = @_;
+			$stream->write(
+				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-				sub { shift->drop(shift) }
+				sub {shift->drop(shift) }
 			);
-		},
-	);
+		});
+	});
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");
@@ -55,17 +55,17 @@ EOF
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
-			$loop->write(
-				$id => "HTTP/1.1 200 OK\x0d\x0a"
+	Mojo::IOLoop->server(port => $port, sub {
+		my ($loop, $stream) = @_;
+		$stream->on(read => sub {
+			my ($stream, $chunk) = @_;
+			$stream->write(
+				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html2,
-				sub { shift->drop(shift) }
+				sub {shift->drop(shift) }
 			);
-		},
-	);
+		});
+	});
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");
@@ -73,17 +73,17 @@ EOF
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
-			$loop->write(
-				$id => "HTTP/1.1 200 OK\x0d\x0a"
+	Mojo::IOLoop->server(port => $port, sub {
+		my ($loop, $stream) = @_;
+		$stream->on(read => sub {
+			my ($stream, $chunk) = @_;
+			$stream->write(
+				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html; charset=cp932\x0d\x0a\x0d\x0a". $html,
-				sub { shift->drop(shift) }
+				sub {shift->drop(shift) }
 			);
-		},
-	);
+		});
+	});
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");
@@ -91,17 +91,17 @@ EOF
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
-			$loop->write(
-				$id => "HTTP/1.1 200 OK\x0d\x0a"
+	Mojo::IOLoop->server(port => $port, sub {
+		my ($loop, $stream) = @_;
+		$stream->on(read => sub {
+			my ($stream, $chunk) = @_;
+			$stream->write(
+				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html; charset=cp932; hoge\x0d\x0a\x0d\x0a". $html,
-				sub { shift->drop(shift) }
+				sub {shift->drop(shift) }
 			);
-		},
-	);
+		});
+	});
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");

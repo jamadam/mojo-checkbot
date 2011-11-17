@@ -247,8 +247,7 @@ our $VERSION = '0.29';
         my $code    = $res->code;
         my $base    = $tx->req->url;
         if (! $code) {
-            my ($message) = $tx->error;
-            die $message;
+            die $tx->error || 'Unknown error';
         }
         if (my $location = $tx->res->headers->header('location')) {
             append_queues($base, \@new_queues, [{

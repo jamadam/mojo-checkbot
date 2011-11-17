@@ -17,35 +17,35 @@ use Test::Mojo;
     
     {
         $port = Mojo::IOLoop->generate_port;
-        Mojo::IOLoop->listen(
-            port      => $port,
-            on_read => sub {
-                my ($loop, $id, $chunk) = @_;
+		Mojo::IOLoop->server(port => $port, sub {
+			my ($loop, $stream) = @_;
+			$stream->on(read => sub {
+				my ($stream, $chunk) = @_;
                 like $chunk, qr{Authorization: Basic YTpi}, 'right Authorization header';
-                $loop->write(
-                    $id => "HTTP/1.1 200 OK\x0d\x0a"
+				$stream->write(
+                    "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-                    sub {shift->drop(shift) }
-                );
-            },
-        );
+					sub {shift->drop(shift) }
+				);
+			});
+		});
         
         $ua->userinfo->{"http://localhost:$port"} = "a:b";
         $ua->get("http://localhost:$port/file1");
 
         $port2 = Mojo::IOLoop->generate_port;
-        Mojo::IOLoop->listen(
-            port      => $port2,
-            on_read => sub {
-                my ($loop, $id, $chunk) = @_;
+		Mojo::IOLoop->server(port => $port2, sub {
+			my ($loop, $stream) = @_;
+			$stream->on(read => sub {
+				my ($stream, $chunk) = @_;
                 unlike $chunk, qr{Authorization: Basic YTpi}, 'right Authorization header';
-                $loop->write(
-                    $id => "HTTP/1.1 200 OK\x0d\x0a"
+				$stream->write(
+                    "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-                    sub {shift->drop(shift) }
-                );
-            },
-        );
+					sub {shift->drop(shift) }
+				);
+			});
+		});
         $ua->get("http://localhost:$port2/file2");
         $ua->get("http://localhost:$port/file3");
     }

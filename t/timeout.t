@@ -16,18 +16,18 @@ use MojoCheckbot;
 	$ua->keep_alive_timeout(1);
 	my $port;
 	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
+	Mojo::IOLoop->server(port => $port, sub {
+		my ($loop, $stream) = @_;
+		$stream->on(read => sub {
+			my ($stream, $chunk) = @_;
 			sleep(2);
-			$loop->write(
-				$id => "HTTP/1.1 200 OK\x0d\x0a"
+			$stream->write(
+				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a",
-				sub { shift->drop(shift) }
+				sub {shift->drop(shift) }
 			);
-		},
-	);
+		});
+	});
 	
 	{
 		my ($res, $jobs) = eval {

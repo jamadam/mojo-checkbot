@@ -27,17 +27,17 @@ EOF
 	my $port;
 
 	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
-			$loop->write(
-				$id => "HTTP/1.1 404 OK\x0d\x0a"
+	Mojo::IOLoop->server(port => $port, sub {
+		my ($loop, $stream) = @_;
+		$stream->on(read => sub {
+			my ($stream, $chunk) = @_;
+			$stream->write(
+				"HTTP/1.1 404 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0aNot Found",
 				sub { shift->drop(shift) }
 			);
-		},
-	);
+		});
+	});
 	
 	{
 		my $res = MojoCheckbot::check($ua, {
@@ -47,17 +47,17 @@ EOF
 	}
 
 	$port = Mojo::IOLoop->generate_port;
-	Mojo::IOLoop->listen(
-		port      => $port,
-		on_read => sub {
-			my ($loop, $id, $chunk) = @_;
-			$loop->write(
-				$id => "HTTP/1.1 200 OK\x0d\x0a"
+	Mojo::IOLoop->server(port => $port, sub {
+		my ($loop, $stream) = @_;
+		$stream->on(read => sub {
+			my ($stream, $chunk) = @_;
+			$stream->write(
+				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
 				sub { shift->drop(shift) }
 			);
-		},
-	);
+		});
+	});
 	
 	{
 		my $res = MojoCheckbot::check($ua, {
@@ -136,17 +136,17 @@ EOF
 	
 	{
 		$port = Mojo::IOLoop->generate_port;
-		Mojo::IOLoop->listen(
-			port      => $port,
-			on_read => sub {
-				my ($loop, $id, $chunk) = @_;
-				$loop->write(
-					$id => "HTTP/1.1 200 OK\x0d\x0a"
+		Mojo::IOLoop->server(port => $port, sub {
+			my ($loop, $stream) = @_;
+			$stream->on(read => sub {
+				my ($stream, $chunk) = @_;
+				$stream->write(
+					"HTTP/1.1 200 OK\x0d\x0a"
 						. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
 					sub {shift->drop(shift) }
 				);
-			},
-		);
+			});
+		});
 		
 		my $res = MojoCheckbot::check($ua, {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
@@ -241,18 +241,18 @@ EOF
 	
 	{
 		$port = Mojo::IOLoop->generate_port;
-		Mojo::IOLoop->listen(
-			port      => $port,
-			on_read => sub {
-				my ($loop, $id, $chunk) = @_;
+		Mojo::IOLoop->server(port => $port, sub {
+			my ($loop, $stream) = @_;
+			$stream->on(read => sub {
+				my ($stream, $chunk) = @_;
 				like $chunk, qr{^GET /\?a=b&c=d}, 'right request';
-				$loop->write(
-					$id => "HTTP/1.1 200 OK\x0d\x0a"
+				$stream->write(
+					"HTTP/1.1 200 OK\x0d\x0a"
 						. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
 					sub { shift->drop(shift) }
 				);
-			},
-		);
+			});
+		});
 		
 		my $res = MojoCheckbot::check($ua, {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",

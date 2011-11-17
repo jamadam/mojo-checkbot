@@ -9,6 +9,6 @@ WriteMakefile(
   NAME         => 'MojoCheckbot',
   VERSION_FROM => 'lib/MojoCheckbot.pm',
   AUTHOR       => 'jamadam <sugama@jamadam.com>',
-  PREREQ_PM    => {'Mojolicious' => '2.25'},
+  PREREQ_PM    => {'Mojolicious' => '2.27'},
   test         => {TESTS => 't/*.t'}
 );

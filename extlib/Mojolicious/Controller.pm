@@ -131,7 +131,7 @@ sub flash {
   $session->{new_flash} = $flash;
 
   # DEPRECATED in Smiling Face With Sunglasses!
-  warn "Direct hash access to the flash is DEPRECATED!!!\n" and return $flash
+  warn "Direct hash access to the flash is DEPRECATED!\n" and return $flash
     unless @_;
 
   # Set
@@ -309,15 +309,6 @@ sub render_exception {
   return if $self->_render_fallbacks($options, 'exception', $inline);
   $options->{format} = 'html';
   $self->_render_fallbacks($options, 'exception', $inline);
-}
-
-# DEPRECATED in Smiling Face With Sunglasses!
-sub render_inner {
-  warn <<EOF;
-Mojolicious::Controller->render_inner is DEPRECATED in favor of
-Mojolicious::Controller->render_content!
-EOF
-  shift->render_content(@_);
 }
 
 # "If you hate intolerance and being punched in the face by me,
@@ -742,8 +733,8 @@ Data storage persistent only for the next request, stored in the session.
 
   my $cb = $c->on(finish => sub {...});
 
-Register event with C<tx>, which is usually a L<Mojo::Transaction::HTTP> or
-L<Mojo::Transaction::WebSocket> object.
+Subscribe to events of C<tx>, which is usually a L<Mojo::Transaction::HTTP>
+or L<Mojo::Transaction::WebSocket> object.
 
   # Emitted when the transaction has been finished
   $c->on(finish => sub {
@@ -1051,7 +1042,7 @@ For Comet (C<long polling>) you might also want to increase the connection
 timeout, which usually defaults to C<15> seconds.
 
   # Increase timeout for current connection to 300 seconds
-  Mojo::IOLoop->connection_timeout($c->tx->connection => 300);
+  Mojo::IOLoop->timeout($c->tx->connection => 300);
 
 =head2 C<write_chunk>
 
