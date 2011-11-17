@@ -150,6 +150,7 @@ our $VERSION = '0.29';
                     push(@$queues, @{$res->{queue}});
                     if ($res->{code} == 401) {
                         %$queue = (%$queue, %{$res->{dialog}->[0]});
+                        push(@$dialog, $queue);
                     } else {
                         push(@$dialog, @{$res->{dialog}});
                     }
