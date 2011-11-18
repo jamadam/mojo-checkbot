@@ -38,6 +38,7 @@ These options are available:
     --evacuate <seconds>    [EXPERIMENTAL]Set interval for temporary file output.
     --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
     --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
+    --html-validate         Enable HTML validation. This requires XML::LibXML installed.
     
     Report server options
     

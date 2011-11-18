@@ -39,6 +39,7 @@ hoge usage: $0 daemon [OPTIONS]
   --evacuate <seconds>    [EXPERIMENTAL]レポートをテンポラリーファイルに出力する間隔を指定します。
   --noevacuate            [EXPERIMENTAL]resume用のファイル出力を無効化します。
   --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
+  --html-validate         HTMLの構文エラーを検出します。XML::LibXMLが必要です。
   
   レポートサーバーオプション
   
@@ -82,6 +83,7 @@ These options are available:
   --evacuate <seconds>    [EXPERIMENTAL]Set interval for temporary file output.
   --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
   --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
+  --html-validate         Enable HTML validation. This requires XML::LibXML installed.
   
   Report server options
   
