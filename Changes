@@ -1,6 +1,6 @@
 Revision history for mojo-checkbot
 
-0.29 2011/11/16
+0.29 2011/11/18
   - Mojolicious v2.27 bundled
   - Improved notifier that 401 auth also appears.
 
