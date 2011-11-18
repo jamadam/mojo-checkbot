@@ -179,7 +179,7 @@ our $VERSION = '0.30';
                     }
                     $queue->{$QUEUE_KEY_RES} = $res->{code};
                     if ($res->{html_error}) {
-                        $queue->{$QUEUE_KEY_HTML_ERROR} = $res->{html_error};
+                        $queue->{$QUEUE_KEY_HTML_ERROR} = html_escape($res->{html_error});
                     }
                 }
                 push(@$result, $queue);
