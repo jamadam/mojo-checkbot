@@ -51,7 +51,7 @@ EOF
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");
-		is(MojoCheckbot::guess_encoding($tx->res), undef);
+		is MojoCheckbot::guess_encoding($tx->res), undef, 'right encoding';
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
@@ -69,7 +69,7 @@ EOF
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");
-		is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
+		is MojoCheckbot::guess_encoding($tx->res), 'cp932', 'right encoding';
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
@@ -87,7 +87,7 @@ EOF
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");
-		is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
+		is MojoCheckbot::guess_encoding($tx->res), 'cp932', 'right encoding';
 	}
 	
 	$port = Mojo::IOLoop->generate_port;
@@ -105,7 +105,7 @@ EOF
 	
 	{
 		my $tx = $ua->get("http://localhost:$port/");
-		is(MojoCheckbot::guess_encoding($tx->res), 'cp932');
+		is MojoCheckbot::guess_encoding($tx->res), 'cp932', 'right encoding';
 	}
 
 1;

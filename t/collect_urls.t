@@ -34,16 +34,16 @@ EOF
 
 	my $dom = Mojo::DOM->new($html);
 	my @array = MojoCheckbot::collect_urls($dom);
-	is_deeply(shift @array, {2 => 'css1.css', 1 => '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
-	is_deeply(shift @array, {2 => 'css2.css', 1 => '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'});
-	is_deeply(shift @array, {2 => 'js1.js', 1 => '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
-	is_deeply(shift @array, {2 => 'js2.js', 1 => '&lt;script src=&quot;js2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'});
-	is_deeply(shift @array, {2 => 'index1.html', 1 => 'A'});
-	is_deeply(shift @array, {2 => 'index2.html', 1 => 'B'});
-	is_deeply(shift @array, {2 => 'mailto:a@example.com', 1 => 'C'});
-	is_deeply(shift @array, {2 => 'tel:0000', 1 => 'D'});
-	is_deeply(shift @array, {2 => 'index3.html', 1 => 'E'});
-	is(shift @array, undef);
+	is_deeply shift @array, {2 => 'css1.css', 1 => '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'}, 'right url';
+	is_deeply shift @array, {2 => 'css2.css', 1 => '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'}, 'right url';
+	is_deeply shift @array, {2 => 'js1.js', 1 => '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'}, 'right url';
+	is_deeply shift @array, {2 => 'js2.js', 1 => '&lt;script src=&quot;js2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'}, 'right url';
+	is_deeply shift @array, {2 => 'index1.html', 1 => 'A'}, 'right url';
+	is_deeply shift @array, {2 => 'index2.html', 1 => 'B'}, 'right url';
+	is_deeply shift @array, {2 => 'mailto:a@example.com', 1 => 'C'}, 'right url';
+	is_deeply shift @array, {2 => 'tel:0000', 1 => 'D'}, 'right url';
+	is_deeply shift @array, {2 => 'index3.html', 1 => 'E'}, 'right url';
+	is shift @array, undef, 'no more urls';
 
     {
         my $css = <<EOF;
@@ -58,9 +58,9 @@ div {
 }
 EOF
         my @array = MojoCheckbot::collect_urls_from_css($css);
-        is_deeply shift @array, {1 => '', 2 => '/image/a.png'};
-        is_deeply shift @array, {1 => '', 2 => '/image/b.png'};
-        is_deeply shift @array, {1 => '', 2 => '/image/c.png'};
+        is_deeply shift @array, {1 => '', 2 => '/image/a.png'}, 'right url';
+        is_deeply shift @array, {1 => '', 2 => '/image/b.png'}, 'right url';
+        is_deeply shift @array, {1 => '', 2 => '/image/c.png'}, 'right url';
     }
     
 1;

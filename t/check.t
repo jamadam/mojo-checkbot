@@ -43,7 +43,7 @@ EOF
 		my $res = MojoCheckbot::check($ua, {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
 		});
-		is $res->{code}, 404;
+		is $res->{code}, 404, 'right status code';
 	}
 
 	$port = Mojo::IOLoop->generate_port;
@@ -63,7 +63,7 @@ EOF
 		my $res = MojoCheckbot::check($ua, {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
 		});
-		is $res->{code}, 200;
+		is $res->{code}, 200, 'right status code';
 	}
 
 	$html = <<EOF;

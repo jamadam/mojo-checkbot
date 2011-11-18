@@ -35,7 +35,7 @@ use MojoCheckbot;
 				$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
 			});
 		};
-		like($@, qr{^Premature connection close});
+		like $@, qr{^Premature connection close}, 'right error';
 	}
 
 1;
