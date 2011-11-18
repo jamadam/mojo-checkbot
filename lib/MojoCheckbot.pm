@@ -45,7 +45,7 @@ our $VERSION = '0.30';
         $QUEUE_KEY_PARAM,
         $QUEUE_KEY_PARENT,
         $QUEUE_KEY_DEPTH,
-        $QUEUE_HTML_VALID,
+        $QUEUE_KEY_HTML_ERROR,
     );
     
     my %options = (
