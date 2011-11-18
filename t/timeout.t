@@ -30,7 +30,7 @@ use MojoCheckbot;
 	});
 	
 	{
-		my ($res, $jobs) = eval {
+		my $res = eval {
 			MojoCheckbot::check($ua, {
 				$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
 			});
