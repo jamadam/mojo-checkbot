@@ -21,10 +21,13 @@
 			<form action="#dummy" id="form1">
 				<div id="summary">
 					<p id="fixed">
-						<span class="label">Fixed</span>: <span class="data">0</span>
+						<span class="label">Resutlts</span>: <span class="data">0</span>
+					</p>
+					<p id="queues">
+						<span class="label">Queues</span>: <span class="data">0</span>
 					</p>
 					<p id="reported">
-						<span class="label">Reported</span>: <span class="data">0</span>
+						<span class="label">Resutlts(reported)</span>: <span class="data">0</span>
 					</p>
 				</div>
 			</form>
