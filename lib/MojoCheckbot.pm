@@ -166,7 +166,7 @@ our $VERSION = '0.30';
                     for (@{$res->{queue}}, @{$res->{dialog}}) {
                         $_->{$QUEUE_KEY_REFERER} = $referer;
                         $_->{$QUEUE_KEY_PARENT} = scalar @$result;
-                        $_->{$QUEUE_KEY_DEPTH} = $queue->{$QUEUE_KEY_DEPTH} + 1;
+                        $_->{$QUEUE_KEY_DEPTH} = ($queue->{$QUEUE_KEY_DEPTH} || 0) + 1;
                     }
                     push(@$queues, @{$res->{queue}});
                     if ($res->{code} == 401) {
@@ -285,7 +285,8 @@ our $VERSION = '0.30';
         }
         if ($code == 200 &&
             (! $options{'match-for-crawl'} || $url =~ /$options{'match-for-crawl'}/) &&
-            (! $options{'depth'} || $queue->{$QUEUE_KEY_DEPTH} < $options{'depth'})) {
+            (! $options{'depth'} ||
+             ($queue->{$QUEUE_KEY_DEPTH} || 0) < $options{'depth'})) {
             my $type = $res->headers->content_type;
             if ($type && $type =~ qr{text/(html|xml)}) {
                 my $encode = guess_encoding($res) || 'utf-8';
