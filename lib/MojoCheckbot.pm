@@ -31,6 +31,7 @@ our $VERSION = '0.30';
     our $QUEUE_KEY_PARAM         = 9;
     our $QUEUE_KEY_PARENT        = 10;
     our $QUEUE_KEY_DEPTH         = 11;
+    our $QUEUE_KEY_HTML_ERROR    = 12;
     
     my @QUEUE_KEYS = (
         $QUEUE_KEY_CONTEXT,
@@ -44,6 +45,7 @@ our $VERSION = '0.30';
         $QUEUE_KEY_PARAM,
         $QUEUE_KEY_PARENT,
         $QUEUE_KEY_DEPTH,
+        $QUEUE_HTML_VALID,
     );
     
     my %options = (
@@ -99,6 +101,7 @@ our $VERSION = '0.30';
             'noevacuate',
             'evacuate=i',
             'depth=i',
+            'html-validate',
         );
         
         my $queues = [];
@@ -158,6 +161,9 @@ our $VERSION = '0.30';
                         push(@$dialog, @{$res->{dialog}});
                     }
                     $queue->{$QUEUE_KEY_RES} = $res->{code};
+                    if ($res->{html_error}) {
+                        $queue->{$QUEUE_KEY_HTML_ERROR} = $res->{html_error};
+                    }
                 }
                 push(@$result, $queue);
             }
@@ -235,6 +241,7 @@ our $VERSION = '0.30';
         my $param = $queue->{$QUEUE_KEY_PARAM};
         my @new_queues;
         my @dialogs;
+        my $html_error;
         my $auth;
         my $tx;
         if ($method && $method =~ /post/i) {
@@ -275,6 +282,10 @@ our $VERSION = '0.30';
                 my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
                 append_queues($base, \@new_queues, \@q);
                 append_queues($base, \@dialogs, \@dialog);
+                
+                if ($options{'html-validate'}) {
+                    $html_error = validate_html($body);
+                }
             } elsif ($type && $type =~ qr{text/(text|css)}) {
                 my $base    = $tx->req->url;
                 my $encode  = guess_encoding_css($res) || 'utf-8';
@@ -292,6 +303,7 @@ our $VERSION = '0.30';
             });
         }
         return {
+            html_error => $html_error,
             code    => $code,
             queue   => \@new_queues,
             dialog  => \@dialogs,
@@ -454,6 +466,22 @@ our $VERSION = '0.30';
             shift @{$new->path->parts};
         }
         return $new;
+    }
+    
+    eval {
+        require 'XML/LibXML.pm';
+    };
+    
+    my $xml_parser = XML::LibXML->new();
+    my $catalog = join '/', File::Spec->splitdir(dirname(__FILE__)), "MojoCheckbot/catalog/catalog.xml";
+    $xml_parser->load_catalog($catalog);
+    
+    sub validate_html {
+        my $html = shift;
+        eval {
+            $xml_parser->parse_string($html);
+        };
+        return $@ || 'VALID';
     }
 
 1;

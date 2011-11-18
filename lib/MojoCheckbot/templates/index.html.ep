@@ -182,6 +182,14 @@
 					<textarea rows="1" cols="10"></textarea>
 				</td>
 			</tr>
+			<tr>
+				<th>
+					HTML Parse Error
+				</th>
+				<td class="htmlError">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
 		</table>
 		
 		<div id="loadingContainer">
