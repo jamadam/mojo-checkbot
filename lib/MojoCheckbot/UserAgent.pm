@@ -1,6 +1,5 @@
 package MojoCheckbot::UserAgent;
 use Mojo::Base 'Mojo::UserAgent';
-use Time::HiRes qw{sleep time};
 
     has userinfo        => sub {{}};
     
@@ -12,10 +11,11 @@ use Time::HiRes qw{sleep time};
             if ($url->port) {
                $scheme_n_host .= ':'. $url->port;
             }
-            if (my $userinfo = $url->userinfo) {
+            my $userinfo;
+            if ($userinfo = $url->userinfo) {
                 $self->userinfo->{$scheme_n_host} = "$userinfo";
-            } elsif ($self->userinfo->{$scheme_n_host}) {
-                $url->userinfo($self->userinfo->{$scheme_n_host});
+            } elsif ($userinfo = $self->userinfo->{$scheme_n_host}) {
+                $url->userinfo($userinfo);
             }
         }
         return $self->SUPER::start($tx, $cb);
