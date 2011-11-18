@@ -17,6 +17,7 @@ use utf8;
 use MojoCheckbot::FileCache;
 use MojoCheckbot::IOLoop;
 use MojoCheckbot::UserAgent;
+use Clone::PP qw(clone);
 our $VERSION = '0.29';
     
     our $QUEUE_KEY_CONTEXT       = 1;
@@ -150,7 +151,9 @@ our $VERSION = '0.29';
                     push(@$queues, @{$res->{queue}});
                     if ($res->{code} == 401) {
                         %$queue = (%$queue, %{$res->{dialog}->[0]});
-                        push(@$dialog, $queue);
+                        my $copy = clone($queue);
+                        $copy->{$QUEUE_KEY_CONTEXT} = '*Authentication Required*';
+                        push(@$dialog, $copy);
                     } else {
                         push(@$dialog, @{$res->{dialog}});
                     }
