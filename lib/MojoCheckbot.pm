@@ -57,7 +57,8 @@ our $VERSION = '0.30';
     );
     
     my $fix;
-    
+    my $xml_parser;
+
     sub cache_id {
         my @keys = qw{start match ua cookie timeout};
         my $seed = join("\t", map {$options{$_} || ''} @keys);
@@ -103,6 +104,21 @@ our $VERSION = '0.30';
             'depth=i',
             'html-validate',
         );
+        
+        if ($options{'html-validate'}) {
+            eval {
+                require 'XML/LibXML.pm';
+            };
+            if (! $@) {
+                $xml_parser = XML::LibXML->new();
+                my $catalog = join '/',
+                                        File::Spec->splitdir(dirname(__FILE__)),
+                                        "MojoCheckbot/catalog/catalog.xml";
+                $xml_parser->load_catalog($catalog);
+            } else {
+                $options{'html-validate'} = undef;
+            }
+        }
         
         my $queues = [];
         my $dialog = [];
@@ -467,14 +483,6 @@ our $VERSION = '0.30';
         }
         return $new;
     }
-    
-    eval {
-        require 'XML/LibXML.pm';
-    };
-    
-    my $xml_parser = XML::LibXML->new();
-    my $catalog = join '/', File::Spec->splitdir(dirname(__FILE__)), "MojoCheckbot/catalog/catalog.xml";
-    $xml_parser->load_catalog($catalog);
     
     sub validate_html {
         my $html = shift;
