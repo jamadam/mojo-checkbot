@@ -92,6 +92,10 @@ body {
                 text-overflow:ellipsis;
                 max-width:200px;
             }
+                #container td:nth-child(4),
+                #container td:nth-child(6) {
+                    text-align:center;
+                }
             #container tr.r4 {
                 color:#f00;
             }
