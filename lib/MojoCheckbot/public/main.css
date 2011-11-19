@@ -232,6 +232,7 @@ body {
     height:16px;
     background-image:url(./ok.png);
     text-indent:-9999px;
+    cursor:pointer;
 }
 .html_ng {
     display:block;
@@ -239,4 +240,5 @@ body {
     height:16px;
     background-image:url(./ng.png);
     text-indent:-9999px;
+    cursor:pointer;
 }
