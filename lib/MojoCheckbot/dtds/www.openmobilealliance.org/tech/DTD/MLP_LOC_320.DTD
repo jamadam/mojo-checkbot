@@ -1,0 +1,54 @@
+<!-- MLP_LOC -->
+<!--
+MLP V3.2 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2004
+          All rights reserved
+
+MLP is an XML language. Typical usage:
+   <?xml version="1.0"?>
+   <!DOCTYPE svc_xxx PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+             "http://www.openmobilealliance.org/DTD/{filename}"
+             [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+   <svc_xxx>
+      ... 
+  </svc_xxx>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/
+-->
+<!ELEMENT pos (msid, (pd | poserr), gsm_net_param?, trans_id?)>
+<!ATTLIST pos
+	pos_method (CELL | OTDOA | GPS | A-GPS | E-OTD | U-TDOA | AFLT | EFLT | UNKNOWN | OTHER) #IMPLIED
+>
+<!ELEMENT eme_pos (msid, (pd | poserr), esrd?, esrk?, trans_id?)>
+<!ATTLIST eme_pos
+	pos_method (CELL | OTDOA | GPS | A-GPS | E-OTD | U-TDOA | AFLT | EFLT | UNKNOWN | OTHER) #IMPLIED
+>
+<!ELEMENT trl_pos (msid, (pd | poserr | time))>
+<!ATTLIST trl_pos
+	trl_trigger (PERIODIC | MS_AVAIL | CHANGE_AREA) #REQUIRED
+	pos_method (CELL | OTDOA | GPS | A-GPS | E-OTD | U-TDOA | AFLT | EFLT | UNKNOWN | OTHER) #IMPLIED
+>
+<!ELEMENT pd (time, shape, (alt, alt_unc?)?, speed?, direction?, lev_conf?, qos_not_met?)>
+<!ELEMENT poserr (result, add_info?, time)>
+<!ELEMENT time (#PCDATA)>
+<!ATTLIST time
+	utc_off CDATA "0000"
+>
+<!ELEMENT alt (#PCDATA)>
+<!ELEMENT alt_unc (#PCDATA)>
+<!ELEMENT qos_not_met EMPTY>
+<!ELEMENT direction (#PCDATA)>
+<!ELEMENT speed (#PCDATA)>
+<!ELEMENT lev_conf (#PCDATA)>
+<!ELEMENT geo_info (CoordinateReferenceSystem)>
+<!ELEMENT CoordinateReferenceSystem (Identifier)>
+<!ELEMENT Identifier (code, codeSpace, edition)>
+<!ELEMENT code (#PCDATA)>
+<!ELEMENT codeSpace (#PCDATA)>
+<!ELEMENT edition (#PCDATA)>
+<!ELEMENT service_coverage ((cc, ndc*)+)>
+<!ENTITY % mlp_res.dtd SYSTEM "MLP_RES_300.DTD">
+%mlp_res.dtd;

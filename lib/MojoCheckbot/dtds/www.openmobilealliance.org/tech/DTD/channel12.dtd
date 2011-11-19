@@ -1,0 +1,39 @@
+<!--
+      This DTD is identified by the PUBLIC identifier:
+     	"-//WAPFORUM//DTD CHANNEL 1.2//EN"
+-->
+
+<!ENTITY % Boolean "( true | false )">
+
+<!-- a Uniform Resource Identifier -->
+<!ENTITY % URI "CDATA" >
+
+<!-- one or more digits (NUMBER) -->
+<!ENTITY % Number "CDATA" >  
+
+<!-- Channel Events -->
+<!ENTITY % ChannelEvent.attribs
+	"success		%URI;		#IMPLIED
+	 failure		%URI;		#IMPLIED"
+>
+
+<!ELEMENT channel (title , abstract? , resource* ) >
+<!ATTLIST channel
+	maxspace		%Number;	#REQUIRED 
+	base			%URI;		#IMPLIED
+	eventid			CDATA		#IMPLIED
+	channelid		CDATA		#REQUIRED 
+	useraccessible 		%Boolean;	"false"
+	%ChannelEvent.attribs;
+>
+
+<!ELEMENT title (#PCDATA)>
+<!ELEMENT abstract (#PCDATA)>
+
+<!ELEMENT resource EMPTY>
+<!ATTLIST resource
+	href      	%URI;	   	#REQUIRED
+	lastmod		%Number;	#IMPLIED
+	etag		NMTOKEN		#IMPLIED
+	md5		NMTOKEN		#IMPLIED
+>

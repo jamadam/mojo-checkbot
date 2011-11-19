@@ -1,0 +1,25 @@
+<!-- MLP_EME_LIREP -->
+<!--
+MLP V3.2 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2004
+          All rights reserved
+
+MLP is an XML language. Typical usage:
+   <?xml version="1.0"?>
+   <!DOCTYPE svc_result PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+             "http://www.openmobilealliance.org/DTD/{filename}"
+             [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+   <svc_result>
+      ... 
+  </svc_result>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/
+-->
+<!ENTITY % extension.param "">
+<!ELEMENT eme_lirep (req_id, (eme_pos+ | (result, add_info?)) %extension.param;)>
+<!ATTLIST eme_lirep
+	ver CDATA #FIXED "3.2.0"
+>

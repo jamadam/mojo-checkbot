@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE catalog PUBLIC "-//OASIS//DTD Entity Resolution XML Catalog V1.0//EN"
+  "http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd">
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog" prefer="public">
+
+<!-- Entity Resolution XML Catalog V1.0 -->
+<public publicId="-//OASIS//DTD Entity Resolution XML Catalog V1.0//EN" uri="www.oasis-open.org/committees/entity/release/1.0/catalog.dtd"/>
+
+<!-- Entity Resolution XML Catalog V1.1 -->
+<public publicId="-//OASIS//DTD XML Catalogs V1.1//EN" uri="www.oasis-open.org/committees/entity/release/1.1/catalog.dtd"/>
+
+<!-- XHTML 1.0 -->
+<public publicId="-//W3C//DTD XHTML 1.0 Frameset//EN" uri="www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd"/>
+<public publicId="-//W3C//DTD XHTML 1.0 Strict//EN" uri="www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"/>
+<public publicId="-//W3C//DTD XHTML 1.0 Transitional//EN" uri="www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
+<public publicId="-//W3C//ENTITIES Latin 1 for XHTML//EN" uri="www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent"/>
+<public publicId="-//W3C//ENTITIES Special for XHTML//EN" uri="www.w3.org/TR/xhtml1/DTD/xhtml-special.ent"/>
+<public publicId="-//W3C//ENTITIES Symbols for XHTML//EN" uri="www.w3.org/TR/xhtml1/DTD/xhtml-symbol.ent"/>
+    
+<!-- XHTML Basic -->
+<public publicId="-//W3C//DTD XHTML Basic 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-basic10.dtd"/>
+<public publicId="-//W3C//ELEMENTS XHTML Base Element 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-base-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Basic Forms 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-basic-form-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Basic Tables 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-basic-table-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Document Structure 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-struct-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Embedded Object 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-object-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Hypertext 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-hypertext-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Images 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-image-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Link Element 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-link-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Lists 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-list-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Metainformation 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-meta-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Param Element 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-param-1.mod"/>
+<public publicId="-//W3C//ELEMENTS XHTML Text 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-text-1.mod"/>
+<public publicId="-//W3C//ENTITIES XHTML Basic 1.0 Document Model 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-basic10-model-1.mod"/>
+<public publicId="-//W3C//ENTITIES XHTML Modular Framework 1.0//EN" uri="www.w3.org/TR/xhtml-basic/xhtml-framework-1.mod"/>
+
+<!-- XHTML 1.1 -->
+<public publicId="-//W3C//DTD XHTML 1.1//EN" uri="www.w3.org/TR/xhtml11/DTD/xhtml11-flat.dtd"/>
+<public publicId="-//W3C//ENTITIES XHTML 1.1 Document Model 1.0//EN" uri="www.w3.org/TR/xhtml11/DTD/xhtml11-model-1.mod"/>
+
+<!-- XHTML Events -->
+<public publicId="-//W3C//ENTITIES XML Events 1.0//EN" uri="www.w3.org/MarkUp/DTD/xml-events-1.mod"/>
+<public publicId="-//W3C//ENTITIES XML Events Qnames 1.0//EN" uri="www.w3.org/MarkUp/DTD/xml-events-qname-1.mod"/>
+
+<!-- XHTML-Print 1.0 -->
+<public publicId="-//W3C//DTD XHTML-Print 1.0//EN" uri="www.w3c.org/MarkUp/DTD/xhtml-print10.dtd"/>
+<public publicId="-//W3C//ENTITIES XHTML-Print 1.0 Document Model 1.0//EN" uri="www.w3c.org/MarkUp/DTD/xhtml-print10-model-1.mod"/>
+
+<!-- See bottom of http://www.w3.org/TR/REC-xml/ -->
+<public publicId="-//W3C//DTD Specification V2.10//EN" uri="www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd"/>
+
+<public publicId="-//OMA//DTD DRMREL 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/drmrel10.dtd"/>
+<public publicId="-//OMA//DTD SYNCML-METINF 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-TS-SyncML_MetaInfo_DTD-V1_2-20050303-D.dtd"/>
+<public publicId="-//PHONE.COM//DTD WML 1.1//EN" uri="www.openmobilealliance.org/tech/DTD/wml_1_1.dtd"/>
+<public publicId="-//PHONE.COM//DTD WML 1.3//EN" uri="www.openmobilealliance.org/tech/DTD/wml13.dtd"/>
+<public publicId="-//SYNCML//DTD MetaInf 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-TS-SyncML_MetaInfo_DTD-V1_2-20050303-D.dtd"/>
+<public publicId="-//SYNCML//DTD SyncML 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-TS-SyncML_RepPro_DTD-V1_2-20050303-D.dtd"/>
+
+<public publicId="-//OMA//DTD SYNCML 1.1//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-SyncML-RepPro-DTD-V1_1_2-20030505-D.dtd"/>
+<public publicId="-//OMA//DTD SYNCML-DEVINF 1.1//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-SyncML-DevInfo-DTD-V1_1_2-20030505-D.dtd"/>
+<public publicId="-//OMA//DTD SYNCML-DMDDF 1.1.2//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-SyncML-DMDDFDTD-V1_1_2-20030508-D.dtd"/>
+<public publicId="-//OMA//DTD SYNCML-METINF 1.1//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-SyncML-MetaInfo-DTD-V1_1_2-20030505-D.dtd"/>
+<public publicId="-//OMA//DTD SYNCML-METINF 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-TS-SyncML_MetaInfo_DTD-V1_2-20050303-D.dtd"/>
+<public publicId="-//OMA//DTD-DM-DDF 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-TS-DM-DDF-V1_2-20050607-C.dtd"/>
+<public publicId="-//SYNCML//DTD SYNCML 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/OMA-TS-SyncML_RepPro_DTD-V1_2-20050303-D.dtd"/>
+<public publicId="-//WAPFORUM//DTD CHANNEL 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/channel12.dtd"/>
+<public publicId="-//WAPFORUM//DTD PAP 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/pap_1.0.dtd"/>
+<public publicId="-//WAPFORUM//DTD PAP 2.0//EN" uri="www.openmobilealliance.org/tech/DTD/pap_2.0.dtd"/>
+<public publicId="-//WAPFORUM//DTD PROV 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/prov.dtd"/>
+<public publicId="-//WAPFORUM//DTD SI 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/si.dtd"/>
+<public publicId="-//WAPFORUM//DTD SL 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/sl.dtd"/>
+<public publicId="-//WAPFORUM//DTD WML 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/wml-dtd9802.dtd"/>
+<public publicId="-//WAPFORUM//DTD WML 1.1//EN" uri="www.openmobilealliance.org/tech/DTD/wml_1_1.dtd"/>
+<public publicId="-//WAPFORUM//DTD WML 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/wml12.dtd"/>
+<public publicId="-//WAPFORUM//DTD WML 1.3//EN" uri="www.openmobilealliance.org/tech/DTD/wml13.dtd"/>
+<public publicId="-//WAPFORUM//DTD WML 2.0//EN" uri="www.openmobilealliance.org/tech/DTD/wml20-flat.dtd"/>
+<public publicId="-//WAPFORUM//DTD WTA-WML 1.2//EN" uri="www.openmobilealliance.org/tech/DTD/wta-wml12.dtd"/>
+<public publicId="-//WAPFORUM//DTD XHTML Mobile 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/xhtml-mobile10-flat.dtd"/>
+<public publicId="-//WAPFORUM//DTD XHTML Mobile 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/xhtml-mobile10.dtd"/>
+<public publicId="-//WAPFORUM//ELEMENTS WML Deprecated 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/wml-deprecated-1.mod"/>
+<public publicId="-//WAPFORUM//ELEMENTS WML Special 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/wml-special-1.mod"/>
+<public publicId="-//WAPFORUM//ENTITIES WML Modular Framework 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/wml-framework-1.mod"/>
+<public publicId="-//WAPFORUM//ENTITIES WML Qualified Names 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/wml-qname-1.mod"/>
+<public publicId="-//WAPFORUM//ENTITIES XHTML Mobile 1.0 Document Model 1.0//EN" uri="www.openmobilealliance.org/tech/DTD/xhtml-mobile10-model-1.mod"/>
+
+<public publicId="-//W3C//DTD XMLSCHEMA 200102//EN" uri="www.w3.org/2001/XMLSchema.dtd"/>
+<public publicId="-//W3C//DTD XMLSchema 200102//EN" uri="www.w3.org/2001/XMLSchema.dtd"/>
+<public publicId="structures" uri="www.w3.org/2001/XMLSchema.dtd"/>
+<public publicId="datatypes" uri="www.w3.org/2001/datatypes.dtd"/>
+
+<public publicId="-//W3C//DTD VOICEXML 2.0//EN" uri="www.w3.org/TR/voicexml20/vxml.dtd"/>
+<public publicId="-//W3C//DTD GRAMMAR 1.0//EN" uri="www.w3.org/TR/speech-grammar/grammar.dtd"/>
+<public publicId="-//W3C//DTD SYNTHESIS 1.0//EN" uri="www.w3.org/TR/speech-synthesis/synthesis.dtd"/>
+<public publicId="-//W3C//DTD CCXML 1.0//EN" uri="www.w3.org/TR/ccxml/ccxml.dtd"/>
+
+</catalog>

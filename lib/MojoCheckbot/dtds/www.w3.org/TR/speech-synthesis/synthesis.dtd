@@ -1,0 +1,116 @@
+<!-- 
+
+SSML DTD (20031204)
+
+Copyright 1998-2003 W3C (MIT, ERCIM, Keio), All Rights Reserved. 
+
+Permission to use, copy, modify and distribute the SSML DTD and 
+its accompanying documentation for any purpose and without fee is 
+hereby granted in perpetuity, provided that the above copyright 
+notice and this paragraph appear in all copies.  
+
+The copyright holders make no representation about the suitability 
+of the DTD for any purpose. It is provided "as is" without expressed 
+or implied warranty.
+
+-->
+
+<!ENTITY % duration "CDATA">
+<!ENTITY % integer "CDATA">
+<!ENTITY % uri "CDATA">
+<!ENTITY % audio "#PCDATA | audio ">
+<!ENTITY % structure " p | s">
+<!ENTITY % sentence-elements " break | emphasis | mark | phoneme | prosody | say-as | voice | sub ">
+<!ENTITY % allowed-within-sentence " %audio; | %sentence-elements; ">
+
+<!ELEMENT speak (%allowed-within-sentence; | %structure; | lexicon | metadata | meta)*>
+<!ATTLIST speak
+	version NMTOKEN #REQUIRED
+	xml:lang NMTOKEN #REQUIRED
+	xmlns CDATA #FIXED 'http://www.w3.org/2001/10/synthesis' 
+	xmlns:xsi CDATA #IMPLIED
+	xsi:schemaLocation CDATA #IMPLIED
+        xml:base %uri; #IMPLIED
+>
+
+<!ELEMENT p (%allowed-within-sentence; | s)*>
+<!ATTLIST p
+	xml:lang NMTOKEN #IMPLIED
+>
+
+<!ELEMENT s (%allowed-within-sentence;)*>
+<!ATTLIST s
+	xml:lang NMTOKEN #IMPLIED
+>
+
+<!ELEMENT voice (%allowed-within-sentence; | %structure;)*>
+<!ATTLIST voice
+	xml:lang NMTOKEN #IMPLIED
+	gender (male | female | neutral) #IMPLIED
+	age %integer; #IMPLIED
+	variant %integer; #IMPLIED
+	name CDATA #IMPLIED
+>
+<!ELEMENT prosody (%allowed-within-sentence; | %structure;)*>
+<!ATTLIST prosody
+	pitch CDATA #IMPLIED
+	contour CDATA #IMPLIED
+	range CDATA #IMPLIED
+	rate CDATA #IMPLIED
+	duration %duration; #IMPLIED
+	volume CDATA #IMPLIED
+>
+<!ELEMENT audio (%allowed-within-sentence; | %structure; | desc)*>
+<!ATTLIST audio
+	src %uri; #REQUIRED
+>
+
+<!ELEMENT desc (#PCDATA)>
+<!ATTLIST desc
+	xml:lang NMTOKEN #IMPLIED
+>
+
+<!ELEMENT emphasis (%allowed-within-sentence;)*>
+<!ATTLIST emphasis
+	level (strong | moderate | none | reduced) "moderate"
+>
+
+<!ELEMENT say-as (#PCDATA)>
+<!ATTLIST say-as
+	interpret-as NMTOKEN #REQUIRED
+	format NMTOKEN #IMPLIED
+	detail NMTOKEN #IMPLIED
+>
+<!ELEMENT sub (#PCDATA)>
+<!ATTLIST sub
+	alias CDATA #REQUIRED
+>
+<!ELEMENT phoneme (#PCDATA)>
+<!ATTLIST phoneme
+	ph CDATA #REQUIRED
+	alphabet CDATA #IMPLIED
+>
+<!ELEMENT break EMPTY>
+<!ATTLIST break
+	time CDATA #IMPLIED
+	strength  (none | x-weak | weak  | medium | strong | x-strong) "medium"
+>
+<!ELEMENT mark EMPTY>
+<!ATTLIST mark
+	name CDATA #REQUIRED
+>
+
+<!ELEMENT lexicon EMPTY>
+<!ATTLIST lexicon
+    uri %uri; #REQUIRED
+    type CDATA #IMPLIED
+>
+
+<!ELEMENT metadata ANY>
+
+<!ELEMENT meta EMPTY>
+<!ATTLIST meta
+	name NMTOKEN #IMPLIED
+	content CDATA #REQUIRED
+	http-equiv NMTOKEN #IMPLIED
+>

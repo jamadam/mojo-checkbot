@@ -1,0 +1,229 @@
+<!--
+Wireless Markup Language (WML) Document Type Definition
+From:  http://www.wapforum.org/docs/WML-3-Feb-98.pdf, 980224
+Section 13.2 Document Type Definition (DTD)
+-->
+<!--
+Wireless Markup Language (WML) Document Type Definition.
+WML is an XML language. Typical usage:
+<?xml version="1.0"?>
+<!DOCTYPE WML PUBLIC "-//WAPFORUM//DTD WML 1.0//EN">
+<WML>
+...
+</WML>
+-->
+<!ENTITY % length "CDATA"> <!-- nn for pixels or nn% for percentage
+length -->
+<!ENTITY % vdata "CDATA"> <!-- attribute value possibly containing
+variable references -->
+<!ENTITY % URL "%vdata;"> <!-- URL or URN designating a hypertext
+node. May contain variable references -->
+<!ENTITY % boolean "(TRUE|FALSE)">
+<!ENTITY % number "NMTOKEN"> <!-- a number, with format [0-9][0-9]* -->
+<!ENTITY % emph "EM | STRONG | B | I | U | BIG | SMALL">
+<!ENTITY % tab "TAB">
+<!ENTITY % layout "BR">
+<!ENTITY % text "#PCDATA | %emph; | %tab;">
+<!ENTITY % inline "%text; | %layout;">
+<!-- flow covers "card-level" elements, such as text and images -->
+<!ENTITY % flow "%inline; | IMG | A">
+<!-- card types -->
+<!ENTITY % cards "FORMCARD | DISPLAY | CHOICE | ENTRY | NODISPLAY">
+<!-- tasks types -->
+<!ENTITY % tasktypes "(GO|PREV|NOOP)">
+<!-- task attributes -->
+<!ENTITY % taskattrs "
+URL %URL; #IMPLIED
+VARS %vdata; #IMPLIED
+SENDREFERER %boolean; 'FALSE'
+METHOD (POST|GET) 'GET'
+ACCEPT-CHARSET CDATA #IMPLIED
+POSTDATA %vdata; #IMPLIED"
+>
+<!ENTITY % task "
+TASK %tasktypes; 'GO'
+%taskattrs;"
+>
+<!-- Navigation and event elements -->
+<!ENTITY % navelmts "DO | ONEVENT">
+<!--================ Decks ================-->
+<!ELEMENT WML ( (COMMON, (%cards;)* ) | (%cards;)+ )>
+<!ATTLIST WML
+VERSION NMTOKEN #FIXED '1.0'
+>
+<!--================ Cards ================-->
+<!-- card intrinsic events -->
+<!ENTITY % cardev
+"ONENTERFORWARD %URL; #IMPLIED
+ONENTERBACKWARD %URL; #IMPLIED"
+>
+<!ENTITY % cardattrs
+"NAME NMTOKEN #IMPLIED
+TITLE %vdata; #IMPLIED
+NEWCONTEXT %boolean; 'FALSE'
+%cardev;"
+>
+<!-- FORMCARD field types -->
+<!ENTITY % fields "%flow; | INPUT | SELECT | FIELDSET">
+<!ELEMENT FORMCARD (%fields; | %navelmts;)*>
+<!ATTLIST FORMCARD
+%cardattrs;
+STYLE (LIST|SET) 'LIST'
+>
+<!-- DEPRECATED -->
+<!ELEMENT DISPLAY (%inline; | %navelmts;)* >
+<!ATTLIST DISPLAY
+%cardattrs;
+>
+<!-- DEPRECATED -->
+<!ELEMENT CHOICE (%inline; | %navelmts; | CE)*>
+<!ATTLIST CHOICE
+%cardattrs;
+KEY NMTOKEN #IMPLIED
+DEFAULT %vdata; #IMPLIED
+IKEY NMTOKEN #IMPLIED
+IDEFAULT %vdata; #IMPLIED
+>
+<!-- DEPRECATED -->
+<!ELEMENT ENTRY (%inline; | %navelmts;)*>
+<!ATTLIST ENTRY
+%cardattrs;
+KEY NMTOKEN #REQUIRED
+DEFAULT %vdata; #IMPLIED
+FORMAT CDATA #IMPLIED
+NOECHO %boolean; 'FALSE'
+EMPTYOK %boolean; 'FALSE'
+>
+<!-- DEPRECATED -->
+<!ELEMENT NODISPLAY (ONEVENT)* >
+<!ATTLIST NODISPLAY
+%cardattrs;
+>
+<!--================ Event Handling ================-->
+<!ELEMENT DO EMPTY>
+<!ATTLIST DO
+TYPE CDATA #REQUIRED
+LABEL %vdata; #IMPLIED
+NAME NMTOKEN #IMPLIED
+OPTIONAL %boolean; 'FALSE'
+%task;
+>
+<!ELEMENT ONEVENT EMPTY>
+<!ATTLIST ONEVENT
+TYPE CDATA #REQUIRED
+%task;
+>
+<!--================ Common declarations ================-->
+<!ELEMENT COMMON (ACCESS | META | SCRIPT | %navelmts;)*>
+<!ATTLIST COMMON
+%cardev;
+>
+<!ELEMENT ACCESS EMPTY>
+<!ATTLIST ACCESS
+DOMAIN CDATA #IMPLIED
+PATH CDATA #IMPLIED
+PUBLIC %boolean; 'FALSE'
+>
+<!ELEMENT META EMPTY>
+<!ATTLIST META
+HTTP-EQUIV CDATA #IMPLIED
+NAME CDATA #IMPLIED
+USER-AGENT CDATA #IMPLIED
+CONTENT CDATA #REQUIRED
+SCHEME CDATA #IMPLIED
+>
+<!ELEMENT SCRIPT (#PCDATA)>
+<!ATTLIST SCRIPT
+TYPE CDATA #REQUIRED
+>
+<!--================ FORMCARD Fields ================-->
+<!ELEMENT SELECT (OPTGROUP|OPTION)+>
+<!ATTLIST SELECT
+TITLE %vdata; #IMPLIED
+KEY NMTOKEN #IMPLIED
+DEFAULT %vdata; #IMPLIED
+IKEY NMTOKEN #IMPLIED
+IDEFAULT %vdata; #IMPLIED
+MULTIPLE %boolean; 'FALSE'
+TABINDEX %number; #IMPLIED
+>
+<!ELEMENT OPTGROUP (OPTGROUP|OPTION)+ >
+<!ATTLIST OPTGROUP
+TITLE %vdata; #IMPLIED
+>
+<!ELEMENT OPTION (%text; | ONEVENT)*>
+<!ATTLIST OPTION
+VALUE %vdata; #IMPLIED
+TITLE %vdata; #IMPLIED
+ONCLICK %URL; #IMPLIED
+>
+<!ELEMENT INPUT EMPTY>
+<!ATTLIST INPUT
+KEY NMTOKEN #REQUIRED
+TYPE (TEXT|PASSWORD) 'TEXT'
+VALUE %vdata; #IMPLIED
+DEFAULT %vdata; #IMPLIED
+FORMAT CDATA #IMPLIED
+SIZE %number; #IMPLIED
+MAXLENGTH %number; #IMPLIED
+TABINDEX %number; #IMPLIED
+TITLE %vdata; #IMPLIED
+>
+<!ELEMENT FIELDSET (%fields;)* >
+<!ATTLIST FIELDSET
+TITLE %vdata; #IMPLIED
+>
+<!--================ Choice elements ================-->
+<!-- DEPRECATED -->
+<!ELEMENT CE (%text;)*>
+<!ATTLIST CE
+VALUE %vdata; #IMPLIED
+TASK %tasktypes; #IMPLIED
+%taskattrs;
+>
+<!--================ Images ================-->
+<!ENTITY % IAlign "(TOP|MIDDLE|BOTTOM)" >
+<!ELEMENT IMG EMPTY>
+<!ATTLIST IMG
+ALT %vdata; #IMPLIED
+SRC %URL; #IMPLIED
+LOCALSRC %vdata; #IMPLIED
+VSPACE %length; '0'
+HSPACE %length; '0'
+ALIGN %IAlign; 'BOTTOM'
+HEIGHT %length; #IMPLIED
+WIDTH %length; #IMPLIED
+>
+<!--================ Anchor ================-->
+<!ELEMENT A (%inline;)*>
+<!ATTLIST A
+TITLE %vdata; #IMPLIED
+%task;
+>
+<!--================ Text layout and line breaks ================-->
+<!-- Text alignment attributes -->
+<!ENTITY % TAlign "(LEFT|RIGHT|CENTER)" >
+<!ELEMENT TAB EMPTY>
+<!ATTLIST TAB
+ALIGN %TAlign; 'LEFT'
+>
+<!ELEMENT EM (%flow;)*>
+<!ELEMENT STRONG (%flow;)*>
+<!ELEMENT B (%flow;)*>
+<!ELEMENT I (%flow;)*>
+<!ELEMENT U (%flow;)*>
+<!ELEMENT BIG (%flow;)*>
+<!ELEMENT SMALL (%flow;)*>
+<!ENTITY % BRMode "(WRAP|NOWRAP)" >
+<!ELEMENT BR EMPTY>
+<!ATTLIST BR
+ALIGN %TAlign; 'LEFT'
+MODE %BRMode; #IMPLIED
+>
+<!ENTITY quot "&#34;"> <!-- quotation mark -->
+<!ENTITY amp "&#38;#38;"> <!-- ampersand -->
+<!ENTITY lt "&#38;#60;"> <!-- less than -->
+<!ENTITY gt "&#62;"> <!-- greater than -->
+<!ENTITY nbsp "&#160;"> <!-- non-breaking space -->
+<!ENTITY shy "&#173;"> <!-- soft hyphen (discretionary hyphen) -->
+

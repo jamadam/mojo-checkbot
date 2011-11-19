@@ -1,0 +1,26 @@
+<!-- MLP_GEM -->
+<!--
+MLP V3.1 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2002
+          All rights reserved
+
+MLP is an XML language. Typical usage:
+   <?xml version="1.0"?>
+   <!DOCTYPE gem PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+             "http://www.openmobilealliance.org/DTD/{filename}"
+             [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+   <gem>
+      ...
+   </gem>
+
+Terms and conditions of use are available from the 
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/useterms.html
+-->
+<!ELEMENT gem (result, add_info?)>
+<!ATTLIST gem
+	ver CDATA #FIXED "3.1.0"
+>
+<!ENTITY % mlp_res.dtd SYSTEM "MLP_RES_300.DTD">
+%mlp_res.dtd;

@@ -1,0 +1,46 @@
+<!--
+Client Provisioning v1.0 Document Type Definition.
+
+Copyright Wireless Application Protocol Forum Ltd., 1998-2001.
+                      All rights reserved.  
+
+Connectivity Document Type Definition
+Connectivity is an XML language. Typical Usage:
+
+   <?xml version="1.0"?>
+   <!DOCTYPE wap-provisioningdoc PUBLIC "-//WAPFORUM//DTD PROV 1.0//EN"
+             "http://www.wapforum.org/DTD/prov.dtd">
+            
+<wap-provisioningdoc>
+...
+</wap-provisioningdoc>
+
+
+Terms and conditions of use are available from the Wireless 
+Application Protocol Forum Ltd. web site at
+http://www.wapforum.org/docs/copyright.htm.
+-->
+
+<!ELEMENT wap-provisioningdoc (characteristic+)>
+<!ATTLIST wap-provisioningdoc
+  version   CDATA #IMPLIED
+>
+
+<!ELEMENT characteristic (parm*, characteristic*)>
+<!ATTLIST characteristic
+  type CDATA #REQUIRED
+ 
+>
+
+<!ELEMENT parm EMPTY>
+<!ATTLIST parm
+  name  CDATA #REQUIRED
+  value CDATA #IMPLIED
+>
+
+
+
+<!--
+Copyright Wireless Application Protocol Forum Ltd., 1998-2001.
+                      All rights reserved.  
+-->

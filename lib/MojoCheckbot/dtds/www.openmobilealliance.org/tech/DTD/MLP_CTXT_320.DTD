@@ -1,0 +1,37 @@
+<!-- MLP_CTXT -->
+<!--
+MLP V3.2 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2004
+          All rights reserved
+
+MLP is an XML language. Typical usage:
+   <?xml version="1.0"?>
+   <!DOCTYPE svc_xxx PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+             "http://www.openmobilealliance.org/DTD/{filename}"
+             [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+   <svc_xxx>
+      ... 
+  </svc_xxx>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/
+-->
+<!ELEMENT client (id, pwd?, serviceid?, requestmode?)>
+<!ELEMENT sessionid (#PCDATA)>
+<!ELEMENT id (#PCDATA)>
+<!ELEMENT requestor (id, serviceid?)>
+<!ATTLIST requestor
+	type (MSISDN | NAME | E-MAIL | URL | SIPURL | IMS | MDN | ASID) "MSISDN"
+>
+<!ELEMENT pwd (#PCDATA)>
+<!ELEMENT serviceid (#PCDATA)>
+<!ELEMENT requestmode EMPTY>
+<!ATTLIST requestmode
+	type (ACTIVE | PASSIVE) "PASSIVE"
+>
+<!ELEMENT subclient (id, pwd?, serviceid?)>
+<!ATTLIST subclient
+	last_client (YES | NO) "NO"
+>

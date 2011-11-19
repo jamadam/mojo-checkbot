@@ -1,0 +1,55 @@
+<!-- RLP_SVC_INIT -->
+<!--
+RLP V1.0 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2005
+          All rights reserved
+
+RLP is an XML language. Typical usage:
+ <?xml version="1.0"?>
+ <!DOCTYPE rlp_svc_init PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+          "http://www.openmobilealliance.org/DTD/{filename}"
+           [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+ <rlp_svc_init>
+      ...
+ </rlp_svc_init>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/ 
+-->
+<!ENTITY % extension.message "">
+<!ELEMENT rlp_svc_init (rlp_hdr, (srlir | trlrr | trlrsr | erlir | ssrlir | ssrp %extension.message;))>
+<!ATTLIST rlp_svc_init
+	ver CDATA #FIXED "1.0.0"
+>
+<!ENTITY % rlp_ctxt.dtd SYSTEM "RLP_CTXT_100.DTD">
+%rlp_ctxt.dtd;
+<!ENTITY % mlp_id.dtd SYSTEM "MLP_ID_320.DTD">
+%mlp_id.dtd;
+<!ENTITY % mlp_func.dtd SYSTEM "RLP_FUNC_100.DTD">
+%mlp_func.dtd;
+<!ENTITY % mlp_qop.dtd SYSTEM "MLP_QOP_320.DTD">
+%mlp_qop.dtd;
+<!ENTITY % rlp_loc.dtd SYSTEM "RLP_LOC_100.DTD">
+%rlp_loc.dtd;
+<!ENTITY % mlp_shape.dtd SYSTEM "MLP_SHAPE_320.DTD">
+%mlp_shape.dtd;
+<!ENTITY % rlp_net.dtd SYSTEM "RLP_NET_100.DTD">
+%rlp_net.dtd;
+<!ENTITY % rlp_hdr.dtd SYSTEM "RLP_HDR_100.DTD">
+%rlp_hdr.dtd;
+<!ENTITY % rlp_srlir.dtd SYSTEM "RLP_SRLIR_100.DTD">
+%rlp_srlir.dtd;
+<!ENTITY % rlp_trlrr.dtd SYSTEM "RLP_TRLRR_100.DTD">
+%rlp_trlrr.dtd;
+<!ENTITY % rlp_trlrsr.dtd SYSTEM "RLP_TRLRSR_100.DTD">
+%rlp_trlrsr.dtd;
+<!ENTITY % rlp_erlir.dtd SYSTEM "RLP_ERLIR_100.DTD">
+%rlp_erlir.dtd;
+<!ENTITY % rlp_ssrlir.dtd SYSTEM "RLP_SSRLIR_100.DTD">
+%rlp_ssrlir.dtd;
+<!ENTITY % rlp_ssrp.dtd SYSTEM "RLP_SSRP_100.DTD">
+%rlp_ssrp.dtd;
+<!ENTITY % rlp_supl.dtd SYSTEM "RLP_SUPL_100.DTD">
+%rlp_supl.dtd;

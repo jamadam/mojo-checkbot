@@ -1,0 +1,60 @@
+<!-- MLP_SVC_RESULT -->
+<!--
+MLP V3.2 Document Type Definition
+Copyright Open Mobile Alliance Ltd., 2002
+          All rights reserved
+
+MLP is an XML language. Typical usage:
+   <?xml version="1.0"?>
+   <!DOCTYPE svc_result PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+             "http://www.openmobilealliance.org/DTD/{filename}"
+             [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+   <svc_result>
+      ...
+   </svc_result>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/
+-->
+<!ENTITY % extension.message "">
+<!ELEMENT svc_result (hdr?, (slia | slirep | slrep | slra | eme_lia | emerep | eme_lirep | tlra | tlrep | tlrsa %extension.message;))>
+<!ATTLIST svc_result
+	ver CDATA #FIXED "3.2.0"
+>
+<!ENTITY % mlp_ctxt.dtd SYSTEM "MLP_CTXT_320.DTD">
+%mlp_ctxt.dtd;
+<!ENTITY % mlp_id.dtd SYSTEM "MLP_ID_320.DTD">
+%mlp_id.dtd;
+<!ENTITY % mlp_func.dtd SYSTEM "MLP_FUNC_320.DTD">
+%mlp_func.dtd;
+<!ENTITY % mlp_qop.dtd SYSTEM "MLP_QOP_320.DTD">
+%mlp_qop.dtd;
+<!ENTITY % mlp_loc.dtd SYSTEM "MLP_LOC_320.DTD">
+%mlp_loc.dtd;
+<!ENTITY % mlp_shape.dtd SYSTEM "MLP_SHAPE_320.DTD">
+%mlp_shape.dtd;
+<!ENTITY % mlp_gsm_net_param.dtd SYSTEM "MLP_GSM_NET_310.DTD">
+%mlp_gsm_net_param.dtd;
+<!ENTITY % mlp_slra.dtd SYSTEM "MLP_SLRA_320.DTD">
+%mlp_slra.dtd;
+<!ENTITY % mlp_hdr.dtd SYSTEM "MLP_HDR_300.DTD">
+%mlp_hdr.dtd;
+<!ENTITY % mlp_slia.dtd SYSTEM "MLP_SLIA_300.DTD">
+%mlp_slia.dtd;
+<!ENTITY % mlp_slirep.dtd SYSTEM "MLP_SLIREP_300.DTD">
+%mlp_slirep.dtd;
+<!ENTITY % mlp_slrep.dtd SYSTEM "MLP_SLREP_300.DTD">
+%mlp_slrep.dtd;
+<!ENTITY % mlp_eme_lia.dtd SYSTEM "MLP_EME_LIA_320.DTD">
+%mlp_eme_lia.dtd;
+<!ENTITY % mlp_eme_lirep.dtd SYSTEM "MLP_EME_LIREP_320.DTD">
+%mlp_eme_lirep.dtd;
+<!ENTITY % mlp_emerep.dtd SYSTEM "MLP_EMEREP_300.DTD">
+%mlp_emerep.dtd;
+<!ENTITY % mlp_tlra.dtd SYSTEM "MLP_TLRA_320.DTD">
+%mlp_tlra.dtd;
+<!ENTITY % mlp_tlrep.dtd SYSTEM "MLP_TLREP_320.DTD">
+%mlp_tlrep.dtd;
+<!ENTITY % mlp_tlrsa.dtd SYSTEM "MLP_TLRSA_300.DTD">
+%mlp_tlrsa.dtd;

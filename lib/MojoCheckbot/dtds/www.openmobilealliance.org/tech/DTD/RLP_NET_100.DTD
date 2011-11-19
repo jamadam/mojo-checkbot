@@ -1,0 +1,75 @@
+<!-- RLP_NET -->
+<!--
+RLP V1.0 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2005
+          All rights reserved
+
+RLP is an XML language. Typical usage:
+ <?xml version="1.0"?>
+ <!DOCTYPE rlp_svc_xxx PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+          "http://www.openmobilealliance.org/DTD/{filename}"
+          [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+ <rlp_svc_xxx>
+      ...
+ </rlp_svc_xxx>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/ 
+-->
+<!ELEMENT net_param (h_ls?, v_ls?, pce?, neid?, imsi?, (gsm_net_param | wcdma_net_param | cdma_net_param)?)>
+<!ELEMENT gsm_net_param (cgi?, nmr?, ta?, lmsi?)>
+<!ELEMENT wcdma_net_param (global_uc_id?, frequencyinfo?, primaryscramblingcode?, sai?)>
+<!ELEMENT cdma_net_param (nid, sid, base_id, base_lat?, base_long?, ref_pn?)>
+<!ELEMENT neid (vmscid?, sgsnid?, vlrid?)>
+<!ELEMENT vmscid (cc?, ndc?, vmscno)>
+<!ATTLIST vmscid
+	capability (1 | 2 | 3 | 4) #IMPLIED
+>
+<!ELEMENT vlrid (cc?, ndc?, vlrno)>
+<!ATTLIST vlrid
+	capability (1 | 2 | 3 | 4) #IMPLIED
+>
+<!ELEMENT sgsnid (cc?, ndc?, sgsnno)>
+<!ATTLIST sgsnid
+	capability (1 | 2 | 3 | 4) #IMPLIED
+>
+<!ELEMENT imsi (#PCDATA)>
+<!ELEMENT h_ls (#PCDATA)>
+<!ELEMENT v_ls (#PCDATA)>
+<!ELEMENT pce (#PCDATA)>
+<!ELEMENT cgi (mcc, mnc, lac, cellid)>
+<!ELEMENT nmr (nmr_element+)>
+<!ELEMENT nmr_element (arfcn, bsic, rxlev)>
+<!ELEMENT arfcn (#PCDATA)>
+<!ELEMENT bsic (#PCDATA)>
+<!ELEMENT rxlev (#PCDATA)>
+<!ELEMENT mcc (#PCDATA)>
+<!ELEMENT mnc (#PCDATA)>
+<!ELEMENT ndc (#PCDATA)>
+<!ELEMENT cc (#PCDATA)>
+<!ELEMENT vmscno (#PCDATA)>
+<!ELEMENT vlrno (#PCDATA)>
+<!ELEMENT lac (#PCDATA)>
+<!ELEMENT cellid (#PCDATA)>
+<!ELEMENT ta (#PCDATA)>
+<!ELEMENT lmsi (#PCDATA)>
+<!ELEMENT global_uc_id (mcc, mnc, uc_id)>
+<!ELEMENT uc_id (#PCDATA)>
+<!ATTLIST uc_id
+	status (STALE | CURRENT | UNKNOWN) "CURRENT"
+>
+<!ELEMENT sai (mcc, mnc, lac, sac)>
+<!ELEMENT sac (#PCDATA)>
+<!ELEMENT frequencyinfo (uarfcn_ul?, uarfcn_dl?, uarfcn_nt?)>
+<!ELEMENT primaryscramblingcode (#PCDATA)>
+<!ELEMENT uarfcn_ul (#PCDATA)>
+<!ELEMENT uarfcn_dl (#PCDATA)>
+<!ELEMENT uarfcn_nt (#PCDATA)>
+<!ELEMENT nid (#PCDATA)>
+<!ELEMENT sid (#PCDATA)>
+<!ELEMENT base_id (#PCDATA)>
+<!ELEMENT base_lat (#PCDATA)>
+<!ELEMENT base_long (#PCDATA)>
+<!ELEMENT ref_pn (#PCDATA)>

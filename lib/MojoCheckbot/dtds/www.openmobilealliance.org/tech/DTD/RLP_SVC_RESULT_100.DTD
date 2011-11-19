@@ -1,0 +1,63 @@
+<!-- RLP_SVC_RESULT -->
+<!--
+RLP V1.0 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2005
+          All rights reserved
+
+RLP is an XML language. Typical usage:
+ <?xml version="1.0"?>
+ <!DOCTYPE rlp_svc_result PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+          "http://www.openmobilealliance.org/DTD/{filename}"
+          [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+ <rlp_svc_result>
+      ...
+ </rlp_svc_result>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/ 
+-->
+<!ENTITY % extension.message "">
+<!ELEMENT rlp_svc_result (rlp_hdr?, (srlia | srlirep | trlra | trlrep | trlrsa | srlrep | srlra | erlia | ssrlia | ssrp %extension.message;))>
+<!ATTLIST rlp_svc_result
+	ver CDATA #FIXED "1.0.0"
+>
+<!ENTITY % rlp_ctxt.dtd SYSTEM "RLP_CTXT_100.DTD">
+%rlp_ctxt.dtd;
+<!ENTITY % mlp_id.dtd SYSTEM "MLP_ID_320.DTD">
+%mlp_id.dtd;
+<!ENTITY % mlp_func.dtd SYSTEM "RLP_FUNC_100.DTD">
+%mlp_func.dtd;
+<!ENTITY % mlp_qop.dtd SYSTEM "MLP_QOP_320.DTD">
+%mlp_qop.dtd;
+<!ENTITY % rlp_loc.dtd SYSTEM "RLP_LOC_100.DTD">
+%rlp_loc.dtd;
+<!ENTITY % mlp_shape.dtd SYSTEM "MLP_SHAPE_320.DTD">
+%mlp_shape.dtd;
+<!ENTITY % rlp_net.dtd SYSTEM "RLP_NET_100.DTD">
+%rlp_net.dtd;
+<!ENTITY % rlp_hdr.dtd SYSTEM "RLP_HDR_100.DTD">
+%rlp_hdr.dtd;
+<!ENTITY % rlp_srlia.dtd SYSTEM "RLP_SRLIA_100.DTD">
+%rlp_srlia.dtd;
+<!ENTITY % rlp_srlirep.dtd SYSTEM "RLP_SRLIREP_100.DTD">
+%rlp_srlirep.dtd;
+<!ENTITY % rlp_trlra.dtd SYSTEM "RLP_TRLRA_100.DTD">
+%rlp_trlra.dtd;
+<!ENTITY % rlp_trlrep.dtd SYSTEM "RLP_TRLREP_100.DTD">
+%rlp_trlrep.dtd;
+<!ENTITY % rlp_trlrsa.dtd SYSTEM "RLP_TRLRSA_100.DTD">
+%rlp_trlrsa.dtd;
+<!ENTITY % rlp_srlrep.dtd SYSTEM "RLP_SRLREP_100.DTD">
+%rlp_srlrep.dtd;
+<!ENTITY % rlp_srlra.dtd SYSTEM "RLP_SRLRA_100.DTD">
+%rlp_srlra.dtd;
+<!ENTITY % rlp_erlia.dtd SYSTEM "RLP_ERLIA_100.DTD">
+%rlp_erlia.dtd;
+<!ENTITY % rlp_ssrlia.dtd SYSTEM "RLP_SSRLIA_100.DTD">
+%rlp_ssrlia.dtd;
+<!ENTITY % rlp_ssrp.dtd SYSTEM "RLP_SSRP_100.DTD">
+%rlp_ssrp.dtd;
+<!ENTITY % rlp_supl.dtd SYSTEM "RLP_SUPL_100.DTD">
+%rlp_supl.dtd;

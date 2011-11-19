@@ -1,0 +1,205 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+
+<!ENTITY % ifElements "(if*)">
+
+<!ENTITY % eventElements "(cancel* | move* | send*)">
+
+<!ENTITY % dialogElements "(dialogstart* | dialogterminate* | dialogprepare*)">
+
+<!ENTITY % ecmaScriptElements "(var* | assign* | script*)">
+
+<!ENTITY % fetchElements "(fetch* | goto*)">
+
+<!ENTITY % telephonyActionElements "(accept* | createconference* | destroyconference* | disconnect* | join* | merge* | redirect* | reject* | unjoin* | createcall*)">
+
+<!ENTITY % executableContent "(%dialogElements; | %ecmaScriptElements; | %eventElements; | %fetchElements; | %ifElements; | %telephonyActionElements; | createccxml* | log* | exit*)">
+
+<!ELEMENT accept EMPTY>
+
+<!ATTLIST accept  connectionid CDATA  #IMPLIED
+                   hints        CDATA  #IMPLIED >
+<!ELEMENT cancel EMPTY>
+
+<!ATTLIST cancel  sendid CDATA  #REQUIRED >
+<!ELEMENT assign EMPTY>
+
+<!ATTLIST assign  name CDATA  #REQUIRED
+                   expr CDATA  #REQUIRED >
+<!ELEMENT createcall EMPTY>
+
+<!ATTLIST createcall  dest         CDATA  #REQUIRED
+                       connectionid CDATA  #IMPLIED
+                       aai          CDATA  #IMPLIED
+                       callerid     CDATA  #IMPLIED
+                       hints        CDATA  #IMPLIED
+                       timeout      CDATA  #IMPLIED
+                       joinid     CDATA  #IMPLIED
+                       joindirection     CDATA  '&apos;both&apos;' >
+<!ELEMENT createccxml EMPTY>
+
+<!ATTLIST createccxml  next      CDATA  #REQUIRED
+                        namelist  CDATA  #IMPLIED
+                        method    CDATA  '&apos;get&apos;'
+                        timeout     CDATA  #IMPLIED
+                        sessionid CDATA  #IMPLIED
+                        maxage CDATA  #IMPLIED
+                        maxstale CDATA  #IMPLIED
+                        enctype CDATA  '&apos;application/x-www-form-urlencoded&apos;'  >
+<!ELEMENT createconference EMPTY>
+
+<!ATTLIST createconference  conferenceid CDATA  #REQUIRED
+                             hints        CDATA  #IMPLIED 
+                             confname          CDATA  #IMPLIED 
+                             reservedtalkers   CDATA  #IMPLIED 
+                             reservedlisteners CDATA  #IMPLIED >
+<!ELEMENT ccxml (%ecmaScriptElements; | eventprocessor | meta* | metadata*)*>
+
+<!ATTLIST ccxml  version  CDATA  #REQUIRED
+                  xml:base CDATA  #IMPLIED >
+<!ELEMENT destroyconference EMPTY>
+
+<!ATTLIST destroyconference  conferenceid CDATA  #REQUIRED
+                              hints        CDATA  #IMPLIED >
+<!ELEMENT dialogprepare EMPTY>
+
+<!ATTLIST dialogprepare
+					    connectionid CDATA  #IMPLIED
+                        conferenceid  CDATA  #IMPLIED
+                        src          CDATA  #REQUIRED
+                        type         CDATA  '&apos;application/voicexml+xml&apos;'
+                        namelist     CDATA  #IMPLIED
+                        dialogid     CDATA  #IMPLIED
+                        mediadirection       CDATA  '&apos;both&apos;'
+                        maxage       CDATA  #IMPLIED
+                        maxstale     CDATA  #IMPLIED
+                        method       CDATA  '&apos;get&apos;'
+                        enctype     CDATA  '&apos;application/x-www-form-urlencoded&apos;' >
+<!ELEMENT dialogstart EMPTY>
+
+<!ATTLIST dialogstart  connectionid CDATA  #IMPLIED
+                        conferenceid  CDATA  #IMPLIED
+                        src          CDATA  #IMPLIED
+						type         CDATA  '&apos;application/voicexml+xml&apos;'
+                        namelist     CDATA  #IMPLIED
+                        dialogid     CDATA  #IMPLIED
+                        prepareddialogid     CDATA  #IMPLIED
+                        mediadirection       CDATA  '&apos;both&apos;'
+						maxage       CDATA  #IMPLIED
+                        maxstale     CDATA  #IMPLIED
+                        method       CDATA  '&apos;get&apos;'
+                        enctype      CDATA  '&apos;application/x-www-form-urlencoded&apos;' >
+<!ELEMENT dialogterminate EMPTY>
+
+<!ATTLIST dialogterminate  dialogid  CDATA  #REQUIRED
+                            immediate CDATA  'false' >
+<!ELEMENT disconnect EMPTY>
+
+<!ATTLIST disconnect  connectionid CDATA  #IMPLIED
+                       reason       CDATA  #IMPLIED
+                       hints        CDATA  #IMPLIED >
+<!ELEMENT else EMPTY>
+
+<!ELEMENT elseif EMPTY>
+<!ATTLIST elseif  cond CDATA  #REQUIRED >
+
+<!ELEMENT eventprocessor (transition*)>
+
+<!ATTLIST eventprocessor  statevariable CDATA  #IMPLIED >
+<!ELEMENT fetch EMPTY>
+
+<!ATTLIST fetch  next     CDATA  #REQUIRED
+                  type CDATA   '&apos;application/ccxml+xml&apos;'
+                  namelist CDATA  #IMPLIED
+                  method   CDATA  '&apos;get&apos;'
+                  fetchid  CDATA  #IMPLIED
+                  timeout  CDATA  #IMPLIED 
+                  maxage   CDATA  #IMPLIED
+                  maxstale  CDATA  #IMPLIED
+                  enctype   CDATA  #IMPLIED >
+<!ELEMENT goto EMPTY>
+
+<!ATTLIST goto  fetchid CDATA  #REQUIRED >
+<!ELEMENT if (else* | elseif* | (%executableContent;)*)>
+
+<!ATTLIST if  cond CDATA  #REQUIRED >
+<!ELEMENT join EMPTY>
+
+<!ATTLIST join  id1    CDATA  #REQUIRED
+                 id2    CDATA  #REQUIRED
+                 duplex CDATA  '&apos;full&apos;'
+                 entertone CDATA  '&apos;true&apos;'
+                 exittone  CDATA  '&apos;true&apos;'
+                 autoinputgain  CDATA  'true'
+                 autooutputgain	  CDATA  'true'
+                 dtmfclamp  CDATA  'true'
+                 toneclamp  CDATA  'true'
+                 hints  CDATA  #IMPLIED >
+<!ELEMENT merge EMPTY>
+
+<!ATTLIST merge  connectionid1    CDATA  #REQUIRED
+                 connectionid2    CDATA  #REQUIRED
+		 hints  CDATA  #IMPLIED >
+
+<!ELEMENT log EMPTY>
+
+<!ATTLIST log  label CDATA  #IMPLIED
+                expr  CDATA  #REQUIRED >
+<!ELEMENT move EMPTY>
+
+<!ATTLIST move  source    CDATA  #IMPLIED
+                 event     CDATA  #IMPLIED
+                 sessionid CDATA  #REQUIRED >
+<!ELEMENT redirect EMPTY>
+
+<!ATTLIST redirect  connectionid CDATA  #IMPLIED
+                     dest         CDATA  #REQUIRED
+                     reason       CDATA  #IMPLIED
+                     hints        CDATA  #IMPLIED >
+<!ELEMENT reject EMPTY>
+
+<!ATTLIST reject  connectionid CDATA  #IMPLIED
+                   reason       CDATA  #IMPLIED
+                   hints        CDATA  #IMPLIED >
+<!ELEMENT script (#PCDATA)>
+
+<!ATTLIST script  src     CDATA  #IMPLIED
+		  fetchid    CDATA  #IMPLIED
+		  timeout    CDATA  #IMPLIED
+		  maxage     CDATA  #IMPLIED
+		  maxstale   CDATA  #IMPLIED
+                   charset CDATA  '&apos;UTF-8&apos;' >
+<!ELEMENT send ANY>
+
+<!ATTLIST send  target   CDATA  #REQUIRED
+                 targettype   CDATA  '&apos;ccxml&apos;'
+                 sendid   CDATA  #IMPLIED
+                 delay    CDATA  '&apos;0s&apos;'
+                 data     CDATA  #IMPLIED
+                 namelist CDATA  #IMPLIED
+                 hints    CDATA  #IMPLIED>
+<!ELEMENT transition (%executableContent;)*>
+
+<!ATTLIST transition  state CDATA  #IMPLIED
+                       event CDATA  #IMPLIED
+                       cond  CDATA  'true'
+                       name  CDATA  #IMPLIED >
+<!ELEMENT unjoin EMPTY>
+
+<!ATTLIST unjoin  id1   CDATA  #REQUIRED
+                   id2   CDATA  #REQUIRED
+                   hints CDATA  #IMPLIED >
+<!ELEMENT var EMPTY>
+
+<!ATTLIST var  name CDATA  #REQUIRED
+                expr CDATA  #IMPLIED >
+<!ELEMENT meta EMPTY>
+
+<!ATTLIST meta  name       NMTOKEN  #IMPLIED
+                 content    CDATA    #REQUIRED
+                 http-equiv NMTOKEN  #IMPLIED >
+<!ELEMENT exit EMPTY>
+
+<!ATTLIST exit  expr     CDATA  #IMPLIED
+                 namelist CDATA  #IMPLIED >
+<!ELEMENT metadata ANY>
+

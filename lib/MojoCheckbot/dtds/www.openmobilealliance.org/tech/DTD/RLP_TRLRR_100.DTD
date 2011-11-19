@@ -1,0 +1,26 @@
+<!-- RLP_TRLRR -->
+<!--
+RLP V1.0 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2005
+          All rights reserved
+
+RLP is an XML language. Typical usage:
+ <?xml version="1.0"?>
+ <!DOCTYPE rlp_svc_init PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+          "http://www.openmobilealliance.org/DTD/{filename}"
+          [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+ <rlp_svc_init>
+      ...
+ </rlp_svc_init>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/ 
+-->
+<!ENTITY % extension.param "">
+<!ELEMENT trlrr (msid, lcs_ref?, codeword?, interval?, start_time?, stop_time?, duration?, tlrr_event?, qop?, geo_info?, pushaddr?, loc_type?, prio? %extension.param;)>
+<!ATTLIST trlrr
+	ver CDATA #FIXED "1.0.0"
+	recv_role (HLS | VLS) #REQUIRED
+>

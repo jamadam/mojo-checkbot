@@ -1,0 +1,63 @@
+<!-- RLP_CTXT -->
+<!--
+RLP V1.0 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2005
+          All rights reserved
+
+RLP is an XML language. Typical usage:
+ <?xml version="1.0"?>
+ <!DOCTYPE rlp_svc_xxx PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+          "http://www.openmobilealliance.org/DTD/{filename}"
+          [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+ <rlp_svc_xxx>
+      ...
+ </rlp_svc_xxx>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/ 
+-->
+<!ELEMENT client (servicetype, id?, serviceid?, requestmode?, clientname?, pseudoid?, poi?)>
+<!ATTLIST client
+	type (1 | 2 | 3) "1"
+>
+<!ELEMENT id (#PCDATA)>
+<!ELEMENT requestor (#PCDATA)>
+<!ATTLIST requestor
+	type (MSISDN | NAME | E-MAIL | URL | SIPURL | IMS) "MSISDN"
+>
+<!ELEMENT pwd (#PCDATA)>
+<!ELEMENT serviceid (#PCDATA)>
+<!ELEMENT requestmode (requestor | session)?>
+<!ATTLIST requestmode
+	type (ACTIVE | PASSIVE) "PASSIVE"
+>
+<!ELEMENT locationserver (id, pwd?)>
+<!ELEMENT clientname (#PCDATA)>
+<!ELEMENT serving_node_action EMPTY>
+<!ATTLIST serving_node_action
+	passive_type (POSITION_NOT_ALLOWED | POSITION | NOTIFY_AND_POSITION | POSITION_IF_NOT_DISALLOWED | POSITION_IF_ALLOWED) #REQUIRED
+	active_type (POSITION_NOT_ALLOWED | POSITION | NOTIFY_AND_POSITION | POSITION_IF_NOT_DISALLOWED | POSITION_IF_ALLOWED) "POSITION_NOT_ALLOWED"
+>
+<!ELEMENT poi EMPTY>
+<!ATTLIST poi
+	flag (ON | OFF) "OFF"
+>
+<!ELEMENT pseudoid (#PCDATA)>
+<!ELEMENT servicetype (#PCDATA)>
+<!ELEMENT supported_shapes EMPTY>
+<!ATTLIST supported_shapes
+	Point (NO | YES) "NO"
+	LineString (NO | YES) "NO"
+	Polygon (NO | YES) "NO"
+	Box (NO | YES) "NO"
+	CircularArea (NO | YES) "NO"
+	CircularArcArea (NO | YES) "NO"
+	EllipticalArea (NO | YES) "NO"
+	MultiLineString (NO | YES) "NO"
+	MultiPoint (NO | YES) "NO"
+	MultiPolygon (NO | YES) "NO"
+	LinearRing (NO | YES) "NO"
+	Altitude (NO | YES) "NO"
+>

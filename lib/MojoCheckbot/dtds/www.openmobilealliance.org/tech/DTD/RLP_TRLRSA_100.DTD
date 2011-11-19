@@ -1,0 +1,25 @@
+<!-- RLP_TRLRSA -->
+<!--
+RLP V1.0 Document Type Definition
+
+Copyright Open Mobile Alliance Ltd., 2005
+          All rights reserved
+
+RLP is an XML language. Typical usage:
+ <?xml version="1.0"?>
+ <!DOCTYPE rlp_svc_result PUBLIC "-//OMA//DTD {abbrev x.y}//EN"
+          "http://www.openmobilealliance.org/DTD/{filename}"
+          [<?oma-{ref}-ver supported-versions="{versions}"?>]>
+ <rlp_svc_result>
+      ...
+ </rlp_svc_result>
+
+Terms and conditions of use are available from the
+Open Mobile Alliance Ltd. web site at
+http://www.openmobilealliance.org/ 
+-->
+<!ENTITY % extension.param "">
+<!ELEMENT trlrsa ((req_id | (result, add_info?)) %extension.param;)>
+<!ATTLIST trlrsa
+	ver CDATA #FIXED "1.0.0"
+>

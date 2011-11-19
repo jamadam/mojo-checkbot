@@ -113,7 +113,7 @@ our $VERSION = '0.31';
                 $xml_parser = XML::LibXML->new();
                 my $catalog = join '/',
                                         File::Spec->splitdir(dirname(__FILE__)),
-                                        "MojoCheckbot/catalog/catalog.xml";
+                                        "MojoCheckbot/dtds/catalog.xml";
                 $xml_parser->load_catalog($catalog);
             } else {
                 $self->log->error('XML::LibXML is required for activate HTML validation');
