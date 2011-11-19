@@ -224,7 +224,6 @@ our $VERSION = '0.31';
         });
         $r->route('/html_validator')->to(cb => sub {
             my $c = shift;
-            warn $c->req->param('url');
             my $res = $ua->get($c->req->param('url'))->res;
             my $encode = guess_encoding($res) || 'utf-8';
             my $body    = Encode::decode($encode, $res->body);
