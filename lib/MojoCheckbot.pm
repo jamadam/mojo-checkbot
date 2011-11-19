@@ -224,6 +224,7 @@ our $VERSION = '0.31';
         });
         $r->route('/html_validator')->to(cb => sub {
             my $c = shift;
+            warn $c->req->param('url');
             my $res = $ua->get($c->req->param('url'))->res;
             my $encode = guess_encoding($res) || 'utf-8';
             my $body    = Encode::decode($encode, $res->body);
@@ -307,7 +308,7 @@ our $VERSION = '0.31';
                 append_queues($base, \@new_queues, \@q);
                 append_queues($base, \@dialogs, \@dialog);
                 if ($options{'html-validate'}) {
-                    $html_error = defined validate_html($body) ? 'ng' : 'ok';
+                    $html_error = validate_html($body) ? 'ng' : 'ok';
                 }
             } elsif ($type && $type =~ qr{text/(text|css)}) {
                 my $base    = $tx->req->url;

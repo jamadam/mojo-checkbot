@@ -41,7 +41,7 @@
 						<th>URI(Resolved)</th>
 						<th>Status</th>
 						<th>Referer</th>
-						<th>Valid</th>
+						<th>Syntax</th>
 					</tr>
 				</thead>
 				<tbody>
