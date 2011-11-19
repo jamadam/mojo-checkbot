@@ -226,3 +226,17 @@ body {
             #notifierContainer .notifier .context {
                 margin-bottom:0.8em;
             }
+.html_ok {
+    display:block;
+    width:16px;
+    height:16px;
+    background-image:url(./ok.png);
+    text-indent:-9999px;
+}
+.html_ng {
+    display:block;
+    width:16px;
+    height:16px;
+    background-image:url(./ng.png);
+    text-indent:-9999px;
+}

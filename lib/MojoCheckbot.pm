@@ -138,10 +138,9 @@ our $VERSION = '0.31';
         }
         
         $queues->[0] ||= {
-            $QUEUE_KEY_RESOLVED_URI => $options{start},
             $QUEUE_KEY_REFERER      => 'N/A',
             $QUEUE_KEY_CONTEXT      => 'N/A',
-            $QUEUE_KEY_LITERAL_URI  => 'N/A',
+            $QUEUE_KEY_LITERAL_URI  => $options{start},
             $QUEUE_KEY_DEPTH        => 1,
             $QUEUE_KEY_PARENT       => undef,
         };
@@ -179,7 +178,7 @@ our $VERSION = '0.31';
                     }
                     $queue->{$QUEUE_KEY_RES} = $res->{code};
                     if ($res->{html_error}) {
-                        $queue->{$QUEUE_KEY_HTML_ERROR} = html_escape($res->{html_error});
+                        $queue->{$QUEUE_KEY_HTML_ERROR} = $res->{html_error};
                     }
                 }
                 push(@$result, $queue);
@@ -222,6 +221,13 @@ our $VERSION = '0.31';
                 result  => \@diff,
                 dialog  => \@diff_d,
             });
+        });
+        $r->route('/html_validator')->to(cb => sub {
+            my $c = shift;
+            my $res = $ua->get($c->req->param('url'))->res;
+            my $encode = guess_encoding($res) || 'utf-8';
+            my $body    = Encode::decode($encode, $res->body);
+            $c->render_json({result => html_escape(validate_html($body))});
         });
         $r->route('/auth')->to(cb => sub {
             my $c = shift;
@@ -300,9 +306,8 @@ our $VERSION = '0.31';
                 my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
                 append_queues($base, \@new_queues, \@q);
                 append_queues($base, \@dialogs, \@dialog);
-                
                 if ($options{'html-validate'}) {
-                    $html_error = validate_html($body);
+                    $html_error = defined validate_html($body) ? 'ng' : 'ok';
                 }
             } elsif ($type && $type =~ qr{text/(text|css)}) {
                 my $base    = $tx->req->url;
@@ -491,7 +496,7 @@ our $VERSION = '0.31';
         eval {
             $xml_parser->parse_string($html);
         };
-        return $@ || 'VALID';
+        return $@;
     }
 
 1;

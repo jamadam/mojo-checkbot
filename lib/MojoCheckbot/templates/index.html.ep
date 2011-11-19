@@ -41,7 +41,7 @@
 						<th>URI(Resolved)</th>
 						<th>Status</th>
 						<th>Referer</th>
-						<th>HTML Validation</th>
+						<th>Valid</th>
 					</tr>
 				</thead>
 				<tbody>
