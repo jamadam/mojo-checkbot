@@ -91,6 +91,7 @@ body {
                 white-space:nowrap;
                 text-overflow:ellipsis;
                 max-width:200px;
+                padding:2px 5px;
             }
                 #container td:nth-child(4),
                 #container td:nth-child(6) {
