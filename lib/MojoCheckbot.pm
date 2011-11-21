@@ -279,7 +279,7 @@ our $VERSION = '0.32';
         }
         my $res     = $tx->res;
         my $code    = $res->code;
-        my $base    = $tx->req->url;
+        my $base    = $tx->req->url->userinfo(undef);
         if (! $code) {
             die $tx->error || 'Unknown error';
         }
@@ -310,7 +310,6 @@ our $VERSION = '0.32';
                     $html_error = validate_html($body) ? 'ng' : 'ok';
                 }
             } elsif ($type && $type =~ qr{text/(text|css)}) {
-                my $base    = $tx->req->url;
                 my $encode  = guess_encoding_css($res) || 'utf-8';
                 my $body    = Encode::decode($encode, $res->body);
                 my @urls    = collect_urls_from_css($body);
