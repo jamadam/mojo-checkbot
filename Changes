@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
-0.32 2011/11/19
+0.32 2011/11/21
+  - Mojolicious v2.31 is bundled
 
 0.31 2011/11/19
   - Improved html validator report.
