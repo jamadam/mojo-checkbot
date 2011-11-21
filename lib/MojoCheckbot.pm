@@ -116,7 +116,7 @@ our $VERSION = '0.32';
                                         "MojoCheckbot/dtds/catalog.xml";
                 $xml_parser->load_catalog($catalog);
             } else {
-                $self->log->error('XML::LibXML is required for activate HTML validation');
+                $self->log->error('XML::LibXML is required to activate HTML validation');
                 $options{'html-validate'} = undef;
             }
         }
