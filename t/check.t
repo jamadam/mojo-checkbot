@@ -149,7 +149,7 @@ EOF
 		});
 		
 		my $res = MojoCheckbot::check($ua, {
-			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
+			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://a:b\@localhost:$port/",
 		});
 		is $res->{code}, 200, 'right status code';
 		is scalar @{$res->{queue}}, 12, 'right queue number';
