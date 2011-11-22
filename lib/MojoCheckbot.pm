@@ -227,7 +227,8 @@ our $VERSION = '0.32';
             my $res = $ua->get($c->req->param('url'))->res;
             my $encode = guess_encoding($res) || 'utf-8';
             my $body    = Encode::decode($encode, $res->body);
-            $c->render_json({result => html_escape(validate_html($body))});
+            my $error = Encode::decode($encode, validate_html($body));
+            $c->render_json({result => html_escape($error)});
         });
         $r->route('/auth')->to(cb => sub {
             my $c = shift;
