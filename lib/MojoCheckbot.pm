@@ -90,9 +90,9 @@ our $VERSION = '0.32';
         $self->renderer->root($self->home->rel_dir('templates'));
         
         GetOptionsFromArray(\@ARGV, \%options,
-            'match=s' ,
-            'match-for-check=s' ,
-            'match-for-crawl=s' ,
+            'match=s@',
+            'match-for-check=s@',
+            'match-for-crawl=s@',
             'start=s',
             'sleep=i',
             'ua=s',
@@ -290,10 +290,9 @@ our $VERSION = '0.32';
                 $QUEUE_KEY_LITERAL_URI  => $location,
             }]);
         }
-        if ($code == 200 &&
-            (! $options{'match-for-crawl'} || $url =~ /$options{'match-for-crawl'}/) &&
-            (! $options{'depth'} ||
-             ($queue->{$QUEUE_KEY_DEPTH} || 0) < $options{'depth'})) {
+        if ($code == 200 && _match_for_crawl($url) &&
+                    (! $options{'depth'} ||
+                    ($queue->{$QUEUE_KEY_DEPTH} || 0) < $options{'depth'})) {
             my $type = $res->headers->content_type;
             if ($type && $type =~ qr{text/(html|xml)}) {
                 my $encode = guess_encoding($res) || 'utf-8';
@@ -333,6 +332,37 @@ our $VERSION = '0.32';
         };
     }
     
+    sub _match_for_crawl {
+        my ($url) = @_;
+        if ($options{'match-for-crawl'}) {
+            for my $regexp (@{$options{'match-for-crawl'}}) {
+                if ($url !~ /$regexp/) {
+                    return 0;
+                }
+            }
+        }
+        return 1;
+    }
+    
+    sub _match_for_check {
+        my ($url) = @_;
+        if ($options{'match-for-check'}) {
+            for my $regexp (@{$options{'match-for-check'}}) {
+                if ($url !~ /$regexp/) {
+                    return 0;
+                }
+            }
+        }
+        if ($options{'match'}) {
+            for my $regexp (@{$options{'match'}}) {
+                if ($url !~ /$regexp/) {
+                    return 0;
+                }
+            }
+        }
+        return 1;
+    }
+    
     sub append_queues {
         my ($base, $append_to, $urls) = @_;
         for my $entry (@$urls) {
@@ -343,15 +373,8 @@ our $VERSION = '0.32';
             }
             my $rurl = resolve_href($base, $entry->{$QUEUE_KEY_LITERAL_URI});
             $rurl = "$rurl";
-            if ($options{match}) {
-                if ($rurl !~ /$options{match}/) {
-                    next;
-                }
-            }
-            if ($options{'match-for-check'}) {
-                if ($rurl !~ /$options{'match-for-check'}/) {
-                    next;
-                }
+            if (! _match_for_check($rurl)) {
+                next;
             }
             if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $rurl) {
                 $entry->{$QUEUE_KEY_RESOLVED_URI} = $rurl;
