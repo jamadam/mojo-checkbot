@@ -31,6 +31,8 @@ hoge usage: $0 daemon [OPTIONS]
   --match <regexp>        [Deprecated]チェック対象のURLを正規表現で指定します。
   --match-for-check <regexp> チェック対象のURLを正規表現で指定します。
   --match-for-crawl <regexp> 再帰的なクロールの対象のURLを正規表現で指定します。
+  --not-match-for-check <regexp> チェック対象としないURLの正規表現を指定します。
+  --not-match-for-crawl <regexp> 再帰的なクロールの対象としないURLを正規表現で指定します。
   --depth <integer>       再帰的なクロール深度の上限を指定します。
   --sleep <seconds>       クロールの間隔を指定します。
   --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
@@ -75,6 +77,8 @@ These options are available:
                           checked.
   --match-for-crawl <regexp> Set regexp to judge whether or not the URL should be
                           crawled recursivly.
+  --not-match-for-check <regexp> Set regexp that matched URL not to be checked.
+  --not-match-for-crawl <regexp> Set regexp that matched URL not to be checked recursivly.
   --depth <integer>       Set max depth for recursive crawling.
   --sleep <seconds>       Set interval for crawling.
   --ua <string>           Set user agent name for crawler header

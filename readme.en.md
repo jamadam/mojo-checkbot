@@ -30,6 +30,8 @@ These options are available:
                             checked.
     --match-for-crawl <regexp> Set regexp to judge whether or not the URL should be
                             crawled recursivly.
+    --not-match-for-check <regexp> Set regexp that matched URL not to be checked.
+    --not-match-for-crawl <regexp> Set regexp that matched URL not to be checked recursivly.
     --depth <integer>       Set max depth for recursive crawling.
     --sleep <seconds>       Set interval for crawling.
     --ua <string>           Set user agent name for crawler header

@@ -4,6 +4,7 @@ Revision history for mojo-checkbot
   - Mojolicious v2.31 is bundled.
   - Improved report view not to show user info.
   - Improved match* options to be set multiple time
+  - Added not-match-for-check and not-match-for-crawl option
 
 0.31 2011/11/19
   - Improved html validator report.

@@ -93,6 +93,8 @@ our $VERSION = '0.32';
             'match=s@',
             'match-for-check=s@',
             'match-for-crawl=s@',
+            'not-match-for-check=s@',
+            'not-match-for-crawl=s@',
             'start=s',
             'sleep=i',
             'ua=s',
@@ -341,6 +343,13 @@ our $VERSION = '0.32';
                 }
             }
         }
+        if ($options{'not-match-for-crawl'}) {
+            for my $regexp (@{$options{'not-match-for-crawl'}}) {
+                if ($url =~ /$regexp/) {
+                    return 0;
+                }
+            }
+        }
         return 1;
     }
     
@@ -349,6 +358,13 @@ our $VERSION = '0.32';
         if ($options{'match-for-check'}) {
             for my $regexp (@{$options{'match-for-check'}}) {
                 if ($url !~ /$regexp/) {
+                    return 0;
+                }
+            }
+        }
+        if ($options{'not-match-for-check'}) {
+            for my $regexp (@{$options{'not-match-for-check'}}) {
+                if ($url =~ /$regexp/) {
                     return 0;
                 }
             }

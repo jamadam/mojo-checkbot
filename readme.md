@@ -26,6 +26,8 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
     --match <regexp>        [Deprecated]チェック対象のURLを正規表現で指定します。
     --match-for-check <regexp> チェック対象のURLを正規表現で指定します。
     --match-for-crawl <regexp> 再帰的なクロールの対象のURLを正規表現で指定します。
+    --not-match-for-check <regexp> チェック対象としないURLの正規表現を指定します。
+    --not-match-for-crawl <regexp> 再帰的なクロールの対象としないURLを正規表現で指定します。
     --depth <integer>       再帰的なクロール深度の上限を指定します。
     --sleep <seconds>       クロールの間隔を指定します。
     --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
