@@ -1,6 +1,8 @@
 Revision history for mojo-checkbot
 
-0.32 2011/11/21
+0.32 2011/11/24
+
+0.32 2011/11/24
   - Mojolicious v2.31 is bundled.
   - Improved report view not to show user info.
   - Improved match* options to be set multiple time
