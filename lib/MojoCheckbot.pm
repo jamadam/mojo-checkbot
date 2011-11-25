@@ -17,7 +17,7 @@ use utf8;
 use MojoCheckbot::FileCache;
 use MojoCheckbot::IOLoop;
 use MojoCheckbot::UserAgent;
-use Clone::PP qw(clone);
+use Clone qw(clone);
 our $VERSION = '0.33';
     
     our $QUEUE_KEY_CONTEXT       = 1;
