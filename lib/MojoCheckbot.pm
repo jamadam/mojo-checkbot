@@ -181,19 +181,7 @@ our $VERSION = '0.33';
                         $_->{$QUEUE_KEY_DEPTH} = ($queue->{$QUEUE_KEY_DEPTH} || 0) + 1;
                     }
                     push(@$queues, @{$res->{queue}});
-                    if ($res->{code} == 401) {
-                        %$queue = (%$queue, %{$res->{dialog}->[0]});
-                        my $copy = clone($queue);
-                        $copy->{$QUEUE_KEY_CONTEXT} = '*Authentication Required*';
-                        push(@$dialog, $copy);
-                    } else {
-                        push(@$dialog, @{$res->{dialog}});
-                    }
-                    $queue->{$QUEUE_KEY_RES} = $res->{code};
-                    $queue->{$QUEUE_KEY_MIMETYPE} = $res->{type};
-                    if ($res->{html_error}) {
-                        $queue->{$QUEUE_KEY_HTML_ERROR} = $res->{html_error};
-                    }
+                    push(@$dialog, @{$res->{dialog}});
                 }
                 push(@$result, $queue);
             }
@@ -333,18 +321,22 @@ our $VERSION = '0.33';
                 append_queues($base, \@new_queues, \@urls);
             }
         } elsif ($code == 401) {
-            push(@dialogs, {
-                $QUEUE_KEY_LITERAL_URI  => $url,
-                $QUEUE_KEY_DIALOG       => {
-                    'www-authenticate' =>
-                            scalar $res->headers->header('www-authenticate'),
-                },
-            });
+            my $dialog = clone($queue);
+            $dialog->{$QUEUE_KEY_CONTEXT} = '*Authentication Required*';
+            $dialog->{$QUEUE_KEY_LITERAL_URI} = $url;
+            $dialog->{$QUEUE_KEY_DIALOG} = {
+                'www-authenticate' =>
+                        scalar $res->headers->header('www-authenticate'),
+            };
+            push(@dialogs, $dialog);
+            $queue->{$QUEUE_KEY_DIALOG} = $dialog->{$QUEUE_KEY_DIALOG};
+        }
+        $queue->{$QUEUE_KEY_RES}        = $code;
+        $queue->{$QUEUE_KEY_MIMETYPE}   = $res->{type};
+        if ($html_error) {
+            $queue->{$QUEUE_KEY_HTML_ERROR} = $html_error;
         }
         return {
-            html_error => $html_error,
-            code    => $code,
-            type    => $type,
             queue   => \@new_queues,
             dialog  => \@dialogs,
         };

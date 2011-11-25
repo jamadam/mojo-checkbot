@@ -30,12 +30,14 @@ use MojoCheckbot;
 	});
 	
 	{
-		my $res = MojoCheckbot::check($ua, {
+		my $queue = {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
-		});
-		is $res->{code}, 401, 'right status';
+		};
+		my $res = MojoCheckbot::check($ua, $queue);
+		is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 401, 'right status';
 		is_deeply $res->{queue}, [], 'queue is empty';
 		is_deeply $res->{dialog}, [{
+            '1' => '*Authentication Required*',
             '7' => {'www-authenticate' => undef},
             '2' => "http://localhost:$port/",
 		}], 'deeply right dialog';

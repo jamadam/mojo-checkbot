@@ -40,10 +40,11 @@ EOF
 	});
 	
 	{
-		my $res = MojoCheckbot::check($ua, {
+		my $queue = {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
-		});
-		is $res->{code}, 404, 'right status code';
+		};
+		my $res = MojoCheckbot::check($ua, $queue);
+		is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 404, 'right status code';
 	}
 
 	$port = Mojo::IOLoop->generate_port;
@@ -60,10 +61,11 @@ EOF
 	});
 	
 	{
-		my $res = MojoCheckbot::check($ua, {
+		my $queue = {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
-		});
-		is $res->{code}, 200, 'right status code';
+		};
+		my $res = MojoCheckbot::check($ua, $queue);
+		is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 200, 'right status code';
 	}
 
 	$html = <<EOF;
@@ -148,10 +150,11 @@ EOF
 			});
 		});
 		
-		my $res = MojoCheckbot::check($ua, {
+		my $queue = {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://a:b\@localhost:$port/",
-		});
-		is $res->{code}, 200, 'right status code';
+		};
+		my $res = MojoCheckbot::check($ua, $queue);
+		is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 200, 'right status code';
 		is scalar @{$res->{queue}}, 12, 'right queue number';
 		is keys %{$res->{queue}->[0]}, 3, 'right key number';
 		is $res->{queue}->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;', 'right context';
@@ -254,11 +257,12 @@ EOF
 			});
 		});
 		
-		my $res = MojoCheckbot::check($ua, {
+		my $queue = {
 			$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
 			$MojoCheckbot::QUEUE_KEY_METHOD			=> 'get',
 			$MojoCheckbot::QUEUE_KEY_PARAM 			=> 'a=b&c=d'
-		});
+		};
+		my $res = MojoCheckbot::check($ua, $queue);
 	}
 
 1;
