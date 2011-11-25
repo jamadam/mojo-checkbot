@@ -1,6 +1,10 @@
 Revision history for mojo-checkbot
 
-0.33 2011/11/24
+0.34 2011/11/25
+
+0.33 2011/11/25
+  - Added mime type and size on report.
+  - Fixed small bug on authentication dialog
 
 0.32 2011/11/24
   - Mojolicious v2.31 is bundled.
