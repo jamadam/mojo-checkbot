@@ -33,6 +33,7 @@ our $VERSION = '0.33';
     our $QUEUE_KEY_DEPTH         = 11;
     our $QUEUE_KEY_HTML_ERROR    = 12;
     our $QUEUE_KEY_MIMETYPE      = 13;
+    our $QUEUE_KEY_SIZE          = 14;
     
     my @QUEUE_KEYS = (
         $QUEUE_KEY_CONTEXT,
@@ -332,7 +333,8 @@ our $VERSION = '0.33';
             $queue->{$QUEUE_KEY_DIALOG} = $dialog->{$QUEUE_KEY_DIALOG};
         }
         $queue->{$QUEUE_KEY_RES}        = $code;
-        $queue->{$QUEUE_KEY_MIMETYPE}   = $res->{type};
+        $queue->{$QUEUE_KEY_MIMETYPE}   = $type;
+        $queue->{$QUEUE_KEY_SIZE}       = $res->body_size;
         if ($html_error) {
             $queue->{$QUEUE_KEY_HTML_ERROR} = $html_error;
         }

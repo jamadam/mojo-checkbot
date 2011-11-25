@@ -185,6 +185,14 @@
 			</tr>
 			<tr>
 				<th>
+					Size
+				</th>
+				<td class="size">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th>
 					Depth
 				</th>
 				<td class="depth">
