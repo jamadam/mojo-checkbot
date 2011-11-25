@@ -32,6 +32,7 @@ our $VERSION = '0.33';
     our $QUEUE_KEY_PARENT        = 10;
     our $QUEUE_KEY_DEPTH         = 11;
     our $QUEUE_KEY_HTML_ERROR    = 12;
+    our $QUEUE_KEY_MIMETYPE      = 13;
     
     my @QUEUE_KEYS = (
         $QUEUE_KEY_CONTEXT,
@@ -46,6 +47,7 @@ our $VERSION = '0.33';
         $QUEUE_KEY_PARENT,
         $QUEUE_KEY_DEPTH,
         $QUEUE_KEY_HTML_ERROR,
+        $QUEUE_KEY_MIMETYPE,
     );
     
     my %options = (
@@ -188,6 +190,7 @@ our $VERSION = '0.33';
                         push(@$dialog, @{$res->{dialog}});
                     }
                     $queue->{$QUEUE_KEY_RES} = $res->{code};
+                    $queue->{$QUEUE_KEY_MIMETYPE} = $res->{type};
                     if ($res->{html_error}) {
                         $queue->{$QUEUE_KEY_HTML_ERROR} = $res->{html_error};
                     }
@@ -294,6 +297,7 @@ our $VERSION = '0.33';
         }
         my $res     = $tx->res;
         my $code    = $res->code;
+        my $type    = $res->headers->content_type;
         my $base    = $tx->req->url->userinfo(undef);
         if (! $code) {
             die $tx->error || 'Unknown error';
@@ -307,7 +311,6 @@ our $VERSION = '0.33';
         if ($code == 200 && _match_for_crawl($url) &&
                     (! $options{'depth'} ||
                     ($queue->{$QUEUE_KEY_DEPTH} || 0) < $options{'depth'})) {
-            my $type = $res->headers->content_type;
             if ($type && $type =~ qr{text/(html|xml)}) {
                 my $encode = guess_encoding($res) || 'utf-8';
                 my $body    = Encode::decode($encode, $res->body);
@@ -341,6 +344,7 @@ our $VERSION = '0.33';
         return {
             html_error => $html_error,
             code    => $code,
+            type    => $type,
             queue   => \@new_queues,
             dialog  => \@dialogs,
         };

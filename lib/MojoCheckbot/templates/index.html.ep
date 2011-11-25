@@ -177,6 +177,14 @@
 			</tr>
 			<tr>
 				<th>
+					MimeType
+				</th>
+				<td class="mimetype">
+					<textarea rows="1" cols="10"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th>
 					Depth
 				</th>
 				<td class="depth">
