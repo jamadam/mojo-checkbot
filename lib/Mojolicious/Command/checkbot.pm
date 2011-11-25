@@ -155,6 +155,8 @@ Mojolicious::Command::checkbot - checkbot command
 
 =head1 METHODS
 
+=head2 run
+
 =head1 SEE ALSO
 
 =cut

@@ -80,6 +80,10 @@ MojoCheckbot::FileCache represents file caches used by MojoCheckbot.
 
 =head1 METHODS
 
+=head2 MojoCheckbot::FileCache->new
+
+=head2 $instance->exists
+
 =head2 $instance->store
 
 Stores string into cache files.

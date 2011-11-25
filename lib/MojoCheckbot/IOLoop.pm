@@ -45,6 +45,12 @@ MojoCheckbot::IOLoop -
 This class inherits Mojo::IOLoop and extends a method blocked_recurring
 which is replacement of recurring for blocking next loop
 
+=head1 METHODS
+
+=head2 $self->blocked_recurring
+
+=head2 $self->drop
+
 =head1 AUTHOR
 
 Sugama Keita, E<lt>sugama@jamadam.comE<gt>
