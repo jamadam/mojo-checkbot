@@ -118,7 +118,7 @@ our $VERSION = '0.33';
         
         if ($options{'html-validate'}) {
             eval {
-                require 'XML/LibXML.pm';
+                require 'XML/LibXML.pm' ## no critic;
             };
             if (! $@) {
                 $xml_parser = XML::LibXML->new();

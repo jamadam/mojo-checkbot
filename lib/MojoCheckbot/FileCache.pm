@@ -1,4 +1,6 @@
 package MojoCheckbot::FileCache;
+use strict;
+use warnings;
 use Mojo::Base -base;
 use Carp 'croak';
 use Fcntl ':flock';

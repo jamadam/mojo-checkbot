@@ -1,4 +1,6 @@
 package MojoCheckbot::UserAgent;
+use strict;
+use warnings;
 use Mojo::Base 'Mojo::UserAgent';
 
     has userinfo        => sub {{}};

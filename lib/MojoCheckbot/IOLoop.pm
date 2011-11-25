@@ -1,4 +1,6 @@
 package MojoCheckbot::IOLoop;
+use strict;
+use warnings;
 use Mojo::Base 'Mojo::IOLoop';
 
 my %ids = ();

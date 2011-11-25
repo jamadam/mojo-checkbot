@@ -1,4 +1,6 @@
 package Mojolicious::Command::checkbot;
+use strict;
+use warnings;
 use Mojo::Base 'Mojolicious::Commands';
 
 use Getopt::Long 'GetOptions';
