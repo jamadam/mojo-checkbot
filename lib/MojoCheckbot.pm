@@ -59,12 +59,18 @@ our $VERSION = '0.33';
     my $fix;
     my $xml_parser;
 
+    ### ---
+    ### generate id for regume file name
+    ### ---
     sub cache_id {
         my @keys = qw{start match ua cookie timeout};
         my $seed = join("\t", map {$options{$_} || ''} @keys);
         return md5_sum($seed);
     }
     
+    ### ---
+    ### generate hash key for detecting fixed URLs
+    ### ---
     sub fix_key {
         my ($queue) = @_;
         my $context = $queue->{$QUEUE_KEY_CONTEXT};
@@ -81,6 +87,9 @@ our $VERSION = '0.33';
         }
     }
 
+    ### ---
+    ### startup for Mojolicious app
+    ### ---
     sub startup {
         my $self = shift;
         my $home2 = Mojo::Home->new($self->home);
@@ -259,6 +268,9 @@ our $VERSION = '0.33';
         });
     }
     
+    ### ---
+    ### process check queue
+    ### ---
     sub check {
         my ($ua, $queue) = @_;
         my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
@@ -334,6 +346,9 @@ our $VERSION = '0.33';
         };
     }
     
+    ### ---
+    ### Match a URL for crawling
+    ### ---
     sub _match_for_crawl {
         my ($url) = @_;
         if ($options{'match-for-crawl'}) {
@@ -353,6 +368,9 @@ our $VERSION = '0.33';
         return 1;
     }
     
+    ### ---
+    ### Match a URL for checking
+    ### ---
     sub _match_for_check {
         my ($url) = @_;
         if ($options{'match-for-check'}) {
@@ -379,6 +397,9 @@ our $VERSION = '0.33';
         return 1;
     }
     
+    ### ---
+    ### append queues to master queue array
+    ### ---
     sub append_queues {
         my ($base, $append_to, $urls) = @_;
         for my $entry (@$urls) {
@@ -403,6 +424,9 @@ our $VERSION = '0.33';
         }
     }
     
+    ### ---
+    ### Analize dome
+    ### ---
     sub _analize_dom {
         my $dom = shift;
         if (my $href = $dom->{href} || $dom->{src} ||
@@ -423,6 +447,9 @@ our $VERSION = '0.33';
         }
     }
     
+    ### ---
+    ### Analize dom for forms
+    ### ---
     sub _analize_form_dom {
         my $dom = shift;
         if (my $href = $dom->{action}) {
@@ -445,6 +472,9 @@ our $VERSION = '0.33';
         }
     }
     
+    ### ---
+    ### Collect URLs
+    ### ---
     sub collect_urls {
         my ($dom) = @_;
         my @array;
@@ -468,6 +498,9 @@ our $VERSION = '0.33';
         return @array;
     }
 
+    ### ---
+    ### Collect URLs from CSS
+    ### ---
     sub collect_urls_from_css {
         my $str = shift;
         $str =~ s{/\*.+?\*/}{}gs;
@@ -478,6 +511,9 @@ our $VERSION = '0.33';
         }} @urls;
     }
     
+    ### ---
+    ### Guess encoding for CSS
+    ### ---
     sub guess_encoding_css {
         my $res     = shift;
         my $type    = $res->headers->content_type;
@@ -488,6 +524,9 @@ our $VERSION = '0.33';
         return $charset;
     }
     
+    ### ---
+    ### Guess encoding
+    ### ---
     sub guess_encoding {
         my $res     = shift;
         my $type    = $res->headers->content_type;
@@ -503,6 +542,9 @@ our $VERSION = '0.33';
         return $charset;
     }
     
+    ### ---
+    ### Resolve href
+    ### ---
     sub resolve_href {
         my ($base, $href) = @_;
         if (! ref $base) {
@@ -530,6 +572,9 @@ our $VERSION = '0.33';
         return $new;
     }
     
+    ### ---
+    ### Validate HTML
+    ### ---
     sub validate_html {
         my $html = shift;
         eval {
