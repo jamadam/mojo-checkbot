@@ -63,13 +63,13 @@ our $VERSION = '0.34';
     
     my $fix;
     my $xml_parser;
-    my $json_parser = Mojo::JSON->new;
 
     ### ---
     ### generate id for regume file name
     ### ---
     sub cache_id {
-        my $seed = $json_parser->encode([
+        my $json_parser = Mojo::JSON->new;
+        return md5_sum($json_parser->encode([
             $options{start},
             $options{match},
             $options{ua},
@@ -79,8 +79,9 @@ our $VERSION = '0.34';
             $options{'match-for-crawl'},
             $options{'not-match-for-check'},
             $options{'not-match-for-crawl'},
-        ]);
-        return md5_sum($json_parser->encode($seed));
+            $options{'depth'},
+            $options{'html-validate'},
+        ]));
     }
     
     ### ---
