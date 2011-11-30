@@ -49,6 +49,7 @@ our $VERSION = '0.34';
         $QUEUE_KEY_DEPTH,
         $QUEUE_KEY_HTML_ERROR,
         $QUEUE_KEY_MIMETYPE,
+        $QUEUE_KEY_SIZE,
     );
     
     my %options = (
