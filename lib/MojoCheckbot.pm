@@ -12,6 +12,7 @@ use Mojo::Cookie::Response;
 use Mojo::Util qw{md5_sum html_escape};
 use Mojo::Base 'Mojolicious';
 use Mojo::Parameters;
+use Mojo::JSON;
 use Encode;
 use utf8;
 use MojoCheckbot::FileCache;
@@ -62,14 +63,24 @@ our $VERSION = '0.34';
     
     my $fix;
     my $xml_parser;
+    my $json_parser = Mojo::JSON->new;
 
     ### ---
     ### generate id for regume file name
     ### ---
     sub cache_id {
-        my @keys = qw{start match ua cookie timeout};
-        my $seed = join("\t", map {$options{$_} || ''} @keys);
-        return md5_sum($seed);
+        my $seed = $json_parser->encode([
+            $options{start},
+            $options{match},
+            $options{ua},
+            $options{cookie},
+            $options{timeout},
+            $options{'match-for-check'},
+            $options{'match-for-crawl'},
+            $options{'not-match-for-check'},
+            $options{'not-match-for-crawl'},
+        ]);
+        return md5_sum($json_parser->encode($seed));
     }
     
     ### ---
