@@ -93,4 +93,8 @@
 <public publicId="-//W3C//DTD SYNTHESIS 1.0//EN" uri="www.w3.org/TR/speech-synthesis/synthesis.dtd"/>
 <public publicId="-//W3C//DTD CCXML 1.0//EN" uri="www.w3.org/TR/ccxml/ccxml.dtd"/>
 
+<!-- XHTML 1.1 with HTML5 -->
+<public publicId="-//W3C//DTD XHTML 1.0 Strict with HTML5 microdata//EN" uri="www.nedprod.com/xhtml1-strict-with-html5-microdata.dtd"/>
+<public publicId="-//W3C//DTD XHTML 1.0 Transitional with HTML5 microdata//EN" uri="www.nedprod.com/xhtml1-strict-with-html5-microdata.dtd"/>
+
 </catalog>

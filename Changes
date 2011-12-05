@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
 0.34 2011/11/25
+  - Added experimental dtd for html5 in xhtml
 
 0.33 2011/11/25
   - Added mime type and size on report.

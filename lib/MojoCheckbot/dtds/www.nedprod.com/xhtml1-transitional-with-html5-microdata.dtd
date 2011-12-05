@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- xhtml1-transitional-with-html5-microdata.dtd
+(C) 2011 Niall Douglas http://www.nedproductions.biz/
+
+If you're reading this you probably agree with me that HTML5 shouldn't
+have broken XML compatibility. We have spent much of the past decade
+persuading HTML output to be machine readable in a intercompatible way
+and now we're suddenly ditching it because "HTML isn't XML" and now,
+apparently, we all need to use specialised parsers for HTML.
+
+Well I think that's lazy. My view is that if the W3C are going to be
+stupid about this, then those of us who care about being producing
+HTML which is fully legal XML need to extend XHTML where appropriate
+to include most of the fancy HTML5 features without the accompanying
+tag soup bullshit. That way we can adopt the fancy new features
+and keep XML sanity.
+
+So here below is an extension of XHTML 1.0 Transitional with HTML5
+microdata which is of course the new all singing, all dancing rich
+snippet specification format for all the major search engines (see
+schema.org). Replacing your XHTML DTD with this DTD turns on the
+new HTML5 microdata attributes for all HTML elements. It also adds
+the <time> tag as that's needed for microdata. With this DTD, your
+XHTML files can use the full power of HTML5 microdata and still
+fully validate.
+
+Useful additions to XHTML 1.0 Strict:
+ * The target attribute to <a>
+ * <link> and <meta> are now allowed as part of inline tags
+
+If you find any bugs, please do report them. Enjoy!
+
+-->
+
+<!ENTITY % XHTML.version  "-//W3C//DTD XHTML 1.0 Transitional with HTML5 microdata//EN" >
+<!ENTITY % NS.prefixed "IGNORE" >
+<!ENTITY % XHTML.prefix "" >
+
+
+
+
+
+
+<!-- Add in the time element from HTML5 by overriding the XHTML definitions -->
+
+<!-- redefine anything using %phrase.basic to permit time -->
+<!ENTITY % special.extra
+   "object | applet | img | map | iframe | meta | link">
+<!ENTITY % special.basic
+	"br | span | bdo">
+<!ENTITY % special
+   "%special.basic; | %special.extra;">
+<!ENTITY % fontstyle.extra "big | small | font | basefont">
+<!ENTITY % fontstyle.basic "tt | i | b | u
+                      | s | strike ">
+<!ENTITY % fontstyle "%fontstyle.basic; | %fontstyle.extra;">
+<!ENTITY % phrase.extra "sub | sup">
+<!ENTITY % phrase.basic "em | strong | dfn | code | q |
+                   samp | kbd | var | cite | abbr | acronym |
+                   time">
+<!ENTITY % phrase "%phrase.basic; | %phrase.extra;">
+<!ENTITY % inline.forms "input | select | textarea | label | button">
+<!ENTITY % misc.inline "ins | del | script">
+<!ENTITY % misc "noscript | %misc.inline;">
+<!ENTITY % inline "a | %special; | %fontstyle; | %phrase; | %inline.forms;">
+<!ENTITY % Inline "(#PCDATA | %inline; | %misc.inline;)*">
+<!ENTITY % heading "h1|h2|h3|h4|h5|h6">
+<!ENTITY % lists "ul | ol | dl | menu | dir">
+<!ENTITY % blocktext "pre | hr | blockquote | address | center | noframes">
+<!ENTITY % block
+    "p | %heading; | div | %lists; | %blocktext; | isindex |fieldset | table">
+<!ENTITY % Flow "(#PCDATA | %block; | form | %inline; | %misc;)*">
+<!ENTITY % a.content
+   "(#PCDATA | %special; | %fontstyle; | %phrase; | %inline.forms; | %misc.inline;)*">
+<!ENTITY % pre.content
+   "(#PCDATA | a | %special.basic; | %fontstyle.basic; | %phrase.basic; |
+	   %inline.forms; | %misc.inline;)*">
+<!ENTITY % form.content "(#PCDATA | %block; | %inline; | %misc;)*">
+<!ENTITY % button.content
+   "(#PCDATA | p | %heading; | div | %lists; | %blocktext; |
+      table | br | span | bdo | object | applet | img | map |
+      %fontstyle; | %phrase; | %misc;)*">
+
+<!ENTITY  % DATETIME "CDATA">
+<!ELEMENT time %Inline;>
+<!ATTLIST time
+ datetime %DATETIME; #IMPLIED
+ pubdate  (pubdate)  #FIXED "pubdate"
+>
+
+
+
+
+<!-- Include XHTML 1.0 Transitional -->
+<!ENTITY % xhtml1-transitional "INCLUDE" >
+<![%xhtml1-transitional;[
+<!ENTITY % xhtml1-transitional.dtd
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+            "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+%xhtml1-transitional.dtd;]]>
+
+
+
+
+
+
+<!-- Add the microdata extensions from http://www.w3.org/TR/html5/microdata.html -->
+<!ENTITY % microdata_scope_attrs
+ "itemscope (itemscope) #FIXED   'itemscope'
+  itemtype  %URI;       #IMPLIED
+  itemid    CDATA       #IMPLIED
+  itemref   IDREFS      #IMPLIED"
+  >
+
+<!ENTITY % microdata_property_attrs
+ "itemprop  CDATA       #IMPLIED"
+  >
+
+<!-- These are the block level elements in XHTML 1.0. They all get the microdata
+scope and property attributes -->
+<!ATTLIST body       %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST h1         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST h2         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST h3         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST h4         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST h5         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST h6         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST ul         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST ol         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST dl         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST menu       %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST dir        %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST pre        %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST hr         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST blockquote %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST address    %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST center     %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST noframes   %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST p          %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST div        %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST isindex    %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST fieldset   %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST table      %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST tr         %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST td         %microdata_scope_attrs; %microdata_property_attrs; >
+
+<!-- These are the inline level elements in XHTML 1.0. They get just the
+property attributes -->
+<!ATTLIST img        %microdata_property_attrs; >
+<!ATTLIST br         %microdata_property_attrs; >
+<!ATTLIST bdo        %microdata_property_attrs; >
+<!ATTLIST big        %microdata_property_attrs; >
+<!ATTLIST small      %microdata_property_attrs; >
+<!ATTLIST font       %microdata_property_attrs; >
+<!ATTLIST basefont   %microdata_property_attrs; >
+<!ATTLIST tt         %microdata_property_attrs; >
+<!ATTLIST i          %microdata_property_attrs; >
+<!ATTLIST b          %microdata_property_attrs; >
+<!ATTLIST u          %microdata_property_attrs; >
+<!ATTLIST s          %microdata_property_attrs; >
+<!ATTLIST strike     %microdata_property_attrs; >
+<!ATTLIST sub        %microdata_property_attrs; >
+<!ATTLIST sup        %microdata_property_attrs; >
+<!ATTLIST em         %microdata_property_attrs; >
+<!ATTLIST strong     %microdata_property_attrs; >
+<!ATTLIST dfn        %microdata_property_attrs; >
+<!ATTLIST code       %microdata_property_attrs; >
+<!ATTLIST queue      %microdata_property_attrs; >
+<!ATTLIST samp       %microdata_property_attrs; >
+<!ATTLIST kbd        %microdata_property_attrs; >
+<!ATTLIST var        %microdata_property_attrs; >
+<!ATTLIST cite       %microdata_property_attrs; >
+<!ATTLIST abbr       %microdata_property_attrs; >
+<!ATTLIST acronym    %microdata_property_attrs; >
+<!ATTLIST input      %microdata_property_attrs; >
+<!ATTLIST select     %microdata_property_attrs; >
+<!ATTLIST textarea   %microdata_property_attrs; >
+<!ATTLIST label      %microdata_property_attrs; >
+<!ATTLIST button     %microdata_property_attrs; >
+<!ATTLIST a          %microdata_property_attrs; >
+<!ATTLIST time       %microdata_property_attrs; >
+
+<!-- span, link and meta are very commonly used for scoping, so turn these
+on too -->
+<!ATTLIST span       %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST meta       %microdata_scope_attrs; %microdata_property_attrs; >
+<!ATTLIST link       %microdata_scope_attrs; %microdata_property_attrs; >
