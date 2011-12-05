@@ -310,9 +310,13 @@ our $VERSION = '0.34';
                 $QUEUE_KEY_LITERAL_URI  => $location,
             }]);
         }
-        if ($code == 200 && _match_for_crawl($url) &&
-                    (! $options{'depth'} ||
-                    ($queue->{$QUEUE_KEY_DEPTH} || 0) < $options{'depth'})) {
+        if ($code == 200 && _match_for_crawl($url)) {
+            my $recursion = 0;
+            if (! $options{'depth'}) {
+                $recursion = 1;
+            } elsif (($queue->{$QUEUE_KEY_DEPTH} || 0) < $options{'depth'}) {
+                $recursion = 1;
+            }
             if ($type && $type =~ qr{text/(html|xml)}) {
                 my $encode = guess_encoding($res) || 'utf-8';
                 my $body    = Encode::decode($encode, $res->body);
@@ -320,19 +324,23 @@ our $VERSION = '0.34';
                 if (my $base_tag = $dom->at('base')) {
                     $base = Mojo::URL->new($base_tag->attrs('href'));
                 }
-                my @a       = collect_urls($dom);
-                my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
-                my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
-                append_queues($base, \@new_queues, \@q);
-                append_queues($base, \@dialogs, \@dialog);
+                if ($recursion) {
+                    my @a       = collect_urls($dom);
+                    my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
+                    my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
+                    append_queues($base, \@new_queues, \@q);
+                    append_queues($base, \@dialogs, \@dialog);
+                }
                 if ($options{'html-validate'}) {
                     $html_error = validate_html($body) ? 'ng' : 'ok';
                 }
             } elsif ($type && $type =~ qr{text/(text|css)}) {
-                my $encode  = guess_encoding_css($res) || 'utf-8';
-                my $body    = Encode::decode($encode, $res->body);
-                my @urls    = collect_urls_from_css($body);
-                append_queues($base, \@new_queues, \@urls);
+                if ($recursion) {
+                    my $encode  = guess_encoding_css($res) || 'utf-8';
+                    my $body    = Encode::decode($encode, $res->body);
+                    my @urls    = collect_urls_from_css($body);
+                    append_queues($base, \@new_queues, \@urls);
+                }
             }
         } elsif ($code == 401) {
             my $dialog = clone($queue);
