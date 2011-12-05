@@ -1,5 +1,7 @@
 Revision history for mojo-checkbot
 
+0.35 2011/12/05
+
 0.34 2011/12/05
   - Added experimental dtd for html5 in xhtml
   - Fixed a bug that html validate hasn't work when depth limited to 1

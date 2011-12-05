@@ -19,7 +19,7 @@ use MojoCheckbot::FileCache;
 use MojoCheckbot::IOLoop;
 use MojoCheckbot::UserAgent;
 use Clone qw(clone);
-our $VERSION = '0.34';
+our $VERSION = '0.35';
     
     our $QUEUE_KEY_CONTEXT       = 1;
     our $QUEUE_KEY_LITERAL_URI   = 2;
