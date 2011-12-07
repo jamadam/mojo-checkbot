@@ -160,6 +160,8 @@ $stream->on(read => sub { $buffer .= pop });
 $stream->write('hello');
 ok MojoCheckbot::IOLoop->stream($id), 'stream exists';
 MojoCheckbot::IOLoop->start;
+MojoCheckbot::IOLoop->timer('0.25' => sub { MojoCheckbot::IOLoop->stop });
+MojoCheckbot::IOLoop->start;
 ok !MojoCheckbot::IOLoop->stream($id), 'stream does not exist anymore';
 is $buffer, 'acceptedhelloworld', 'right result';
 

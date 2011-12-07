@@ -275,10 +275,7 @@ sub to {
     else {
 
       # Shortcut and defaults
-      if (ref $_[1] eq 'HASH') {
-        $shortcut = shift;
-        $defaults = shift;
-      }
+      if (ref $_[1] eq 'HASH') { ($shortcut, $defaults) = (shift, shift) }
 
       # Just defaults
       else { $defaults = {@_} }
@@ -535,9 +532,6 @@ sub _generate_route {
   return $route;
 }
 
-# "Stop being such a spineless jellyfish!
-#  You know full well I'm more closely related to the sea cucumber.
-#  Not where it counts."
 sub _walk_stack {
   my ($self, $c) = @_;
 
@@ -627,8 +621,7 @@ Mojolicious::Routes - Always find your destination with routes
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Routes> is a very powerful implementation of the famous routes
-pattern and the core of the L<Mojolicious> web framework.
+L<Mojolicious::Routes> is the core of the L<Mojolicious> web framework.
 See L<Mojolicious::Guides::Routing> for more.
 
 =head1 ATTRIBUTES
@@ -698,7 +691,7 @@ Allow C<bridge> semantics for this route.
   my $namespace = $r->namespace;
   $r            = $r->namespace('Foo::Bar::Controller');
 
-Namespace to search for controllers.
+Namespace used by C<dispatch> to search for controllers.
 
 =head2 C<parent>
 

@@ -1,7 +1,7 @@
 package Mojo::EventEmitter;
 use Mojo::Base -base;
 
-use Scalar::Util 'weaken';
+use Scalar::Util qw/blessed weaken/;
 
 use constant DEBUG => $ENV{MOJO_EVENTEMITTER_DEBUG} || 0;
 
@@ -12,8 +12,33 @@ use constant DEBUG => $ENV{MOJO_EVENTEMITTER_DEBUG} || 0;
 #  Are we there yet?
 #  No
 #  ...Where are we going?"
-sub emit      { shift->_emit(0, @_) }
-sub emit_safe { shift->_emit(1, @_) }
+sub emit {
+  my ($self, $name) = (shift, shift);
+  if (my $s = $self->{events}->{$name}) {
+    warn 'EMIT ', blessed($self), " $name (", scalar(@$s), ")\n" if DEBUG;
+    for my $cb (@$s) { $self->$cb(@_) }
+  }
+  elsif (DEBUG) { warn 'EMIT ', blessed($self), " $name (0)\n" }
+  return $self;
+}
+
+sub emit_safe {
+  my ($self, $name) = (shift, shift);
+
+  if (my $s = $self->{events}->{$name}) {
+    warn 'SAFE ', blessed($self), " $name (", scalar(@$s), ")\n" if DEBUG;
+    for my $cb (@$s) {
+      if (!eval { $self->$cb(@_); 1 } && $name ne 'error') {
+        $self->once(error => sub { warn $_[1] })
+          unless $self->has_subscribers('error');
+        $self->emit_safe('error', qq/Event "$name" failed: $@/);
+      }
+    }
+  }
+  elsif (DEBUG) { warn 'SAFE ', blessed($self), " $name (0)\n" }
+
+  return $self;
+}
 
 sub has_subscribers { scalar @{shift->subscribers(shift)} }
 
@@ -54,30 +79,6 @@ sub unsubscribe {
 
   # One
   $self->{events}->{$name} = [grep { $cb ne $_ } @{$self->{events}->{$name}}];
-
-  return $self;
-}
-
-sub _emit {
-  my $self = shift;
-  my $safe = shift;
-  return $self unless exists $self->{events}->{my $name = shift};
-
-  # Emit event sequentially to all subscribers
-  my @subscribers = @{$self->subscribers($name)};
-  warn "EMIT $name (" . scalar(@subscribers) . ")\n" if DEBUG;
-  for my $cb (@subscribers) {
-
-    # Unsafe
-    if (!$safe) { $self->$cb(@_) }
-
-    # Safe
-    elsif (!eval { $self->$cb(@_); 1 } && $name ne 'error') {
-      $self->once(error => sub { warn $_[1] })
-        unless $self->has_subscribers('error');
-      $self->emit_safe('error', qq/Event "$name" failed: $@/);
-    }
-  }
 
   return $self;
 }

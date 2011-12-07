@@ -53,10 +53,8 @@ sub _io {
 
 # "It's great! We can do *anything* now that Science has invented Magic."
 sub _timer {
-  my $self      = shift;
-  my $after     = shift || '0.0001';
-  my $recurring = shift;
-  my $cb        = shift;
+  my ($self, $after, $recurring, $cb) = @_;
+  $after ||= '0.0001';
 
   my $id = $self->SUPER::_timer($cb);
   weaken $self;
@@ -91,6 +89,10 @@ Mojo::IOWatcher::EV - EV non-blocking I/O watcher
 L<Mojo::IOWatcher::EV> is a minimalistic non-blocking I/O watcher with
 C<libev> support.
 Note that this module is EXPERIMENTAL and might change without warning!
+
+=head1 EVENTS
+
+L<Mojo::IOWatcher::EV> inherits all events from L<Mojo::IOWatcher>.
 
 =head1 METHODS
 

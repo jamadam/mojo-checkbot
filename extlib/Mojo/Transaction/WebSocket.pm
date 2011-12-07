@@ -74,7 +74,7 @@ sub build_frame {
   }
 
   if (DEBUG) {
-    warn 'HEAD: ' . unpack('B*', $frame) . "\n";
+    warn 'HEAD: ', unpack('B*', $frame), "\n";
     warn "OPCODE: $op\n";
   }
 
@@ -182,7 +182,7 @@ sub parse_frame {
 
   # Check if whole packet has arrived
   my $masked = vec($head, 1, 8) & 0b10000000;
-  return if length $clone < ($len + $hlen + $masked ? 4 : 0);
+  return if length $clone < ($len + $hlen + ($masked ? 4 : 0));
   substr $clone, 0, $hlen, '';
 
   # Payload
@@ -314,7 +314,7 @@ sub server_write {
   return $write;
 }
 
-sub _challenge { b64_encode(sha1_bytes(pop() . GUID), '') }
+sub _challenge { b64_encode(sha1_bytes((pop() || '') . GUID), '') }
 
 sub _xor_mask {
   my ($input, $mask) = @_;
@@ -344,8 +344,7 @@ Mojo::Transaction::WebSocket - WebSocket transaction container
 =head1 DESCRIPTION
 
 L<Mojo::Transaction::WebSocket> is a container for WebSocket transactions as
-described in
-L<http://www.ietf.org/id/draft-ietf-hybi-thewebsocketprotocol-17.txt>.
+described in RFC 6455.
 Note that this module is EXPERIMENTAL and might change without warning!
 
 =head1 EVENTS

@@ -220,7 +220,10 @@ Nameless routes get an automatically generated one assigned that is simply
 equal to the route itself without non-word characters.
 
   # /
-  get '/' => 'index';
+  get '/' => sub {
+    my $self = shift;
+    $self->render;
+  } => 'index';
 
   # /hello
   get '/hello';
@@ -228,7 +231,7 @@ equal to the route itself without non-word characters.
   __DATA__
 
   @@ index.html.ep
-  <%= link_to Hello => 'hello' %>.
+  <%= link_to Hello  => 'hello' %>.
   <%= link_to Reload => 'index' %>.
 
   @@ hello.html.ep
@@ -658,6 +661,12 @@ C<250KB> will be automatically streamed into a temporary file.
 
   any '/upload' => sub {
     my $self = shift;
+
+    # Check file size
+    return $self->render(text => 'File is too big.', status => 200)
+      if $self->req->is_limit_exceeded;
+
+    # Process uploaded file
     if (my $example = $self->req->upload('example')) {
       my $size = $example->size;
       my $name = $example->filename;
