@@ -9,10 +9,10 @@ mojo-checkbot 0.35 beta
 
 ## DESCRIPTION
 
-mojo-checkbot is a Link checker for website. Once you start the daemon with
-a URL option, the crawler automatically collects the status codes for links and
-makes the report view available at http://127.0.0.1:3000. The report will
-automatically be updated until the jobs queue is empty.
+mojo-checkbot is a Link checker & HTML validator for websites. Once you start
+the daemon with a URL option, the crawler automatically collects the status
+codes for links and makes the report view available at http://127.0.0.1:3000.
+The report will automatically be updated until the jobs queue is empty.
 
 This requires Perl v5.10.1 or higher. If not, please upgrade, or google
 'perlbrew'.
