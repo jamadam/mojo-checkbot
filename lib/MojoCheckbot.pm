@@ -595,11 +595,10 @@ our $VERSION = '0.35';
     ### Validate HTML
     ### ---
     sub validate_html {
-        my $html = shift;
-        eval {
-            $xml_parser->parse_string($html);
+        my $valid = eval {
+            XML::LibXML->load_xml(string => shift)->validate();
         };
-        return $@;
+        return $valid == 1 ? undef : $@;
     }
 
 1;
