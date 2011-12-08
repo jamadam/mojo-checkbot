@@ -132,7 +132,7 @@
 					Context
 				</th>
 				<td class="context">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -140,7 +140,7 @@
 					URI(Literal)
 				</th>
 				<td class="literalURI">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -148,7 +148,7 @@
 					URI(Resolved)
 				</th>
 				<td class="resolvedURI">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -156,7 +156,7 @@
 					Parameter
 				</th>
 				<td class="parameter">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -164,7 +164,7 @@
 					Status
 				</th>
 				<td class="statusCode">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -172,7 +172,7 @@
 					Referer
 				</th>
 				<td class="referer">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -180,7 +180,7 @@
 					MimeType
 				</th>
 				<td class="mimetype">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -188,7 +188,7 @@
 					Size
 				</th>
 				<td class="size">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -196,7 +196,7 @@
 					Depth
 				</th>
 				<td class="depth">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 			<tr>
@@ -204,7 +204,7 @@
 					HTML Parse Error
 				</th>
 				<td class="htmlError">
-					<textarea rows="1" cols="10"></textarea>
+					<textarea readonly="readonly" rows="1" cols="10"></textarea>
 				</td>
 			</tr>
 		</table>
