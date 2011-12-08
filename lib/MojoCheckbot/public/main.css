@@ -233,17 +233,25 @@ body {
             }
 .html_ok {
     display:inline-block;
-    width:16px;
     height:16px;
     background-image:url(./ok.png);
-    text-indent:-9999px;
     cursor:pointer;
 }
 .html_ng {
     display:inline-block;
-    width:16px;
     height:16px;
     background-image:url(./ng.png);
-    text-indent:-9999px;
     cursor:pointer;
+}
+.htmlError span {
+    padding-left:20px;
+    background-repeat:no-repeat;
+}
+#result .html_ok {
+    text-indent:-9999px;
+    width:16px;
+}
+#result .html_ng {
+    text-indent:-9999px;
+    width:16px;
 }
