@@ -598,7 +598,7 @@ our $VERSION = '0.36';
         my $valid = eval {
             XML::LibXML->load_xml(string => shift)->validate();
         };
-        return $valid == 1 ? undef : $@;
+        return $valid ? undef : $@;
     }
 
 1;
