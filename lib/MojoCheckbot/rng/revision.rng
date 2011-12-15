@@ -12,7 +12,7 @@
   <define name="edit.attrs.datetime">
     <attribute name="datetime">
       <choice>
-        <ref name="common.data.datetime"/>
+        <!-- ref name="common.data.datetime"/ -->
         <ref name="common.data.date"/>
       </choice>
     </attribute>

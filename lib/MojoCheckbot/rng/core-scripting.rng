@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
   <!-- ##################################################################### -->
   <define name="script.elem.embedded">
     <a:documentation> RELAX NG Schema for HTML 5: Core Scripting                        #</a:documentation>
@@ -60,7 +60,7 @@
   </define>
   <define name="script.attrs.src">
     <attribute name="src">
-      <ref name="common.data.uri.non-empty"/>
+      <!-- ref name="common.data.uri.non-empty"/ -->
     </attribute>
   </define>
   <define name="script.attrs.defer">
@@ -84,13 +84,13 @@
   </define>
   <define name="script.attrs.type">
     <attribute name="type">
-      <ref name="common.data.mimetype"/>
+      <!-- ref name="common.data.mimetype"/ -->
       <!-- XXX without charset parameter! -->
     </attribute>
   </define>
   <define name="script.attrs.charset">
     <attribute name="charset">
-      <ref name="common.data.charset"/>
+      <!-- ref name="common.data.charset"/ -->
     </attribute>
   </define>
   <define name="script.attrs.language">
@@ -348,277 +348,277 @@
   </define>
   <define name="scripting.attr.onabort">
     <attribute name="onabort">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onblur">
     <attribute name="onblur">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.oncanplay">
     <attribute name="oncanplay">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.oncanplaythrough">
     <attribute name="oncanplaythrough">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onchange">
     <attribute name="onchange">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onclick">
     <attribute name="onclick">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.oncontextmenu">
     <attribute name="oncontextmenu">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondblclick">
     <attribute name="ondblclick">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondrag">
     <attribute name="ondrag">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondragend">
     <attribute name="ondragend">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondragenter">
     <attribute name="ondragenter">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondragleave">
     <attribute name="ondragleave">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondragover">
     <attribute name="ondragover">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondragstart">
     <attribute name="ondragstart">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondrop">
     <attribute name="ondrop">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ondurationchange">
     <attribute name="ondurationchange">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onemptied">
     <attribute name="onemptied">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onended">
     <attribute name="onended">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onerror">
     <attribute name="onerror">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onfocus">
     <attribute name="onfocus">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onformchange">
     <attribute name="onformchange">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onforminput">
     <attribute name="onforminput">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.oninput">
     <attribute name="oninput">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.oninvalid">
     <attribute name="oninvalid">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onkeydown">
     <attribute name="onkeydown">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onkeypress">
     <attribute name="onkeypress">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onkeyup">
     <attribute name="onkeyup">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onload">
     <attribute name="onload">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onloadeddata">
     <attribute name="onloadeddata">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onloadedmetadata">
     <attribute name="onloadedmetadata">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onloadstart">
     <attribute name="onloadstart">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onmousedown">
     <attribute name="onmousedown">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onmousemove">
     <attribute name="onmousemove">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onmouseout">
     <attribute name="onmouseout">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onmouseover">
     <attribute name="onmouseover">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onmouseup">
     <attribute name="onmouseup">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onmousewheel">
     <attribute name="onmousewheel">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onpause">
     <attribute name="onpause">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onplay">
     <attribute name="onplay">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onplaying">
     <attribute name="onplaying">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onprogress">
     <attribute name="onprogress">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onratechange">
     <attribute name="onratechange">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onreadystatechange">
     <attribute name="onreadystatechange">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onreset">
     <attribute name="onreset">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onscroll">
     <attribute name="onscroll">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onseeked">
     <attribute name="onseeked">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onseeking">
     <attribute name="onseeking">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onselect">
     <attribute name="onselect">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onshow">
     <attribute name="onshow">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onstalled">
     <attribute name="onstalled">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onsubmit">
     <attribute name="onsubmit">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onsuspend">
     <attribute name="onsuspend">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.ontimeupdate">
     <attribute name="ontimeupdate">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onvolumechange">
     <attribute name="onvolumechange">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
   <define name="scripting.attr.onwaiting">
     <attribute name="onwaiting">
-      <ref name="common.data.functionbody"/>
+      <!-- ref name="common.data.functionbody"/ -->
     </attribute>
   </define>
 </grammar>

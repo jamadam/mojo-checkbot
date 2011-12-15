@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
   <!-- ##################################################################### -->
   <define name="p.elem">
     <a:documentation> RELAX NG Schema for HTML 5: Basic Prose Markup                    #</a:documentation>

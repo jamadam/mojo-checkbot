@@ -201,9 +201,9 @@
   <define name="common.attrs.dir">
     <attribute name="dir">
       <choice>
-        <value type="string" datatypeLibrary="http://whattf.org/datatype-draft">ltr</value>
-        <value type="string" datatypeLibrary="http://whattf.org/datatype-draft">rtl</value>
-        <value type="string" datatypeLibrary="http://whattf.org/datatype-draft">auto</value>
+        <value type="string">ltr</value>
+        <value type="string">rtl</value>
+        <value type="string">auto</value>
       </choice>
     </attribute>
   </define>
@@ -275,7 +275,7 @@
   <!-- REVISIT move style to a module and bundle tabindex with ARIA -->
   <define name="common.attrs.accesskey">
     <attribute name="accesskey">
-      <ref name="common.data.keylabellist"/>
+      <!-- ref name="common.data.keylabellist"/ -->
     </attribute>
   </define>
   <define name="common.attrs.other">
@@ -292,12 +292,12 @@
       </zeroOrMore>
     </list>
   </define>
-  <define name="common.data.browsing-context">
-    <data type="browsing-context" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.browsing-context-or-keyword">
-    <data type="browsing-context-or-keyword" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+  <!-- define name="common.data.browsing-context">
+    <data type="browsing-context"/>
+  </define -->
+  <!-- define name="common.data.browsing-context-or-keyword">
+    <data type="browsing-context-or-keyword"/>
+  </define -->
   <!--
     		xsd:string {
     			pattern = "()|([^_].*)|(_[bB][lL][aA][nN][kK])|(_[sS][eE][lL][fF])|(_[pP][aA][rR][eE][nN][tT])|(_[tT][oO][pP])"
@@ -305,7 +305,7 @@
   -->
   <define name="common.data.id">
     <a:documentation>IDs and IDREFs</a:documentation>
-    <data type="ID" datatypeLibrary="http://whattf.org/datatype-draft"/>
+    <data type="ID"/>
   </define>
   <!--
     		xsd:string {
@@ -313,18 +313,18 @@
     		}
   -->
   <define name="common.data.idref">
-    <data type="IDREF" datatypeLibrary="http://whattf.org/datatype-draft"/>
+    <data type="IDREF"/>
   </define>
   <define name="common.data.idrefs">
-    <data type="IDREFS" datatypeLibrary="http://whattf.org/datatype-draft"/>
+    <data type="IDREFS"/>
   </define>
   <define name="common.data.name">
-    <data type="ID" datatypeLibrary="http://whattf.org/datatype-draft"/>
+    <data type="ID"/>
   </define>
   <!-- FIXME -->
-  <define name="common.data.hash-name">
-    <data type="hash-name" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+  <!-- define name="common.data.hash-name">
+    <data type="hash-name"/>
+  </define -->
   <!--
     		xsd:string {
     			pattern = "#.+"
@@ -332,24 +332,24 @@
   -->
   <define name="common.data.integer">
     <a:documentation>Numerical</a:documentation>
-    <data type="integer" datatypeLibrary="http://whattf.org/datatype-draft"/>
+    <data type="integer"/>
   </define>
   <!--
     		xsd:string {
     			pattern = "-?[0-9]+"
     		}
   -->
-  <define name="common.data.integer.positive">
-    <data type="integer-positive" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+  <!-- define name="common.data.integer.positive">
+    <data type="integer-positive"/>
+  </define -->
   <!--
     		xsd:string {
     			pattern = "0*[1-9][0-9]*"
     		}
   -->
-  <define name="common.data.integer.non-negative">
-    <data type="integer-non-negative" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+  <!-- define name="common.data.integer.non-negative">
+    <data type="integer-non-negative"/>
+  </define -->
   <!--
     		xsd:string {
     			pattern = "[0-9]+"
@@ -362,38 +362,38 @@
     		}
   -->
   <define name="common.data.float">
-    <data type="float" datatypeLibrary="http://whattf.org/datatype-draft"/>
+    <data type="float"/>
   </define>
   <!--
     		xsd:string {
     			pattern = "-?[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?"
     		}
   -->
-  <define name="common.data.float.positive">
-    <data type="float-positive" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+  <!-- define name="common.data.float.positive">
+    <data type="float-positive"/>
+  </define -->
   <!--
     		xsd:string {
     			pattern = "(0*[1-9][0-9]*(\.[0-9]+)?)|([0-9]+(\.0*[1-9][0-9]*)?)([eE]-?[0-9]+)?"
     		}
   -->
-  <define name="common.data.float.non-negative">
-    <data type="float-non-negative" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+  <!-- define name="common.data.float.non-negative">
+    <data type="float-non-negative"/>
+  </define -->
   <!--
     		xsd:string {
     			pattern = "[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?"
     		}
   -->
-  <define name="common.data.datetime">
+  <!-- define name="common.data.datetime">
     <a:documentation>Temporal</a:documentation>
-    <data type="datetime-tz" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.date-or-time">
-    <data type="date-or-time" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+    <data type="datetime-tz"/>
+  </define -->
+  <!-- define name="common.data.date-or-time">
+    <data type="date-or-time"/>
+  </define -->
   <define name="common.data.date">
-    <data type="date" datatypeLibrary="http://whattf.org/datatype-draft"/>
+    <data type="date"/>
   </define>
   <define name="common.data.uri">
     <a:documentation>IRIs</a:documentation>
@@ -402,7 +402,7 @@
       space characters (which are: space, tab, LF, FF, CR)
     -->
     <choice>
-      <data type="iri-ref" datatypeLibrary="http://whattf.org/datatype-draft"/>
+      <!-- data type="iri-ref"/ -->
       <data type="string">
         <param name="pattern">[ 
 -&#xD;]*</param>
@@ -417,19 +417,19 @@
       ever gets evaluated.
     -->
   </define>
-  <define name="common.data.uri.non-empty">
-    <data type="iri-ref" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.uris">
+  <!-- define name="common.data.uri.non-empty">
+    <data type="iri-ref"/>
+  </define -->
+  <!-- define name="common.data.uris">
     <list>
       <zeroOrMore>
-        <data type="iri-ref" datatypeLibrary="http://whattf.org/datatype-draft"/>
+        <data type="iri-ref"/>
       </zeroOrMore>
     </list>
-  </define>
-  <define name="common.data.uri.absolute">
-    <data type="iri" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+  </define -->
+  <!-- define name="common.data.uri.absolute">
+    <data type="iri"/>
+  </define -->
   <define name="common.data.sizes">
     <a:documentation>&lt;link type='icon'&gt; sizes</a:documentation>
     <!-- 		list { w:sizes } -->
@@ -441,57 +441,57 @@
       </oneOrMore>
     </list>
   </define>
-  <define name="common.data.mimetype">
+  <!-- define name="common.data.mimetype">
     <a:documentation>MIME types</a:documentation>
-    <data type="mime-type" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.charset">
+    <data type="mime-type"/>
+  </define -->
+  <!-- define name="common.data.charset">
     <a:documentation>Encodings</a:documentation>
-    <data type="charset" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.meta-charset">
-    <data type="meta-charset" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.refresh">
+    <data type="charset"/>
+  </define -->
+  <!-- define name="common.data.meta-charset">
+    <data type="meta-charset"/>
+  </define -->
+  <!-- define name="common.data.refresh">
     <a:documentation>Refresh</a:documentation>
-    <data type="refresh" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+    <data type="refresh"/>
+  </define -->
   <define name="common.data.default-style">
     <a:documentation>Default style</a:documentation>
     <data type="string" datatypeLibrary=""/>
   </define>
   <!-- 		w:default-style -->
-  <define name="common.data.mediaquery">
+  <!-- define name="common.data.mediaquery">
     <a:documentation>Media Queries</a:documentation>
-    <data type="media-query" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+    <data type="media-query"/>
+  </define -->
   <define name="common.data.langcode">
     <a:documentation>Language Codes</a:documentation>
     <choice>
-      <value type="string" datatypeLibrary="http://whattf.org/datatype-draft"/>
-      <data type="language" datatypeLibrary="http://whattf.org/datatype-draft"/>
+      <value type="string"/>
+      <data type="language"/>
     </choice>
   </define>
-  <define name="common.data.keylabellist">
+  <!-- define name="common.data.keylabellist">
     <a:documentation>List of Key Labels</a:documentation>
-    <data type="keylabellist" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.microdata-properties">
+    <data type="keylabellist"/>
+  </define -->
+  <!-- define name="common.data.microdata-properties">
     <a:documentation>Microdata Properties</a:documentation>
     <list>
       <oneOrMore>
-        <data type="microdata-property" datatypeLibrary="http://whattf.org/datatype-draft"/>
+        <data type="microdata-property"/>
       </oneOrMore>
     </list>
-  </define>
-  <define name="common.data.zero">
+  </define -->
+  <!-- define name="common.data.zero">
     <a:documentation>Zero</a:documentation>
-    <data type="zero" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
-  <define name="common.data.functionbody">
+    <data type="zero"/>
+  </define -->
+  <!-- define name="common.data.functionbody">
     <a:documentation>ECMAScript FunctionBody</a:documentation>
-    <data type="functionbody" datatypeLibrary="http://whattf.org/datatype-draft"/>
-  </define>
+    <data type="functionbody"/>
+  </define -->
   <!-- ##################################################################### -->
   <!-- ##################################################################### -->
   <define name="common-form.attrs.form">
