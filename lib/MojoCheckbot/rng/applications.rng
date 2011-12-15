@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <define name="common.attrs.interact" combine="interleave">
+    <a:documentation> RELAX NG Schema for HTML 5: Web Application Features              #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>Additions to Common Attributes</a:documentation>
+    <interleave>
+      <optional>
+        <ref name="common.attrs.contextmenu"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.contenteditable"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.draggable"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.dropzone"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.hidden"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.spellcheck"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="common.attrs.other" combine="interleave">
+    <ref name="common.attrs.interact"/>
+  </define>
+  <define name="common.attrs.contextmenu">
+    <a:documentation>Context Menu: contextmenu</a:documentation>
+    <attribute name="contextmenu">
+      <ref name="common.data.idref"/>
+    </attribute>
+  </define>
+  <define name="common.attrs.contenteditable">
+    <a:documentation>Editable Content: contenteditable</a:documentation>
+    <attribute name="contenteditable">
+      <choice>
+        <value type="string">true</value>
+        <value type="string">false</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="common.attrs.draggable">
+    <a:documentation>Draggable Element: draggable</a:documentation>
+    <attribute name="draggable">
+      <choice>
+        <value type="string">true</value>
+        <value type="string">false</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="common.attrs.dropzone">
+    <a:documentation>Dropzone: dropzone</a:documentation>
+    <attribute name="dropzone">
+      <list>
+        <zeroOrMore>
+          <choice>
+            <data type="string" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+              <param name="pattern">[sS]:.+</param>
+            </data>
+            <data type="string" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+              <param name="pattern">[fF]:.+</param>
+            </data>
+          </choice>
+        </zeroOrMore>
+        <optional>
+          <choice>
+            <value type="string">copy</value>
+            <value type="string">move</value>
+            <value type="string">link</value>
+          </choice>
+        </optional>
+        <zeroOrMore>
+          <choice>
+            <data type="string" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+              <param name="pattern">[sS]:.+</param>
+            </data>
+            <data type="string" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+              <param name="pattern">[fF]:.+</param>
+            </data>
+          </choice>
+        </zeroOrMore>
+      </list>
+    </attribute>
+  </define>
+  <define name="common.attrs.hidden">
+    <a:documentation>Hidden Element: hidden</a:documentation>
+    <attribute name="hidden">
+      <choice>
+        <value type="string">hidden</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="common.attrs.spellcheck">
+    <a:documentation>Spellchecking and grammar checking: spellcheck</a:documentation>
+    <attribute name="spellcheck">
+      <choice>
+        <value type="string">true</value>
+        <value type="string">false</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="html.attrs.manifest">
+    <a:documentation>Application Cache: manifest</a:documentation>
+    <attribute name="manifest">
+      <ref name="common.data.uri.non-empty"/>
+    </attribute>
+  </define>
+  <define name="html.attrs" combine="interleave">
+    <optional>
+      <ref name="html.attrs.manifest"/>
+    </optional>
+  </define>
+  <define name="progress.elem">
+    <a:documentation>Progess Indicator: &lt;progress&gt;</a:documentation>
+    <element name="progress">
+      <interleave>
+        <ref name="progress.inner"/>
+        <ref name="progress.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="progress.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="progress.attrs.value"/>
+      </optional>
+      <optional>
+        <ref name="progress.attrs.max"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="progress.attrs.value">
+    <attribute name="value">
+      <ref name="common.data.float.non-negative"/>
+    </attribute>
+  </define>
+  <define name="progress.attrs.max">
+    <attribute name="max">
+      <ref name="common.data.float.positive"/>
+    </attribute>
+  </define>
+  <define name="progress.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <!-- Cannot enforce textContent format here -->
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="progress.elem"/>
+  </define>
+  <define name="command.command.elem">
+    <a:documentation>Command with an associated action: &lt;command type='command'&gt;</a:documentation>
+    <element name="command">
+      <interleave>
+        <ref name="command.inner"/>
+        <ref name="command.command.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="command.command.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="command.command.attrs.type"/>
+      </optional>
+      <ref name="common-command.attrs"/>
+    </interleave>
+  </define>
+  <define name="command.command.attrs.type">
+    <attribute name="type">
+      <value type="string">command</value>
+    </attribute>
+  </define>
+  <define name="command.elem">
+    <ref name="command.command.elem"/>
+  </define>
+  <define name="command.radio.elem">
+    <a:documentation>Selection of one item from a list of items: &lt;command type='radio'&gt;</a:documentation>
+    <element name="command">
+      <interleave>
+        <ref name="command.inner"/>
+        <ref name="command.radio.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="command.radio.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <interleave>
+        <ref name="command.radio.attrs.type"/>
+        <ref name="command.radio.attrs.radiogroup"/>
+        <optional>
+          <!-- REVISIT taking liberties here -->
+          <ref name="command.radio.attrs.checked"/>
+        </optional>
+      </interleave>
+      <ref name="common-command.attrs"/>
+    </interleave>
+  </define>
+  <define name="command.radio.attrs.type">
+    <attribute name="type">
+      <value type="string">radio</value>
+    </attribute>
+  </define>
+  <define name="command.radio.attrs.radiogroup">
+    <attribute name="radiogroup">
+      <data type="string" datatypeLibrary=""/>
+      <!-- REVISIT need special format here? -->
+    </attribute>
+  </define>
+  <define name="command.radio.attrs.checked">
+    <attribute name="checked">
+      <choice>
+        <value type="string">checked</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="command.elem" combine="choice">
+    <ref name="command.radio.elem"/>
+  </define>
+  <define name="command.checkbox.elem">
+    <a:documentation>State or option that can be toggled: &lt;command type='checkbox'&gt;</a:documentation>
+    <element name="command">
+      <interleave>
+        <ref name="command.inner"/>
+        <ref name="command.checkbox.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="command.checkbox.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <interleave>
+        <ref name="command.checkbox.attrs.type"/>
+        <optional>
+          <ref name="command.checkbox.attrs.checked"/>
+        </optional>
+      </interleave>
+      <ref name="common-command.attrs"/>
+    </interleave>
+  </define>
+  <define name="command.checkbox.attrs.type">
+    <attribute name="type">
+      <value type="string">checkbox</value>
+    </attribute>
+  </define>
+  <define name="command.checkbox.attrs.checked">
+    <attribute name="checked">
+      <choice>
+        <value type="string">checked</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="command.elem" combine="choice">
+    <ref name="command.checkbox.elem"/>
+  </define>
+  <define name="common-command.attrs">
+    <interleave>
+      <optional>
+        <ref name="command.attrs.label"/>
+      </optional>
+      <optional>
+        <ref name="command.attrs.icon"/>
+      </optional>
+      <optional>
+        <ref name="command.attrs.disabled"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="command.attrs.label">
+    <attribute name="label">
+      <data type="string" datatypeLibrary=""/>
+    </attribute>
+  </define>
+  <define name="command.attrs.icon">
+    <attribute name="icon">
+      <ref name="common.data.uri.non-empty"/>
+    </attribute>
+  </define>
+  <define name="command.attrs.disabled">
+    <attribute name="disabled">
+      <choice>
+        <value type="string">disabled</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="command.inner">
+    <empty/>
+  </define>
+  <define name="common.elem.metadata" combine="choice">
+    <interleave>
+      <ref name="command.elem"/>
+      <ref name="nonHTMLizable"/>
+    </interleave>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="command.elem"/>
+  </define>
+  <define name="menu.elem">
+    <a:documentation>Menu: &lt;menu&gt;</a:documentation>
+    <element name="menu">
+      <interleave>
+        <ref name="menu.inner"/>
+        <ref name="menu.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="menu.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="menu.attrs.type"/>
+      </optional>
+      <optional>
+        <ref name="menu.attrs.label"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="menu.attrs.type">
+    <attribute name="type">
+      <choice>
+        <value type="string">toolbar</value>
+        <value type="string">context</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="menu.attrs.label">
+    <attribute name="label">
+      <data type="string" datatypeLibrary=""/>
+    </attribute>
+  </define>
+  <define name="menu.inner">
+    <choice>
+      <zeroOrMore>
+        <ref name="mli.elem"/>
+      </zeroOrMore>
+      <ref name="common.inner.flow"/>
+    </choice>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="menu.elem"/>
+  </define>
+  <!-- REVISIT allow nested menus -->
+  <define name="mli.elem">
+    <a:documentation>Menu Item: &lt;li&gt;</a:documentation>
+    <element name="li">
+      <interleave>
+        <ref name="mli.inner"/>
+        <ref name="mli.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="mli.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="mli.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="canvas.elem.flow">
+    <a:documentation>Canvas for Dynamic Graphics: &lt;canvas&gt;</a:documentation>
+    <element name="canvas">
+      <interleave>
+        <ref name="canvas.inner.flow"/>
+        <ref name="canvas.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="canvas.elem.phrasing">
+    <element name="canvas">
+      <interleave>
+        <ref name="canvas.inner.phrasing"/>
+        <ref name="canvas.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="canvas.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="canvas.attrs.height"/>
+      </optional>
+      <optional>
+        <ref name="canvas.attrs.width"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="canvas.attrs.height">
+    <attribute name="height">
+      <ref name="common.data.integer.non-negative"/>
+    </attribute>
+  </define>
+  <define name="canvas.attrs.width">
+    <attribute name="width">
+      <ref name="common.data.integer.non-negative"/>
+    </attribute>
+  </define>
+  <define name="canvas.inner.flow">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="canvas.inner.phrasing">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="canvas.elem.flow"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="canvas.elem.phrasing"/>
+  </define>
+  <define name="details.elem">
+    <a:documentation>Additional On-Demand Information: &lt;details&gt;</a:documentation>
+    <element name="details">
+      <interleave>
+        <ref name="details.inner"/>
+        <ref name="details.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="details.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="details.attrs.open"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.aria.implicit.region"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="details.attrs.open">
+    <attribute name="open">
+      <choice>
+        <value type="string">open</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="details.inner">
+    <optional>
+      <ref name="summary.elem"/>
+    </optional>
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="details.elem"/>
+  </define>
+  <define name="summary.elem">
+    <a:documentation>Caption/summary for details element: &lt;summary&gt;</a:documentation>
+    <element name="summary">
+      <interleave>
+        <ref name="summary.inner"/>
+        <ref name="summary.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="summary.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="summary.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+</grammar>

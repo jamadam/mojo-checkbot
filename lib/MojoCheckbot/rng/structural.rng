@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <!-- ##################################################################### -->
+  <define name="section.elem">
+    <a:documentation> RELAX NG Schema for HTML 5: Block Markup Added in HTML5           #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>Section: &lt;section&gt;</a:documentation>
+    <element name="section">
+      <interleave>
+        <ref name="section.inner"/>
+        <ref name="section.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="section.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria"/>
+          <ref name="common.attrs.aria.implicit.region"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="section.inner">
+    <zeroOrMore>
+      <ref name="style.elem.scoped"/>
+    </zeroOrMore>
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="section.elem"/>
+  </define>
+  <define name="nav.elem">
+    <a:documentation>Navigational Links: &lt;nav&gt;</a:documentation>
+    <element name="nav">
+      <interleave>
+        <ref name="nav.inner"/>
+        <ref name="nav.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="nav.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria.implicit.region"/>
+          <ref name="common.attrs.aria.landmark.navigation"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="nav.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="nav.elem"/>
+  </define>
+  <define name="article.elem">
+    <a:documentation>Article: &lt;article&gt;</a:documentation>
+    <element name="article">
+      <interleave>
+        <ref name="article.inner"/>
+        <ref name="article.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="article.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria.implicit.region"/>
+          <ref name="common.attrs.aria.landmark.article"/>
+          <ref name="common.attrs.aria.landmark.main"/>
+          <ref name="common.attrs.aria.landmark.document"/>
+          <ref name="common.attrs.aria.landmark.application"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="article.inner">
+    <zeroOrMore>
+      <ref name="style.elem"/>
+    </zeroOrMore>
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="article.elem"/>
+  </define>
+  <define name="aside.elem">
+    <a:documentation>Tangential Aside: &lt;aside&gt;</a:documentation>
+    <element name="aside">
+      <interleave>
+        <ref name="aside.inner"/>
+        <ref name="aside.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="aside.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria.implicit.region"/>
+          <ref name="common.attrs.aria.landmark.complementary"/>
+          <ref name="common.attrs.aria.landmark.search"/>
+          <ref name="common.attrs.aria.landmark.note"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="aside.inner">
+    <zeroOrMore>
+      <ref name="style.elem"/>
+    </zeroOrMore>
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="aside.elem"/>
+  </define>
+  <define name="header.elem">
+    <a:documentation>Header: &lt;header&gt;</a:documentation>
+    <element name="header">
+      <interleave>
+        <ref name="header.inner"/>
+        <ref name="header.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="header.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria.implicit.region"/>
+          <ref name="common.attrs.aria.landmark.banner"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="header.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="header.elem"/>
+  </define>
+  <define name="footer.elem">
+    <a:documentation>Footer: &lt;footer&gt;</a:documentation>
+    <element name="footer">
+      <interleave>
+        <ref name="footer.inner"/>
+        <ref name="footer.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="footer.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria.implicit.region"/>
+          <ref name="common.attrs.aria.landmark.contentinfo"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="footer.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="footer.elem"/>
+  </define>
+</grammar>

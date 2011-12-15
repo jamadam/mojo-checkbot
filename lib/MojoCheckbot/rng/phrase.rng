@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <define name="a.elem.phrasing">
+    <a:documentation> RELAX NG Schema for HTML 5: Phrase Markup                         #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>Contextual Hyperlink: &lt;a&gt;</a:documentation>
+    <element name="a">
+      <interleave>
+        <ref name="a.inner.phrasing"/>
+        <ref name="a.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="a.elem.flow">
+    <element name="a">
+      <interleave>
+        <ref name="a.inner.flow"/>
+        <ref name="a.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="a.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="a.attrs.name"/>
+      </optional>
+      <optional>
+        <ref name="shared-hyperlink.attrs.href"/>
+      </optional>
+      <optional>
+        <ref name="shared-hyperlink.attrs.target"/>
+      </optional>
+      <optional>
+        <ref name="shared-hyperlink.attrs.rel"/>
+      </optional>
+      <optional>
+        <ref name="shared-hyperlink.attrs.hreflang"/>
+      </optional>
+      <optional>
+        <ref name="shared-hyperlink.attrs.media"/>
+      </optional>
+      <optional>
+        <ref name="shared-hyperlink.attrs.type"/>
+      </optional>
+      <optional>
+        <ref name="shared-hyperlink.attrs.ping"/>
+      </optional>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria"/>
+          <ref name="common.attrs.aria.implicit.link"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="a.attrs.name">
+    <attribute name="name">
+      <ref name="common.data.id"/>
+      <!-- XXX not what the spec says -->
+    </attribute>
+  </define>
+  <define name="a.inner.phrasing">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="a.inner.flow">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="a.elem.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="a.elem.flow"/>
+  </define>
+  <define name="shared-hyperlink.attrs.href">
+    <a:documentation>Shared hyperlink attributes</a:documentation>
+    <attribute name="href">
+      <ref name="common.data.uri"/>
+    </attribute>
+  </define>
+  <define name="shared-hyperlink.attrs.target">
+    <attribute name="target">
+      <ref name="common.data.browsing-context-or-keyword"/>
+    </attribute>
+  </define>
+  <define name="shared-hyperlink.attrs.rel">
+    <attribute name="rel">
+      <data type="a-rel"/>
+    </attribute>
+  </define>
+  <define name="shared-hyperlink.attrs.hreflang">
+    <attribute name="hreflang">
+      <ref name="common.data.langcode"/>
+    </attribute>
+  </define>
+  <define name="shared-hyperlink.attrs.media">
+    <attribute name="media">
+      <ref name="common.data.mediaquery"/>
+    </attribute>
+  </define>
+  <define name="shared-hyperlink.attrs.type">
+    <attribute name="type">
+      <ref name="common.data.mimetype"/>
+    </attribute>
+  </define>
+  <define name="shared-hyperlink.attrs.ping">
+    <interleave>
+      <attribute name="ping">
+        <ref name="common.data.uris"/>
+      </attribute>
+      <ref name="v5only"/>
+    </interleave>
+  </define>
+  <define name="em.elem">
+    <a:documentation>Emphatic Stress: &lt;em&gt;</a:documentation>
+    <element name="em">
+      <interleave>
+        <ref name="em.inner"/>
+        <ref name="em.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="em.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="em.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="em.elem"/>
+  </define>
+  <define name="strong.elem">
+    <a:documentation>Strong Importance: &lt;strong&gt;</a:documentation>
+    <element name="strong">
+      <interleave>
+        <ref name="strong.inner"/>
+        <ref name="strong.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="strong.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="strong.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="strong.elem"/>
+  </define>
+  <define name="small.elem">
+    <a:documentation>Small Print and Side Comments: &lt;small&gt;</a:documentation>
+    <element name="small">
+      <interleave>
+        <ref name="small.inner"/>
+        <ref name="small.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="small.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="small.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="small.elem"/>
+  </define>
+  <define name="mark.elem">
+    <a:documentation>Marked (Highlighted) Text: &lt;mark&gt;</a:documentation>
+    <interleave>
+      <element name="mark">
+        <interleave>
+          <ref name="mark.inner"/>
+          <ref name="mark.attrs"/>
+        </interleave>
+      </element>
+      <ref name="v5only"/>
+    </interleave>
+  </define>
+  <define name="mark.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="mark.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="mark.elem"/>
+  </define>
+  <define name="abbr.elem">
+    <a:documentation>Abbreviation: &lt;abbr&gt;</a:documentation>
+    <element name="abbr">
+      <interleave>
+        <ref name="abbr.inner"/>
+        <ref name="abbr.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="abbr.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <!-- 	abbr.attrs.title included in common.attrs -->
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="abbr.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="abbr.elem"/>
+  </define>
+  <define name="dfn.elem">
+    <a:documentation>Defining Instance: &lt;dfn&gt;</a:documentation>
+    <element name="dfn">
+      <interleave>
+        <ref name="dfn.inner"/>
+        <ref name="dfn.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="dfn.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <!-- 	dfn.attrs.title included in common.attrs -->
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="dfn.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="dfn.elem"/>
+  </define>
+  <define name="i.elem">
+    <a:documentation>Italic: &lt;i&gt;</a:documentation>
+    <element name="i">
+      <interleave>
+        <ref name="i.inner"/>
+        <ref name="i.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="i.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="i.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="i.elem"/>
+  </define>
+  <define name="b.elem">
+    <a:documentation>Bold: &lt;b&gt;</a:documentation>
+    <element name="b">
+      <interleave>
+        <ref name="b.inner"/>
+        <ref name="b.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="b.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="b.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="b.elem"/>
+  </define>
+  <define name="s.elem">
+    <a:documentation>Struck Text: &lt;s&gt;</a:documentation>
+    <element name="s">
+      <interleave>
+        <ref name="s.inner"/>
+        <ref name="s.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="s.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="s.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="s.elem"/>
+  </define>
+  <define name="u.elem">
+    <a:documentation>Underline: &lt;u&gt;</a:documentation>
+    <element name="u">
+      <interleave>
+        <ref name="u.inner"/>
+        <ref name="u.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="u.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="u.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="u.elem"/>
+  </define>
+  <define name="code.elem">
+    <a:documentation>Code Fragment: &lt;code&gt;</a:documentation>
+    <element name="code">
+      <interleave>
+        <ref name="code.inner"/>
+        <ref name="code.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="code.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="code.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="code.elem"/>
+  </define>
+  <define name="var.elem">
+    <a:documentation>Variable or Placeholder: &lt;var&gt;</a:documentation>
+    <element name="var">
+      <interleave>
+        <ref name="var.inner"/>
+        <ref name="var.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="var.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="var.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="var.elem"/>
+  </define>
+  <define name="samp.elem">
+    <a:documentation>(Sample) Output: &lt;samp&gt;</a:documentation>
+    <element name="samp">
+      <interleave>
+        <ref name="samp.inner"/>
+        <ref name="samp.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="samp.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="samp.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="samp.elem"/>
+  </define>
+  <define name="kbd.elem">
+    <a:documentation>User Input: &lt;kbd&gt;</a:documentation>
+    <element name="kbd">
+      <interleave>
+        <ref name="kbd.inner"/>
+        <ref name="kbd.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="kbd.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="kbd.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="kbd.elem"/>
+  </define>
+  <define name="sup.elem">
+    <a:documentation>Superscript: &lt;sup&gt;</a:documentation>
+    <element name="sup">
+      <interleave>
+        <ref name="sup.inner"/>
+        <ref name="sup.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="sup.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="sup.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="sup.elem"/>
+  </define>
+  <define name="sub.elem">
+    <a:documentation>Subscript: &lt;sub&gt;</a:documentation>
+    <element name="sub">
+      <interleave>
+        <ref name="sub.inner"/>
+        <ref name="sub.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="sub.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="sub.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="sub.elem"/>
+  </define>
+  <define name="q.elem">
+    <a:documentation>Quotation: &lt;q&gt;</a:documentation>
+    <element name="q">
+      <interleave>
+        <ref name="q.inner"/>
+        <ref name="q.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="q.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="q.attrs.cite"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="q.attrs.cite">
+    <attribute name="cite">
+      <ref name="common.data.uri"/>
+    </attribute>
+  </define>
+  <define name="q.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="q.elem"/>
+  </define>
+  <define name="cite.elem">
+    <a:documentation>Title of Work: &lt;cite&gt;</a:documentation>
+    <element name="cite">
+      <interleave>
+        <ref name="cite.inner"/>
+        <ref name="cite.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="cite.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="cite.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="cite.elem"/>
+  </define>
+  <define name="span.elem">
+    <a:documentation>Generic Span: &lt;span&gt;</a:documentation>
+    <element name="span">
+      <interleave>
+        <ref name="span.inner"/>
+        <ref name="span.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="span.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="span.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <!-- REVISIT allow ol and ul? -->
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="span.elem"/>
+  </define>
+  <define name="bdo.elem">
+    <a:documentation>Bidirectional Override: &lt;bdo&gt;</a:documentation>
+    <element name="bdo">
+      <interleave>
+        <ref name="bdo.inner"/>
+        <ref name="bdo.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="bdo.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <!-- dir required in Schematron -->
+  <define name="bdo.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="bdo.elem"/>
+  </define>
+  <define name="bdi.elem">
+    <a:documentation>Bidirectional Isolate: &lt;bdi&gt;</a:documentation>
+    <element name="bdi">
+      <interleave>
+        <ref name="bdi.inner"/>
+        <ref name="bdi.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="bdi.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="bdi.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="bdi.elem"/>
+  </define>
+  <define name="br.elem">
+    <a:documentation>Line Break: &lt;br&gt;</a:documentation>
+    <element name="br">
+      <interleave>
+        <ref name="br.inner"/>
+        <ref name="br.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="br.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="br.inner">
+    <empty/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="br.elem"/>
+  </define>
+  <define name="wbr.elem">
+    <a:documentation>Line-break opportunity: &lt;wbr&gt;</a:documentation>
+    <element name="wbr">
+      <interleave>
+        <ref name="wbr.inner"/>
+        <ref name="wbr.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="wbr.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="wbr.inner">
+    <empty/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="wbr.elem"/>
+  </define>
+</grammar>

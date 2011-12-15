@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar ns="http://www.w3.org/1999/xhtml" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <!-- ##################################################################### -->
+  <include href="common.rng">
+    <a:documentation> RELAX NG Schema for HTML 5                                       #</a:documentation>
+    <!-- ##################################################################### -->
+    <!--
+      To validate an HTML 5 document, you must first validate against  #
+      this schema and then ALSO validate against assertions.sch        #
+    -->
+    <a:documentation>HTML flavor RELAX NG schemas can only be used after the         #
+document has been transformed to well-formed XML.               #
+  - Insert closing slashes in all empty element tags            #
+  - Insert all optional start and end tags                      #
+  - Add xmlns "http://www.w3.org/1999/xhtml"                    #
+  - Properly escape &lt;script&gt; and &lt;style&gt; CDATA                  #
+  - Parse and transform all HTML-only entities to numeric       #
+    character references                                        #
+Obviously, syntax-checking involving these features cannot be   #
+done by the RELAX NG schema and must be checked, along with the #
+&lt;!DOCTYPE&gt; requirement, by some other application.              #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>Schema Framework &amp; Parameters</a:documentation>
+    <!-- XHTML flavor # -->
+    <define name="XMLonly">
+      <notAllowed/>
+    </define>
+    <define name="HTMLonly">
+      <empty/>
+    </define>
+    <!-- HTML 4 compat # -->
+    <define name="v5only">
+      <empty/>
+    </define>
+    <!-- HTML-serializability # -->
+    <define name="nonHTMLizable">
+      <notAllowed/>
+    </define>
+    <!-- HTML-roundtrippability # -->
+    <define name="nonRoundtrippable">
+      <notAllowed/>
+    </define>
+  </include>
+  <!-- ##################################################################### -->
+  <start>
+    <a:documentation>Language Definitions</a:documentation>
+    <ref name="html.elem"/>
+  </start>
+  <include href="meta.rng"/>
+  <include href="phrase.rng"/>
+  <include href="block.rng"/>
+  <include href="sectional.rng"/>
+  <include href="structural.rng"/>
+  <include href="revision.rng"/>
+  <include href="embed.rng"/>
+  <include href="ruby.rng"/>
+  <include href="media.rng"/>
+  <include href="core-scripting.rng"/>
+  <include href="tables.rng"/>
+  <include href="form-datatypes.rng"/>
+  <include href="web-forms.rng"/>
+  <include href="web-forms2.rng"/>
+  <include href="applications.rng"/>
+  <include href="data.rng"/>
+</grammar>

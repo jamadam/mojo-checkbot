@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <!-- ##################################################################### -->
+  <define name="edit.attrs.cite">
+    <a:documentation> RELAX NG Schema for HTML 5: Revision Annotations                  #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>Common Attributes</a:documentation>
+    <attribute name="cite">
+      <ref name="common.data.uri"/>
+    </attribute>
+  </define>
+  <define name="edit.attrs.datetime">
+    <attribute name="datetime">
+      <choice>
+        <ref name="common.data.datetime"/>
+        <ref name="common.data.date"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="ins.elem.flow">
+    <a:documentation>Inserts: &lt;ins&gt;</a:documentation>
+    <element name="ins">
+      <interleave>
+        <ref name="ins.inner.flow"/>
+        <ref name="ins.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="ins.elem.phrasing">
+    <element name="ins">
+      <interleave>
+        <ref name="ins.inner.phrasing"/>
+        <ref name="ins.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="ins.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="edit.attrs.cite"/>
+      </optional>
+      <optional>
+        <ref name="edit.attrs.datetime"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="ins.inner.flow">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="ins.inner.phrasing">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="ins.elem.flow"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="ins.elem.phrasing"/>
+  </define>
+  <define name="del.elem.flow">
+    <a:documentation>Deletions: &lt;del&gt;</a:documentation>
+    <element name="del">
+      <interleave>
+        <ref name="del.inner.flow"/>
+        <ref name="del.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="del.elem.phrasing">
+    <element name="del">
+      <interleave>
+        <ref name="del.inner.phrasing"/>
+        <ref name="del.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="del.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="edit.attrs.cite"/>
+      </optional>
+      <optional>
+        <ref name="edit.attrs.datetime"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="del.inner.flow">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="del.inner.phrasing">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="del.elem.flow"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="del.elem.phrasing"/>
+  </define>
+</grammar>

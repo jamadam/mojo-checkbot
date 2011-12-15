@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <define name="form.data.mimetypelist">
+    <a:documentation> RELAX NG Schema for HTML 5: Datatypes related to forms            #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>MIME types</a:documentation>
+    <data type="mime-type-list"/>
+  </define>
+  <define name="form.data.charsetlist">
+    <data type="string" datatypeLibrary=""/>
+  </define>
+  <!--
+    FIXME should be a "a space- and/or comma-delimited 
+    list of charset values"
+  -->
+  <define name="form.data.pattern">
+    <a:documentation>ECMAScript Regular Expression</a:documentation>
+    <data type="pattern"/>
+  </define>
+  <define name="form.data.datetime-local">
+    <a:documentation>Temporal</a:documentation>
+    <data type="datetime-local"/>
+  </define>
+  <define name="form.data.date">
+    <data type="date"/>
+  </define>
+  <define name="form.data.month">
+    <data type="month"/>
+  </define>
+  <define name="form.data.week">
+    <data type="week"/>
+  </define>
+  <define name="form.data.time">
+    <data type="time"/>
+  </define>
+  <define name="form.data.emailaddress">
+    <a:documentation>Email</a:documentation>
+    <data type="email-address"/>
+  </define>
+  <define name="form.data.emailaddresslist">
+    <data type="email-address-list"/>
+  </define>
+  <define name="form.data.color">
+    <a:documentation>Color</a:documentation>
+    <data type="simple-color"/>
+  </define>
+  <!--
+    		xsd:string {
+    			pattern = "#[a-fA-F0-9]{6}"
+    		}
+  -->
+  <define name="form.data.stringwithoutlinebreaks">
+    <a:documentation>Text without line breaks</a:documentation>
+    <data type="string-without-line-breaks"/>
+  </define>
+  <define name="form.data.nonemptystring">
+    <a:documentation>Non-empty string</a:documentation>
+    <data type="non-empty-string"/>
+  </define>
+</grammar>

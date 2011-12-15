@@ -1,0 +1,691 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <define name="script.elem.embedded">
+    <a:documentation> RELAX NG Schema for HTML 5: Core Scripting                        #</a:documentation>
+    <!-- ##################################################################### -->
+    <!-- ##################################################################### -->
+    <a:documentation>Scripting Elements</a:documentation>
+    <a:documentation>Inline Scripts: &lt;script&gt;</a:documentation>
+    <element name="script">
+      <interleave>
+        <ref name="script.inner.embedded"/>
+        <ref name="script.attrs.embedded"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="script.attrs.embedded">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="script.attrs.type"/>
+      </optional>
+      <optional>
+        <ref name="script.attrs.language"/>
+      </optional>
+    </interleave>
+    <!-- restricted in Schematron -->
+  </define>
+  <define name="script.elem.imported">
+    <element name="script">
+      <interleave>
+        <ref name="script.inner.imported"/>
+        <ref name="script.attrs.imported"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="script.attrs.imported">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="script.attrs.src"/>
+      </optional>
+      <optional>
+        <ref name="script.attrs.defer"/>
+      </optional>
+      <optional>
+        <ref name="script.attrs.async"/>
+      </optional>
+      <optional>
+        <ref name="script.attrs.type"/>
+      </optional>
+      <optional>
+        <ref name="script.attrs.charset"/>
+      </optional>
+      <optional>
+        <ref name="script.attrs.language"/>
+      </optional>
+    </interleave>
+    <!-- restricted in Schematron -->
+  </define>
+  <define name="script.attrs.src">
+    <attribute name="src">
+      <ref name="common.data.uri.non-empty"/>
+    </attribute>
+  </define>
+  <define name="script.attrs.defer">
+    <attribute name="defer">
+      <choice>
+        <value type="string">defer</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="script.attrs.async">
+    <interleave>
+      <attribute name="async">
+        <choice>
+          <value type="string">async</value>
+          <value type="string"/>
+        </choice>
+      </attribute>
+      <ref name="v5only"/>
+    </interleave>
+  </define>
+  <define name="script.attrs.type">
+    <attribute name="type">
+      <ref name="common.data.mimetype"/>
+      <!-- XXX without charset parameter! -->
+    </attribute>
+  </define>
+  <define name="script.attrs.charset">
+    <attribute name="charset">
+      <ref name="common.data.charset"/>
+    </attribute>
+  </define>
+  <define name="script.attrs.language">
+    <attribute name="language">
+      <data type="string" datatypeLibrary=""/>
+    </attribute>
+  </define>
+  <define name="script.inner.embedded">
+    <ref name="common.inner.anything"/>
+  </define>
+  <define name="script.inner.imported">
+    <ref name="common.inner.anything"/>
+  </define>
+  <define name="script.elem">
+    <choice>
+      <ref name="script.elem.embedded"/>
+      <ref name="script.elem.imported"/>
+    </choice>
+  </define>
+  <define name="common.elem.metadata" combine="choice">
+    <ref name="script.elem"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="script.elem"/>
+  </define>
+  <define name="noscript.elem.head">
+    <a:documentation>Fallback Unscripted Content: &lt;noscript&gt;</a:documentation>
+    <interleave>
+      <element name="noscript">
+        <interleave>
+          <ref name="noscript.inner.head"/>
+          <ref name="noscript.attrs"/>
+        </interleave>
+      </element>
+      <ref name="HTMLonly"/>
+    </interleave>
+  </define>
+  <define name="noscript.inner.head">
+    <zeroOrMore>
+      <choice>
+        <ref name="link.elem"/>
+        <ref name="meta.http-equiv.default-style.elem"/>
+        <ref name="meta.http-equiv.refresh.elem"/>
+        <ref name="style.elem"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+  <define name="noscript.elem.phrasing">
+    <interleave>
+      <element name="noscript">
+        <interleave>
+          <ref name="noscript.inner.phrasing"/>
+          <ref name="noscript.attrs"/>
+        </interleave>
+      </element>
+      <ref name="HTMLonly"/>
+    </interleave>
+  </define>
+  <define name="noscript.inner.phrasing">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="noscript.elem.flow">
+    <interleave>
+      <element name="noscript">
+        <interleave>
+          <ref name="noscript.inner.flow"/>
+          <ref name="noscript.attrs"/>
+        </interleave>
+      </element>
+      <ref name="HTMLonly"/>
+    </interleave>
+  </define>
+  <define name="noscript.inner.flow">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="noscript.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="common.elem.metadata" combine="choice">
+    <ref name="noscript.elem.head"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="noscript.elem.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="noscript.elem.flow"/>
+  </define>
+  <!-- ##################################################################### -->
+  <define name="common.attrs.scripting" combine="interleave">
+    <a:documentation>Event Handler Attribute Definitions</a:documentation>
+    <interleave>
+      <optional>
+        <ref name="scripting.attr.onabort"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onblur"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.oncanplay"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.oncanplaythrough"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onchange"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onclick"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.oncontextmenu"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondblclick"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondrag"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondragend"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondragenter"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondragleave"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondragover"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondragstart"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondrop"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ondurationchange"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onemptied"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onended"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onerror"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onfocus"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.oninput"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.oninvalid"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onkeydown"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onkeypress"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onkeyup"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onload"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onloadeddata"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onloadedmetadata"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onloadstart"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onmousedown"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onmousemove"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onmouseout"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onmouseover"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onmouseup"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onmousewheel"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onpause"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onplay"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onplaying"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onprogress"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onratechange"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onreadystatechange"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onreset"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onscroll"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onseeked"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onseeking"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onselect"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onshow"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onstalled"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onsubmit"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onsuspend"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.ontimeupdate"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onvolumechange"/>
+      </optional>
+      <optional>
+        <ref name="scripting.attr.onwaiting"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="common.attrs.other" combine="interleave">
+    <ref name="common.attrs.scripting"/>
+  </define>
+  <define name="scripting.attr.onabort">
+    <attribute name="onabort">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onblur">
+    <attribute name="onblur">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.oncanplay">
+    <attribute name="oncanplay">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.oncanplaythrough">
+    <attribute name="oncanplaythrough">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onchange">
+    <attribute name="onchange">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onclick">
+    <attribute name="onclick">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.oncontextmenu">
+    <attribute name="oncontextmenu">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondblclick">
+    <attribute name="ondblclick">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondrag">
+    <attribute name="ondrag">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondragend">
+    <attribute name="ondragend">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondragenter">
+    <attribute name="ondragenter">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondragleave">
+    <attribute name="ondragleave">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondragover">
+    <attribute name="ondragover">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondragstart">
+    <attribute name="ondragstart">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondrop">
+    <attribute name="ondrop">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ondurationchange">
+    <attribute name="ondurationchange">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onemptied">
+    <attribute name="onemptied">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onended">
+    <attribute name="onended">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onerror">
+    <attribute name="onerror">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onfocus">
+    <attribute name="onfocus">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onformchange">
+    <attribute name="onformchange">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onforminput">
+    <attribute name="onforminput">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.oninput">
+    <attribute name="oninput">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.oninvalid">
+    <attribute name="oninvalid">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onkeydown">
+    <attribute name="onkeydown">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onkeypress">
+    <attribute name="onkeypress">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onkeyup">
+    <attribute name="onkeyup">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onload">
+    <attribute name="onload">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onloadeddata">
+    <attribute name="onloadeddata">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onloadedmetadata">
+    <attribute name="onloadedmetadata">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onloadstart">
+    <attribute name="onloadstart">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onmousedown">
+    <attribute name="onmousedown">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onmousemove">
+    <attribute name="onmousemove">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onmouseout">
+    <attribute name="onmouseout">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onmouseover">
+    <attribute name="onmouseover">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onmouseup">
+    <attribute name="onmouseup">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onmousewheel">
+    <attribute name="onmousewheel">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onpause">
+    <attribute name="onpause">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onplay">
+    <attribute name="onplay">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onplaying">
+    <attribute name="onplaying">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onprogress">
+    <attribute name="onprogress">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onratechange">
+    <attribute name="onratechange">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onreadystatechange">
+    <attribute name="onreadystatechange">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onreset">
+    <attribute name="onreset">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onscroll">
+    <attribute name="onscroll">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onseeked">
+    <attribute name="onseeked">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onseeking">
+    <attribute name="onseeking">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onselect">
+    <attribute name="onselect">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onshow">
+    <attribute name="onshow">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onstalled">
+    <attribute name="onstalled">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onsubmit">
+    <attribute name="onsubmit">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onsuspend">
+    <attribute name="onsuspend">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.ontimeupdate">
+    <attribute name="ontimeupdate">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onvolumechange">
+    <attribute name="onvolumechange">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+  <define name="scripting.attr.onwaiting">
+    <attribute name="onwaiting">
+      <ref name="common.data.functionbody"/>
+    </attribute>
+  </define>
+</grammar>
+<!--
+  	scripting.attr.common =
+  		(	scripting.attr.mouse
+  		&	scripting.attr.keyboard
+  		&	scripting.attr.focus
+  		)
+  	
+  	scripting.attr.mouse =
+  		(	scripting.attr.mouse.click?
+  		&	scripting.attr.mouse.dblclick?
+  		&	scripting.attr.mouse.down?
+  		&	scripting.attr.mouse.up?
+  		&	scripting.attr.mouse.over?
+  		&	scripting.attr.mouse.move?
+  		&	scripting.attr.mouse.out?
+  		)
+  		scripting.attr.mouse.click =
+  			attribute onclick { string }
+  		scripting.attr.mouse.dblclick =
+  			attribute ondblclick { string }
+  		scripting.attr.mouse.down =
+  			attribute onmousedown { string }
+  		scripting.attr.mouse.up =
+  			attribute onmouseup { string }
+  		scripting.attr.mouse.over =
+  			attribute onmouseover { string }
+  		scripting.attr.mouse.move =
+  			attribute onmousemove { string }
+  		scripting.attr.mouse.out =
+  			attribute onmouseout { string }
+  	
+  	scripting.attr.keyboard =
+  		(	scripting.attr.keyboard.press?
+  		&	scripting.attr.keyboard.down?
+  		&	scripting.attr.keyboard.up?
+  		)
+  		scripting.attr.keyboard.press =
+  			attribute onkeypress { string }
+  		scripting.attr.keyboard.down =
+  			attribute onkeydown { string }
+  		scripting.attr.keyboard.up =
+  			attribute onkeyup { string }
+  	
+  	
+  	scripting.attr.focus =
+  		(	scripting.attr.focus.gain?
+  		&	scripting.attr.focus.lose?
+  		)
+  		scripting.attr.focus.gain =
+  			attribute onfocus { string }
+  		scripting.attr.focus.lose =
+  			attribute onblur { string }
+  	
+  	scripting.attr.loading =
+  		(	scripting.attr.loading.load?
+  		&	scripting.attr.loading.unload?
+  		)
+  		scripting.attr.loading.load =
+  			attribute onload { string }
+  		scripting.attr.loading.unload =
+  			attribute onunload { string }
+-->
+<!--
+  #####################################################################
+  Event Handler Attribute Assignments
+-->
+<!-- 	body.attrs   &= scripting.attr.loading -->

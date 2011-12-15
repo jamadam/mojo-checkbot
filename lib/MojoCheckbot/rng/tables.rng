@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <define name="tables.attrs.alignment">
+    <a:documentation> RELAX NG Schema for HTML 5: Tables                                #</a:documentation>
+    <!-- ##################################################################### -->
+    <!-- ##################################################################### -->
+    <a:documentation>Table Envelope</a:documentation>
+    <a:documentation>Table Datatypes</a:documentation>
+    <!--
+      	tables.data.multilen =
+      		(	common.data.integer.positive
+      		|	common.data.percent
+      		|	xsd:token { pattern = "[0-9]+\*" } #REVISIT should this one be string? 
+      		)
+    -->
+    <a:documentation>Table Alignment Attributes</a:documentation>
+    <interleave>
+      <optional>
+        <ref name="tables.attrs.align"/>
+      </optional>
+      <optional>
+        <ref name="tables.attrs.char"/>
+      </optional>
+      <optional>
+        <ref name="tables.attrs.valign"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="tables.attrs.align">
+    <attribute name="align">
+      <choice>
+        <value type="string">left</value>
+        <value type="string">center</value>
+        <value type="string">right</value>
+        <value type="string">justify</value>
+        <value type="string">char</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="tables.attrs.char">
+    <attribute name="char">
+      <data type="string" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+        <param name="pattern">.</param>
+      </data>
+    </attribute>
+  </define>
+  <define name="tables.attrs.valign">
+    <attribute name="valign">
+      <choice>
+        <value type="string">top</value>
+        <value type="string">middle</value>
+        <value type="string">bottom</value>
+        <value type="string">baseline</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="table.elem">
+    <a:documentation>Data Table: &lt;table&gt;</a:documentation>
+    <element name="table">
+      <interleave>
+        <ref name="table.inner"/>
+        <ref name="table.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="table.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="table.attrs.border"/>
+      </optional>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="table.attrs.border">
+    <attribute name="border">
+      <data type="string" datatypeLibrary=""/>
+    </attribute>
+  </define>
+  <define name="table.inner">
+    <optional>
+      <ref name="caption.elem"/>
+    </optional>
+    <zeroOrMore>
+      <ref name="colgroup.elem"/>
+    </zeroOrMore>
+    <optional>
+      <ref name="thead.elem"/>
+    </optional>
+    <choice>
+      <group>
+        <ref name="tfoot.elem"/>
+        <choice>
+          <zeroOrMore>
+            <ref name="tbody.elem"/>
+          </zeroOrMore>
+          <oneOrMore>
+            <ref name="tr.elem"/>
+          </oneOrMore>
+        </choice>
+      </group>
+      <group>
+        <choice>
+          <zeroOrMore>
+            <ref name="tbody.elem"/>
+          </zeroOrMore>
+          <oneOrMore>
+            <ref name="tr.elem"/>
+          </oneOrMore>
+        </choice>
+        <optional>
+          <ref name="tfoot.elem"/>
+        </optional>
+      </group>
+    </choice>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="table.elem"/>
+  </define>
+  <define name="caption.elem">
+    <a:documentation>Table Caption: &lt;caption&gt;</a:documentation>
+    <element name="caption">
+      <interleave>
+        <ref name="caption.inner"/>
+        <ref name="caption.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="caption.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria.implicit.region"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="caption.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <!-- ##################################################################### -->
+  <define name="colgroup.elem">
+    <a:documentation>Table Super Structure</a:documentation>
+    <a:documentation>Table Column Group: &lt;colgroup&gt;</a:documentation>
+    <element name="colgroup">
+      <interleave>
+        <ref name="colgroup.inner"/>
+        <ref name="colgroup.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="colgroup.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="colgroup.attrs.span">
+    <attribute name="span">
+      <ref name="common.data.integer.positive"/>
+    </attribute>
+  </define>
+  <define name="colgroup.inner">
+    <choice>
+      <zeroOrMore>
+        <ref name="col.elem"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="colgroup.attrs.span"/>
+      </optional>
+    </choice>
+  </define>
+  <define name="col.elem">
+    <a:documentation>Table Column: &lt;col&gt;</a:documentation>
+    <element name="col">
+      <interleave>
+        <ref name="col.inner"/>
+        <ref name="col.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="col.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="col.attrs.span"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="col.attrs.span">
+    <attribute name="span">
+      <ref name="common.data.integer.positive"/>
+    </attribute>
+  </define>
+  <define name="col.inner">
+    <empty/>
+  </define>
+  <define name="thead.elem">
+    <a:documentation>Table Header Row Group</a:documentation>
+    <element name="thead">
+      <interleave>
+        <ref name="thead.inner"/>
+        <ref name="thead.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="thead.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="thead.inner">
+    <zeroOrMore>
+      <ref name="tr.elem"/>
+    </zeroOrMore>
+  </define>
+  <define name="tfoot.elem">
+    <a:documentation>Table Footer Row Group</a:documentation>
+    <element name="tfoot">
+      <interleave>
+        <ref name="tfoot.inner"/>
+        <ref name="tfoot.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="tfoot.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="tfoot.inner">
+    <zeroOrMore>
+      <ref name="tr.elem"/>
+    </zeroOrMore>
+  </define>
+  <define name="tbody.elem">
+    <a:documentation>Table Row Group</a:documentation>
+    <element name="tbody">
+      <interleave>
+        <ref name="tbody.inner"/>
+        <ref name="tbody.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="tbody.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="tbody.inner">
+    <zeroOrMore>
+      <ref name="tr.elem"/>
+    </zeroOrMore>
+  </define>
+  <!-- ##################################################################### -->
+  <define name="tr.elem">
+    <a:documentation>Cell Structure</a:documentation>
+    <a:documentation>Table Row</a:documentation>
+    <element name="tr">
+      <interleave>
+        <ref name="tr.inner"/>
+        <ref name="tr.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="tr.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="tr.inner">
+    <zeroOrMore>
+      <choice>
+        <ref name="td.elem"/>
+        <ref name="th.elem"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+  <define name="tables.attrs.cell-structure">
+    <a:documentation>Common Table Cell Attributes</a:documentation>
+    <interleave>
+      <optional>
+        <ref name="tables.attrs.colspan"/>
+      </optional>
+      <optional>
+        <ref name="tables.attrs.rowspan"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="tables.attrs.colspan">
+    <attribute name="colspan">
+      <ref name="common.data.integer.positive"/>
+    </attribute>
+  </define>
+  <define name="tables.attrs.rowspan">
+    <attribute name="rowspan">
+      <ref name="common.data.integer.non-negative"/>
+    </attribute>
+  </define>
+  <define name="tables.attrs.access-headers">
+    <optional>
+      <ref name="tables.attrs.headers"/>
+    </optional>
+  </define>
+  <define name="tables.attrs.headers">
+    <attribute name="headers">
+      <ref name="common.data.idrefs"/>
+    </attribute>
+  </define>
+  <define name="tables.attrs.define-headers">
+    <optional>
+      <ref name="tables.attrs.scope"/>
+    </optional>
+  </define>
+  <define name="tables.attrs.scope">
+    <attribute name="scope">
+      <choice>
+        <value type="string">row</value>
+        <value type="string">col</value>
+        <value type="string">rowgroup</value>
+        <value type="string">colgroup</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="tables.attrs.abbr">
+    <attribute name="abbr"/>
+  </define>
+  <define name="td.elem">
+    <a:documentation>Table Data Cell: &lt;td&gt;</a:documentation>
+    <element name="td">
+      <interleave>
+        <ref name="td.inner"/>
+        <ref name="td.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="td.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <ref name="tables.attrs.cell-structure"/>
+      <optional>
+        <ref name="tables.attrs.headers"/>
+      </optional>
+      <optional>
+        <!-- 		&	tables.attrs.alignment -->
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="td.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="th.elem">
+    <a:documentation>Table Header Cells: &lt;th&gt;</a:documentation>
+    <element name="th">
+      <interleave>
+        <ref name="th.inner"/>
+        <ref name="th.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="th.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <ref name="tables.attrs.cell-structure"/>
+      <optional>
+        <ref name="tables.attrs.scope"/>
+      </optional>
+      <optional>
+        <ref name="tables.attrs.headers"/>
+      </optional>
+      <optional>
+        <!-- 		&	tables.attrs.alignment -->
+        <ref name="common.attrs.aria.implicit.th"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="th.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+</grammar>

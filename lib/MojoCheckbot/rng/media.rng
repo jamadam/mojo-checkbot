@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <!-- src not included -->
+  <define name="media.attrs">
+    <a:documentation> RELAX NG Schema for HTML 5: Advanced Embedded Content             #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>Attributes Common to Media Elements</a:documentation>
+    <interleave>
+      <optional>
+        <ref name="media.attrs.autoplay"/>
+      </optional>
+      <optional>
+        <ref name="media.attrs.preload"/>
+      </optional>
+      <optional>
+        <ref name="media.attrs.controls"/>
+      </optional>
+      <optional>
+        <ref name="media.attrs.loop"/>
+      </optional>
+      <optional>
+        <ref name="media.attrs.mediagroup"/>
+      </optional>
+      <optional>
+        <ref name="media.attrs.muted"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="media.attrs.autoplay">
+    <attribute name="autoplay">
+      <choice>
+        <value type="string">autoplay</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="media.attrs.preload">
+    <attribute name="preload">
+      <choice>
+        <value type="string">none</value>
+        <value type="string">metadata</value>
+        <value type="string">auto</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="media.attrs.controls">
+    <attribute name="controls">
+      <choice>
+        <value type="string">controls</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="media.attrs.loop">
+    <attribute name="loop">
+      <choice>
+        <value type="string">loop</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="media.attrs.mediagroup">
+    <attribute name="mediagroup">
+      <data type="string" datatypeLibrary=""/>
+    </attribute>
+  </define>
+  <define name="media.attrs.muted">
+    <attribute name="muted">
+      <choice>
+        <value type="string">muted</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="source.elem">
+    <a:documentation>Source: &lt;source&gt;</a:documentation>
+    <element name="source">
+      <interleave>
+        <ref name="source.inner"/>
+        <ref name="source.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="source.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <ref name="source.attrs.src"/>
+      <optional>
+        <ref name="source.attrs.type"/>
+      </optional>
+      <optional>
+        <ref name="source.attrs.media"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="source.attrs.src">
+    <attribute name="src">
+      <ref name="common.data.uri.non-empty"/>
+    </attribute>
+  </define>
+  <define name="source.attrs.type">
+    <attribute name="type">
+      <ref name="common.data.mimetype"/>
+    </attribute>
+  </define>
+  <define name="source.attrs.media">
+    <attribute name="media">
+      <ref name="common.data.mediaquery"/>
+    </attribute>
+  </define>
+  <define name="source.inner">
+    <empty/>
+  </define>
+  <define name="media.source">
+    <a:documentation>Media Source</a:documentation>
+    <choice>
+      <ref name="media.attrs.src"/>
+      <zeroOrMore>
+        <ref name="source.elem"/>
+      </zeroOrMore>
+    </choice>
+  </define>
+  <define name="media.attrs.src">
+    <attribute name="src">
+      <ref name="common.data.uri.non-empty"/>
+    </attribute>
+  </define>
+  <define name="video.elem.flow">
+    <a:documentation>Video: &lt;video&gt;</a:documentation>
+    <element name="video">
+      <interleave>
+        <ref name="video.inner.flow"/>
+        <ref name="video.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="video.elem.phrasing">
+    <element name="video">
+      <interleave>
+        <ref name="video.inner.phrasing"/>
+        <ref name="video.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="video.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <ref name="media.attrs"/>
+      <optional>
+        <ref name="video.attrs.poster"/>
+      </optional>
+      <optional>
+        <ref name="video.attrs.height"/>
+      </optional>
+      <optional>
+        <ref name="video.attrs.width"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="video.attrs.poster">
+    <attribute name="poster">
+      <ref name="common.data.uri.non-empty"/>
+    </attribute>
+  </define>
+  <define name="video.attrs.height">
+    <attribute name="height">
+      <ref name="common.data.integer.non-negative"/>
+    </attribute>
+  </define>
+  <define name="video.attrs.width">
+    <attribute name="width">
+      <ref name="common.data.integer.non-negative"/>
+    </attribute>
+  </define>
+  <define name="video.inner.flow">
+    <ref name="media.source"/>
+    <zeroOrMore>
+      <ref name="track.elem"/>
+    </zeroOrMore>
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="video.inner.phrasing">
+    <ref name="media.source"/>
+    <zeroOrMore>
+      <ref name="track.elem"/>
+    </zeroOrMore>
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="video.elem.flow"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="video.elem.phrasing"/>
+  </define>
+  <define name="audio.elem.flow">
+    <a:documentation>Audio: &lt;audio&gt;</a:documentation>
+    <element name="audio">
+      <interleave>
+        <ref name="audio.inner.flow"/>
+        <ref name="audio.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="audio.elem.phrasing">
+    <element name="audio">
+      <interleave>
+        <ref name="audio.inner.phrasing"/>
+        <ref name="audio.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="audio.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <ref name="media.attrs"/>
+    </interleave>
+  </define>
+  <define name="audio.inner.flow">
+    <ref name="media.source"/>
+    <zeroOrMore>
+      <ref name="track.elem"/>
+    </zeroOrMore>
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="audio.inner.phrasing">
+    <ref name="media.source"/>
+    <zeroOrMore>
+      <ref name="track.elem"/>
+    </zeroOrMore>
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="audio.elem.flow"/>
+  </define>
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="audio.elem.phrasing"/>
+  </define>
+  <!---->
+  <define name="track.elem">
+    <a:documentation>supplementary media track: &lt;track&gt;</a:documentation>
+    <element name="track">
+      <interleave>
+        <ref name="track.inner"/>
+        <ref name="track.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="track.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="track.attrs.kind"/>
+      </optional>
+      <ref name="track.attrs.src"/>
+      <optional>
+        <ref name="track.attrs.srclang"/>
+      </optional>
+      <optional>
+        <ref name="track.attrs.label"/>
+      </optional>
+      <optional>
+        <ref name="track.attrs.default"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="track.attrs.kind">
+    <attribute name="kind">
+      <choice>
+        <value type="string">subtitles</value>
+        <value type="string">captions</value>
+        <value type="string">descriptions</value>
+        <value type="string">chapters</value>
+        <value type="string">metadata</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="track.attrs.src">
+    <attribute name="src">
+      <ref name="common.data.uri.non-empty"/>
+    </attribute>
+  </define>
+  <define name="track.attrs.srclang">
+    <attribute name="srclang">
+      <ref name="common.data.langcode"/>
+    </attribute>
+  </define>
+  <define name="track.attrs.label">
+    <attribute name="label">
+      <data type="string" datatypeLibrary=""/>
+      <!-- must be non-empty value; check is in assertions code -->
+    </attribute>
+  </define>
+  <define name="track.attrs.default">
+    <attribute name="default">
+      <choice>
+        <value type="string">default</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="track.inner">
+    <empty/>
+  </define>
+  <define name="figure.elem">
+    <a:documentation>Captioned Content: &lt;figure&gt;</a:documentation>
+    <element name="figure">
+      <interleave>
+        <ref name="figure.inner"/>
+        <ref name="figure.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="figure.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria.implicit.img"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="figure.inner">
+    <choice>
+      <group>
+        <ref name="figcaption.elem"/>
+        <ref name="common.inner.flow"/>
+      </group>
+      <group>
+        <ref name="common.inner.flow"/>
+        <optional>
+          <ref name="figcaption.elem"/>
+        </optional>
+      </group>
+    </choice>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="figure.elem"/>
+  </define>
+  <define name="figcaption.elem">
+    <a:documentation>Figure caption: &lt;figcaption&gt;</a:documentation>
+    <element name="figcaption">
+      <interleave>
+        <ref name="figcaption.inner"/>
+        <ref name="figcaption.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="figcaption.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="figcaption.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+</grammar>

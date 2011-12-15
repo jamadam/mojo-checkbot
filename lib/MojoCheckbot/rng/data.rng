@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <define name="time.elem">
+    <a:documentation> RELAX NG Schema for HTML 5: Static Data Markup                    #</a:documentation>
+    <!-- ##################################################################### -->
+    <a:documentation>Time: &lt;time&gt;</a:documentation>
+    <element name="time">
+      <interleave>
+        <ref name="time.inner"/>
+        <ref name="time.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="time.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <choice>
+        <optional>
+          <ref name="time.attrs.datetime"/>
+        </optional>
+        <interleave>
+          <choice>
+            <optional>
+              <ref name="time.attrs.datetime.dateonly"/>
+            </optional>
+            <optional>
+              <ref name="time.attrs.datetime.tz"/>
+            </optional>
+          </choice>
+          <ref name="time.attrs.pubdate"/>
+        </interleave>
+      </choice>
+    </interleave>
+  </define>
+  <define name="time.attrs.datetime">
+    <attribute name="datetime">
+      <ref name="common.data.date-or-time"/>
+      <!-- REVISIT check format -->
+    </attribute>
+  </define>
+  <define name="time.attrs.datetime.dateonly">
+    <attribute name="datetime">
+      <ref name="common.data.date"/>
+    </attribute>
+  </define>
+  <define name="time.attrs.datetime.tz">
+    <attribute name="datetime">
+      <ref name="common.data.datetime"/>
+    </attribute>
+  </define>
+  <define name="time.attrs.pubdate">
+    <attribute name="pubdate">
+      <choice>
+        <value type="string">pubdate</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="time.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <!-- Cannot enforce textContent format here -->
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="time.elem"/>
+  </define>
+  <define name="meter.elem">
+    <a:documentation>Scalar Gauge: &lt;meter&gt;</a:documentation>
+    <element name="meter">
+      <interleave>
+        <ref name="meter.inner"/>
+        <ref name="meter.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="meter.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <ref name="meter.attrs.value"/>
+      <optional>
+        <ref name="meter.attrs.min"/>
+      </optional>
+      <optional>
+        <ref name="meter.attrs.low"/>
+      </optional>
+      <optional>
+        <ref name="meter.attrs.high"/>
+      </optional>
+      <optional>
+        <ref name="meter.attrs.max"/>
+      </optional>
+      <optional>
+        <ref name="meter.attrs.optimum"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="meter.attrs.value">
+    <attribute name="value">
+      <ref name="common.data.float"/>
+    </attribute>
+  </define>
+  <define name="meter.attrs.min">
+    <attribute name="min">
+      <ref name="common.data.float"/>
+    </attribute>
+  </define>
+  <define name="meter.attrs.low">
+    <attribute name="low">
+      <ref name="common.data.float"/>
+    </attribute>
+  </define>
+  <define name="meter.attrs.high">
+    <attribute name="high">
+      <ref name="common.data.float"/>
+    </attribute>
+  </define>
+  <define name="meter.attrs.max">
+    <attribute name="max">
+      <ref name="common.data.float"/>
+    </attribute>
+  </define>
+  <define name="meter.attrs.optimum">
+    <attribute name="optimum">
+      <ref name="common.data.float"/>
+    </attribute>
+  </define>
+  <define name="meter.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <!-- Cannot enforce textContent format here -->
+  <define name="common.elem.phrasing" combine="choice">
+    <ref name="meter.elem"/>
+  </define>
+</grammar>

@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://whattf.org/datatype-draft">
+  <!-- ##################################################################### -->
+  <define name="p.elem">
+    <a:documentation> RELAX NG Schema for HTML 5: Basic Prose Markup                    #</a:documentation>
+    <!-- ##################################################################### -->
+    <!-- ##################################################################### -->
+    <a:documentation>Paragraph-Level</a:documentation>
+    <a:documentation>Paragraph: &lt;p&gt;</a:documentation>
+    <element name="p">
+      <interleave>
+        <ref name="p.inner"/>
+        <ref name="p.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="p.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="p.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <!-- REVISIT lists in span? -->
+  <define name="common.elem.flow" combine="choice">
+    <ref name="p.elem"/>
+  </define>
+  <define name="hr.elem">
+    <a:documentation>Hint Transition: &lt;hr&gt;</a:documentation>
+    <element name="hr">
+      <interleave>
+        <ref name="hr.inner"/>
+        <ref name="hr.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="hr.attrs">
+    <ref name="common.attrs"/>
+  </define>
+  <define name="hr.inner">
+    <empty/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="hr.elem"/>
+  </define>
+  <!-- ##################################################################### -->
+  <define name="pre.elem">
+    <a:documentation>Preformatting Blocks</a:documentation>
+    <a:documentation>Preformatted Text: &lt;pre&gt;</a:documentation>
+    <element name="pre">
+      <interleave>
+        <ref name="pre.inner"/>
+        <ref name="pre.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="pre.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="pre.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="pre.elem"/>
+  </define>
+  <!-- ##################################################################### -->
+  <define name="ul.elem">
+    <a:documentation>Simple Lists</a:documentation>
+    <a:documentation>Unordered List: &lt;ul&gt;</a:documentation>
+    <element name="ul">
+      <interleave>
+        <ref name="ul.inner"/>
+        <ref name="ul.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="ul.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria"/>
+          <ref name="common.attrs.aria.implicit.region"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="ul.inner">
+    <zeroOrMore>
+      <ref name="li.elem"/>
+    </zeroOrMore>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="ul.elem"/>
+  </define>
+  <define name="li.elem">
+    <a:documentation>Unordered List Item: &lt;li&gt;</a:documentation>
+    <element name="li">
+      <interleave>
+        <ref name="li.inner"/>
+        <ref name="li.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="li.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria"/>
+          <ref name="common.attrs.aria.implicit.listitem"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="li.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="ol.elem">
+    <a:documentation>Ordered List: &lt;ol&gt;</a:documentation>
+    <element name="ol">
+      <interleave>
+        <ref name="ol.inner"/>
+        <ref name="ol.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="ol.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="ol.attrs.start"/>
+      </optional>
+      <optional>
+        <ref name="ol.attrs.reversed"/>
+      </optional>
+      <optional>
+        <ref name="ol.attrs.type"/>
+      </optional>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria"/>
+          <ref name="common.attrs.aria.implicit.region"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="ol.attrs.start">
+    <attribute name="start">
+      <ref name="common.data.integer"/>
+    </attribute>
+  </define>
+  <define name="ol.attrs.reversed">
+    <attribute name="reversed">
+      <choice>
+        <value type="string">reversed</value>
+        <value type="string"/>
+      </choice>
+    </attribute>
+  </define>
+  <define name="ol.attrs.type">
+    <attribute name="type">
+      <choice>
+        <value type="string">1</value>
+        <value type="string">a</value>
+        <value type="string">A</value>
+        <value type="string">i</value>
+        <value type="string">I</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="ol.inner">
+    <zeroOrMore>
+      <ref name="oli.elem"/>
+    </zeroOrMore>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="ol.elem"/>
+  </define>
+  <define name="oli.elem">
+    <a:documentation>Ordered List Item: &lt;li&gt;</a:documentation>
+    <element name="li">
+      <interleave>
+        <ref name="oli.inner"/>
+        <ref name="oli.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="oli.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="oli.attrs.value"/>
+      </optional>
+      <optional>
+        <choice>
+          <ref name="common.attrs.aria"/>
+          <ref name="common.attrs.aria.implicit.listitem"/>
+        </choice>
+      </optional>
+    </interleave>
+  </define>
+  <define name="oli.attrs.value">
+    <attribute name="value">
+      <ref name="common.data.integer"/>
+    </attribute>
+  </define>
+  <define name="oli.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <!-- ##################################################################### -->
+  <define name="dl.elem">
+    <a:documentation>Definition Lists</a:documentation>
+    <a:documentation>Definition List: &lt;dl&gt;</a:documentation>
+    <element name="dl">
+      <interleave>
+        <ref name="dl.inner"/>
+        <ref name="dl.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="dl.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="dl.inner">
+    <zeroOrMore>
+      <oneOrMore>
+        <ref name="dt.elem"/>
+      </oneOrMore>
+      <oneOrMore>
+        <ref name="dd.elem"/>
+      </oneOrMore>
+    </zeroOrMore>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="dl.elem"/>
+  </define>
+  <define name="dt.elem">
+    <a:documentation>Definition Term: &lt;dt&gt;</a:documentation>
+    <element name="dt">
+      <interleave>
+        <ref name="dt.inner"/>
+        <ref name="dt.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="dt.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="dt.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="dd.elem">
+    <a:documentation>Definition Description: &lt;dd&gt;</a:documentation>
+    <element name="dd">
+      <interleave>
+        <ref name="dd.inner"/>
+        <ref name="dd.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="dd.elem.phrasing">
+    <element name="dd">
+      <interleave>
+        <ref name="dd.inner.phrasing"/>
+        <ref name="dd.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="dd.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="dd.inner">
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="dd.inner.phrasing">
+    <ref name="common.inner.phrasing"/>
+  </define>
+  <!-- ##################################################################### -->
+  <define name="div.elem">
+    <a:documentation>Miscellaneous Elements</a:documentation>
+    <a:documentation>Generic Container: &lt;div&gt;</a:documentation>
+    <element name="div">
+      <interleave>
+        <ref name="div.inner"/>
+        <ref name="div.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="div.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="div.inner">
+    <zeroOrMore>
+      <ref name="style.elem.scoped"/>
+    </zeroOrMore>
+    <ref name="common.inner.flow"/>
+  </define>
+  <define name="common.elem.flow" combine="choice">
+    <ref name="div.elem"/>
+  </define>
+  <define name="legend.elem">
+    <a:documentation>Title or Explanatory Caption: &lt;legend&gt;</a:documentation>
+    <element name="legend">
+      <interleave>
+        <ref name="legend.inner"/>
+        <ref name="legend.attrs"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="legend.attrs">
+    <interleave>
+      <ref name="common.attrs"/>
+      <optional>
+        <ref name="common.attrs.aria.implicit.region"/>
+      </optional>
+    </interleave>
+  </define>
+  <define name="legend.inner">
+    <ref name="common.inner.phrasing"/>
+  </define>
+</grammar>
