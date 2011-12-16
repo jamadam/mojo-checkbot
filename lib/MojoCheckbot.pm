@@ -63,12 +63,13 @@ our $VERSION = '0.36';
     
     my $fix;
     my $xml_parser;
+    my $ua = Mojo::UserAgent->new;
+    my $json_parser = Mojo::JSON->new;
 
     ### ---
     ### generate id for regume file name
     ### ---
     sub cache_id {
-        my $json_parser = Mojo::JSON->new;
         return md5_sum($json_parser->encode([
             $options{start},
             $options{match},
@@ -81,6 +82,7 @@ our $VERSION = '0.36';
             $options{'not-match-for-crawl'},
             $options{'depth'},
             $options{'html-validate'},
+            $options{'validator-nu'},
         ]));
     }
     
@@ -130,6 +132,7 @@ our $VERSION = '0.36';
             'evacuate=i',
             'depth=i',
             'html-validate',
+            'validator-nu',
         );
         
         if ($options{'html-validate'}) {
@@ -595,10 +598,46 @@ our $VERSION = '0.36';
     ### Validate HTML
     ### ---
     sub validate_html {
-        my $valid = eval {
-            XML::LibXML->load_xml(string => shift)->validate();
-        };
-        return $valid ? undef : $@;
+        my $html = shift;
+        if (my $type = is_html5($html)) {
+            if ($options{'validator-nu'}) {
+                $html = Encode::encode('UTF-8', $html);
+                my $tx = $ua->post('http://html5.validator.nu/?out=json',
+                            {'content-type' => "$type; charset=UTF-8"}, $html);
+                my $msg = $json_parser->decode($tx->res->body);
+                if (scalar @{$msg->{messages}} == 0) {
+                    return undef;
+                } else {
+                    my $str;
+                    for my $e (@{$msg->{messages}}) {
+                        $str = sprintf(qq{%s: %s\n}, uc $e->{type}, $e->{message});
+                        $str .= qq{From line $e->{lastLine},} if $e->{lastLine};
+                        $str .= qq{ column $e->{firstColumn};} if $e->{firstColumn};
+                        $str .= qq{ to line $e->{lastLine},} if $e->{lastLine};
+                        $str .= qq{ column $e->{lastColumn}} if $e->{lastColumn};
+                        $str .= "\n";
+                    }
+                    return Encode::encode('UTF-8', $str);
+                }
+            }
+            return 'html5 validation is not available';
+        } else {
+            my $valid = eval {
+                XML::LibXML->load_xml(string => shift)->validate();
+            };
+            return $valid ? undef : $@;
+        }
+    }
+    
+    sub is_html5 {
+        my $html = shift;
+        if ($html =~ qr{^<?xml\b}) {
+            if ($html =~ qr{<!DOCTYPE html>}) {
+                return 'application/xhtml+xml';
+            }
+        } elsif ($html =~ qr{^\s*<!DOCTYPE html>}) {
+            return 'text/html';
+        }
     }
 
 1;

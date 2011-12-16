@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
-0.36 2011/12/08
+0.36 2011/12/16
+  - Added commandline option validator-nu which activate online validation.
 
 0.35 2011/12/08
   - Mojolicious v2.36 is bundled.

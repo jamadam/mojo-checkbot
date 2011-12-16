@@ -41,6 +41,7 @@ These options are available:
     --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
     --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
     --html-validate         Enable HTML validation. This requires XML::LibXML installed.
+    --validator-nu          Activate online validation by validator.nu
     
     Report server options
     

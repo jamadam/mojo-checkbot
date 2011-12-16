@@ -37,6 +37,7 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
     --noevacuate            [EXPERIMENTAL]resume用のファイル出力を無効化します。
     --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
     --html-validate         HTMLの構文エラーを検出します。XML::LibXMLが必要です。
+    --validator-nu          validator.nuのオンラインバリデーションを有効化します
     
     レポートサーバーオプション
     
