@@ -54,11 +54,12 @@ our $VERSION = '0.36';
     );
     
     my %options = (
-        sleep       => 1,
-        ua          =>
+        sleep               => 1,
+        ua                  =>
             "mojo-checkbot/$VERSION (+https://github.com/jamadam/mojo-checkbot)",
-        timeout     => 15,
-        evacuate    => 30,
+        timeout             => 15,
+        evacuate            => 30,
+        'validator-nu-url'  => 'http://html5.validator.nu/',
     );
     
     my $fix;
@@ -83,6 +84,7 @@ our $VERSION = '0.36';
             $options{'depth'},
             $options{'html-validate'},
             $options{'validator-nu'},
+            $options{'validator-nu-url'},
         ]));
     }
     
@@ -133,6 +135,7 @@ our $VERSION = '0.36';
             'depth=i',
             'html-validate',
             'validator-nu',
+            'validator-nu-url',
         );
         
         if ($options{'html-validate'}) {
@@ -602,7 +605,7 @@ our $VERSION = '0.36';
         if (my $type = is_html5($html)) {
             if ($options{'validator-nu'}) {
                 $html = Encode::encode('UTF-8', $html);
-                my $tx = $ua->post('http://html5.validator.nu/?out=json',
+                my $tx = $ua->post($options{'validator-nu-url'}. '?out=json',
                             {'content-type' => "$type; charset=UTF-8"}, $html);
                 my $msg = $json_parser->decode($tx->res->body);
                 if (scalar @{$msg->{messages}} == 0) {

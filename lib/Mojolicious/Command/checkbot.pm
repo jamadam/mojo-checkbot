@@ -45,6 +45,7 @@ hoge usage: $0 daemon [OPTIONS]
   --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
   --html-validate         HTMLの構文エラーを検出します。XML::LibXMLが必要です。
   --validator-nu          validator.nuのオンラインバリデーションを有効化します
+  --validator-nu-url      validator.nuのURLを指定します。
   
   レポートサーバーオプション
   
@@ -91,7 +92,8 @@ These options are available:
   --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
   --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
   --html-validate         Enable HTML validation. This requires XML::LibXML installed.
-  --validator-nu          Activate online validation by validator.nu
+  --validator-nu          Activate online validation by validator.nu.
+  --validator-nu-url      Set validator.nu URL for case you need your own one.
   
   Report server options
   

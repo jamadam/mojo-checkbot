@@ -42,6 +42,7 @@ These options are available:
     --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
     --html-validate         Enable HTML validation. This requires XML::LibXML installed.
     --validator-nu          Activate online validation by validator.nu
+    --validator-nu-url      Set validator.nu URL for case you need your own one.
     
     Report server options
     
