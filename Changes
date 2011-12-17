@@ -1,5 +1,7 @@
 Revision history for mojo-checkbot
 
+0.37 2011/12/17
+
 0.36 2011/12/16
   - Fixed a bug that this hasn't been working without Clone.pm
   - Added commandline option validator-nu which activate online validation.
