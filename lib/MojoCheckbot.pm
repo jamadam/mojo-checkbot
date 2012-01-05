@@ -112,7 +112,6 @@ our $VERSION = '0.37';
     ### ---
     sub startup {
         my $self = shift;
-        my $home2 = Mojo::Home->new($self->home);
         $self->app->secret(time());
         $self->home->parse(File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot'));
         $self->static->root($self->home->rel_dir('public'));
