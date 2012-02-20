@@ -21,7 +21,6 @@ has iowatcher    => sub {
   $watcher->on(error => sub { warn pop });
   return $watcher;
 };
-has cleanup_interval => '0.025';
 has [qw/lock unlock/];
 has max_accepts     => 0;
 has max_connections => 1000;
@@ -31,11 +30,17 @@ has stream_class    => 'Mojo::IOLoop::Stream';
 # Ignore PIPE signal
 $SIG{PIPE} = 'IGNORE';
 
+# Initialize singleton watcher early
+__PACKAGE__->singleton->iowatcher;
+
 sub client {
   my $self = shift;
   $self = $self->singleton unless ref $self;
   my $cb = pop;
   my $args = ref $_[0] ? $_[0] : {@_};
+
+  # Make sure garbage gets collected
+  $self->_cleaner;
 
   # New client
   my $client = $self->client_class->new;
@@ -58,94 +63,21 @@ sub client {
       $self->stream($stream => $id);
 
       # Connected
-      $self->$cb($stream);
+      $self->$cb(undef, $stream);
     }
   );
   $client->on(
     error => sub {
-      my $c = delete $self->{connections}->{$id};
-      $self->$cb(undef, pop);
+      delete $self->{connections}->{$id};
+      $self->$cb(pop, undef);
     }
   );
-
-  # DEPRECATED in Leaf Fluttering In Wind!
-  $args->{timeout} ||= $self->{connect_timeout};
 
   # Connect
   $client->connect($args);
 
   return $id;
 }
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub connect {
-  my $self = shift;
-  $self = $self->singleton unless ref $self;
-  my $args = ref $_[0] ? $_[0] : {@_};
-  warn
-    "Mojo::IOLoop->connect is DEPRECATED in favor of Mojo::IOLoop->client!\n";
-
-  my $id;
-  $id = $self->client(
-    $args => sub {
-      my ($self, $stream, $error) = @_;
-
-      my $c = $self->{connections}->{$id};
-      $c->{$_} = delete($args->{"on_$_"}) || $c->{$_}
-        for qw/close connect error read/;
-      if ($error) {
-        $c->{error}->($self, $id, $error) if $c->{error};
-        return;
-      }
-
-      $stream->on(
-        close => sub {
-          my $c = $self->{connections}->{$id};
-          $c->{close}->($self, $id) if $c->{close};
-        }
-      );
-      $stream->on(
-        error => sub {
-          my $c = $self->{connections}->{$id};
-          $c->{error}->($self, $id, pop) if $c->{error};
-        }
-      );
-      $stream->on(
-        read => sub {
-          my $c = $self->{connections}->{$id};
-          $c->{read}->($self, $id, pop) if $c->{read};
-        }
-      );
-      $c->{connect}->($self, $id) if $c->{connect};
-    }
-  );
-
-  return $id;
-}
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub connect_timeout {
-  my ($self, $timeout) = @_;
-  warn <<EOF;
-Mojo::IOLoop->connect_timeout is DEPRECATED in favor of the timeout argument!
-EOF
-  if ($timeout) {
-    $self->{connect_timeout} = $timeout;
-    return $self;
-  }
-  return $self->{connect_timeout};
-}
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub connection_timeout {
-  warn <<EOF;
-Mojo::IOLoop->connection_timeout is DEPRECATED in favor of
-Mojo::IOLoop->timeout!
-EOF
-  shift->timeout(@_);
-}
-
-sub defer { shift->timer(0 => @_) }
 
 sub delay {
   my ($self, $cb) = @_;
@@ -170,76 +102,7 @@ sub generate_port { Mojo::IOLoop::Server->generate_port }
 
 sub is_running {
   my $self = shift;
-  $self = $self->singleton unless ref $self;
-  return $self->{running};
-}
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub listen {
-  my $self = shift;
-  $self = $self->singleton unless ref $self;
-  my $args = ref $_[0] ? $_[0] : {@_};
-  warn
-    "Mojo::IOLoop->listen is DEPRECATED in favor of Mojo::IOLoop->server!\n";
-
-  my $accept = delete $args->{on_accept};
-  my $close  = delete $args->{on_close};
-  my $error  = delete $args->{on_error};
-  my $read   = delete $args->{on_read};
-  my $id;
-  $id = $self->server(
-    $args => sub {
-      my ($self, $stream, $id) = @_;
-
-      my $c = $self->{connections}->{$id};
-      $c->{close} = $close if $close;
-      $c->{error} = $error if $error;
-      $c->{read}  = $read  if $read;
-      $stream->on(
-        close => sub {
-          my $c = $self->{connections}->{$id};
-          $c->{close}->($self, $id) if $c->{close};
-        }
-      );
-      $stream->on(
-        error => sub {
-          my $c = $self->{connections}->{$id};
-          $c->{error}->($self, $id, pop) if $c->{error};
-        }
-      );
-      $stream->on(
-        read => sub {
-          my $c = $self->{connections}->{$id};
-          $c->{read}->($self, $id, pop) if $c->{read};
-        }
-      );
-      $self->$accept($id) if $accept;
-    }
-  );
-
-  return $id;
-}
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub on_close { shift->_event(close => @_) }
-sub on_error { shift->_event(error => @_) }
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub on_lock {
-  warn
-    "Mojo::IOLoop->on_lock is DEPRECATED in favor of Mojo::IOLoop->lock!\n";
-  shift->lock(@_);
-}
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub on_read { shift->_event(read => @_) }
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub on_unlock {
-  warn <<EOF;
-Mojo::IOLoop->on_unlock is DEPRECATED in favor of Mojo::IOLoop->unlock!
-EOF
-  shift->unlock(@_);
+  return (ref $self ? $self : $self->singleton)->iowatcher->is_running;
 }
 
 sub one_tick {
@@ -262,6 +125,9 @@ sub server {
   my $self = shift;
   $self = $self->singleton unless ref $self;
   my $cb = pop;
+
+  # Make sure garbage gets collected
+  $self->_cleaner;
 
   # New server
   my $server = $self->server_class->new;
@@ -300,29 +166,23 @@ sub singleton { state $loop ||= shift->SUPER::new }
 sub start {
   my $self = shift;
   $self = $self->singleton unless ref $self;
-
-  # Check if we are already running
   croak 'Mojo::IOLoop already running' if $self->{running}++;
-
-  # Mainloop
-  my $id =
-    $self->recurring($self->cleanup_interval => sub { shift->_cleanup });
   $self->iowatcher->start;
-  $self->drop($id);
-
   return $self;
 }
 
 sub stop {
   my $self = shift;
   $self = $self->singleton unless ref $self;
-  delete $self->{running};
-  $self->iowatcher->stop;
+  $self->iowatcher->stop if delete $self->{running};
 }
 
 sub stream {
   my $self = shift;
   $self = $self->singleton unless ref $self;
+
+  # Make sure garbage gets collected
+  $self->_cleaner;
 
   # Find stream for id
   my $stream = shift;
@@ -341,21 +201,9 @@ sub stream {
   # Events
   weaken $self;
   $stream->on(close => sub { $self->{connections}->{$id}->{finish} = 1 });
-  $stream->on(error => sub { $self->{connections}->{$id}->{finish} = 1 });
-  $stream->on(read  => sub { $self->{connections}->{$id}->{active} = time });
-  $stream->on(write => sub { $self->{connections}->{$id}->{active} = time });
-  $stream->resume;
+  $stream->start;
 
   return $id;
-}
-
-sub timeout {
-  my ($self, $id, $timeout) = @_;
-  $self = $self->singleton unless ref $self;
-  return unless my $c = $self->{connections}->{$id};
-  return $c->{timeout} unless defined $timeout;
-  $c->{timeout} = $timeout;
-  return $self;
 }
 
 sub timer {
@@ -365,67 +213,41 @@ sub timer {
   return $self->iowatcher->timer($after => sub { $self->$cb(pop) });
 }
 
-# DEPRECATED in Leaf Fluttering In Wind!
-sub write {
-  my ($self, $id, $chunk, $cb) = @_;
-  warn <<EOF;
-Mojo::IOLoop->write is DEPRECATED in favor of Mojo::IOLoop::Stream->write!
-EOF
-  return unless my $stream = $self->stream($id);
-  return $stream->write($chunk) unless $cb;
-  weaken $self;
-  return $stream->write($chunk, sub { $self->$cb($id) });
-}
-
-sub _cleanup {
+sub _cleaner {
   my $self = shift;
+  $self->{cleaner} ||= $self->recurring(
+    '0.025' => sub {
+      my $self = shift;
 
-  # Manage connections
-  $self->_listening;
-  my $connections = $self->{connections} ||= {};
-  while (my ($id, $c) = each %$connections) {
+      # Manage connections
+      $self->_listening;
+      my $connections = $self->{connections} ||= {};
+      while (my ($id, $c) = each %$connections) {
+        $self->_drop($id)
+          if $c->{finish} && (!$c->{stream} || !$c->{stream}->is_writing);
+      }
 
-    # Connection needs to be finished
-    if ($c->{finish} && (!$c->{stream} || !$c->{stream}->is_writing)) {
-      $self->_drop($id);
-      next;
+      # Graceful shutdown
+      $self->stop if $self->max_connections == 0 && keys %$connections == 0;
     }
-
-    # Connection timeout
-    $self->_drop($id)
-      if (time - ($c->{active} || time)) >= ($c->{timeout} || 15);
-  }
-
-  # Graceful shutdown
-  $self->stop if $self->max_connections == 0 && keys %$connections == 0;
+  );
 }
 
 sub _drop {
   my ($self, $id) = @_;
 
   # Timer
-  return $self unless my $watcher = $self->iowatcher;
-  return $self if $watcher->drop_timer($id);
+  return unless my $watcher = $self->iowatcher;
+  return if $watcher->drop($id);
 
   # Listen socket
   if (delete $self->{servers}->{$id}) { delete $self->{listening} }
 
-  # Connection
+  # Connection (stream needs to be deleted first)
   else {
     delete(($self->{connections}->{$id} || {})->{stream});
     delete $self->{connections}->{$id};
   }
-
-  return $self;
-}
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub _event {
-  my ($self, $event, $id, $cb) = @_;
-  warn "Mojo::IOLoop->on_* methods are DEPRECATED!\n";
-  return unless my $c = $self->{connections}->{$id};
-  $c->{$event} = $cb if $cb;
-  return $self;
 }
 
 sub _id {
@@ -449,7 +271,7 @@ sub _listening {
   if (my $cb = $self->lock) { return unless $self->$cb(!$i) }
 
   # Check if multi-accept is desirable and start listening
-  $_->accepts($max > 1 ? 10 : 1)->resume for values %$servers;
+  $_->accepts($max > 1 ? 10 : 1)->start for values %$servers;
   $self->{listening} = 1;
 }
 
@@ -462,7 +284,7 @@ sub _not_listening {
   $self->$cb();
 
   # Stop listening
-  $_->pause for values %{$self->{servers} || {}};
+  $_->stop for values %{$self->{servers} || {}};
 }
 
 1;
@@ -489,18 +311,17 @@ Mojo::IOLoop - Minimalistic reactor for non-blocking TCP clients and servers
       # Got some data, time to write
       $stream->write('HTTP/1.1 200 OK');
     });
-
   });
 
   # Connect to port 3000
   my $id = Mojo::IOLoop->client({port => 3000} => sub {
-    my ($loop, $stream) = @_;
+    my ($loop, $err, $stream) = @_;
 
     $stream->on(read => sub {
       my ($stream, $chunk) = @_;
 
       # Process input
-      say $chunk;
+      say "Input: $chunk";
     });
 
     # Write request
@@ -527,9 +348,8 @@ Optional modules L<EV>, L<IO::Socket::IP> and L<IO::Socket::SSL> are
 supported transparently and used if installed.
 
 A TLS certificate and key are also built right in to make writing test
-servers as easy as possible.
-Also note that for convenience the C<PIPE> signal will be set to C<IGNORE>
-when L<Mojo::IOLoop> is loaded.
+servers as easy as possible. Also note that for convenience the C<PIPE>
+signal will be set to C<IGNORE> when L<Mojo::IOLoop> is loaded.
 
 =head1 ATTRIBUTES
 
@@ -541,8 +361,8 @@ L<Mojo::IOLoop> implements the following attributes.
   $loop     = $loop->client_class('Mojo::IOLoop::Client');
 
 Class to be used for opening TCP connections with the C<client> method,
-defaults to L<Mojo::IOLoop::Client>.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+defaults to L<Mojo::IOLoop::Client>. Note that this attribute is EXPERIMENTAL
+and might change without warning!
 
 =head2 C<iowatcher>
 
@@ -550,16 +370,8 @@ Note that this attribute is EXPERIMENTAL and might change without warning!
   $loop       = $loop->iowatcher(Mojo::IOWatcher->new);
 
 Low level event watcher, usually a L<Mojo::IOWatcher> or
-L<Mojo::IOWatcher::EV> object.
-Note that this attribute is EXPERIMENTAL and might change without warning!
-
-=head2 C<cleanup_interval>
-
-  my $interval = $loop->cleanup_interval;
-  $loop        = $loop->cleanup_interval(1);
-
-Connection cleanup interval in seconds, defaults to C<0.025>.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+L<Mojo::IOWatcher::EV> object. Note that this attribute is EXPERIMENTAL and
+might change without warning!
 
 =head2 C<lock>
 
@@ -567,9 +379,9 @@ Note that this attribute is EXPERIMENTAL and might change without warning!
   $loop  = $loop->lock(sub {...});
 
 A locking callback that decides if this loop is allowed to accept new
-incoming connections, used to sync multiple server processes.
-The callback should return true or false.
-Note that exceptions in this callback are not captured.
+incoming connections, used to sync multiple server processes. The callback
+should return true or false. Note that exceptions in this callback are not
+captured.
 
   $loop->lock(sub {
     my ($loop, $blocking) = @_;
@@ -585,10 +397,9 @@ Note that exceptions in this callback are not captured.
 
 The maximum number of connections this loop is allowed to accept before
 shutting down gracefully without interrupting existing connections, defaults
-to C<0>.
-Setting the value to C<0> will allow this loop to accept new connections
-infinitely.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+to C<0>. Setting the value to C<0> will allow this loop to accept new
+connections infinitely. Note that this attribute is EXPERIMENTAL and might
+change without warning!
 
 =head2 C<max_connections>
 
@@ -607,8 +418,8 @@ connections.
   $loop     = $loop->server_class('Mojo::IOLoop::Server');
 
 Class to be used for accepting TCP connections with the C<server> method,
-defaults to L<Mojo::IOLoop::Server>.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+defaults to L<Mojo::IOLoop::Server>. Note that this attribute is EXPERIMENTAL
+and might change without warning!
 
 =head2 C<stream_class>
 
@@ -616,8 +427,8 @@ Note that this attribute is EXPERIMENTAL and might change without warning!
   $loop     = $loop->stream_class('Mojo::IOLoop::Stream');
 
 Class to be used by C<client> and C<server> methods for I/O streams, defaults
-to L<Mojo::IOLoop::Stream>.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+to L<Mojo::IOLoop::Stream>. Note that this attribute is EXPERIMENTAL and
+might change without warning!
 
 =head2 C<unlock>
 
@@ -641,20 +452,13 @@ following new ones.
 
 Open TCP connection with C<client_class>, which is usually
 L<Mojo::IOLoop::Client>, takes the same arguments as
-L<Mojo::IOLoop::Client/"connect">.
-Note that this method is EXPERIMENTAL and might change without warning!
+L<Mojo::IOLoop::Client/"connect">. Note that this method is EXPERIMENTAL and
+might change without warning!
 
   Mojo::IOLoop->client({port => 3000} => sub {
-    my ($loop, $stream, $error) = @_;
+    my ($loop, $err, $stream) = @_;
+    ...
   });
-
-=head2 C<defer>
-
-  Mojo::IOLoop->defer(sub {...});
-  $loop->defer(sub {...});
-
-Invoke callback on next reactor tick.
-Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<delay>
 
@@ -662,8 +466,8 @@ Note that this method is EXPERIMENTAL and might change without warning!
   my $delay = $loop->delay;
   my $delay = $loop->delay(sub {...});
 
-Get L<Mojo::IOLoop::Delay> object to synchronize events.
-Note that this method is EXPERIMENTAL and might change without warning!
+Get L<Mojo::IOLoop::Delay> object to synchronize events and subscribe to
+C<finish> event if optional callback is provided.
 
   # Synchronize multiple events
   my $delay = Mojo::IOLoop->delay(sub { say 'BOOM!' });
@@ -675,17 +479,16 @@ Note that this method is EXPERIMENTAL and might change without warning!
     });
   }
 
-  # Wait for events
-  $delay->wait;
+  # Wait for events if necessary
+  $delay->wait unless Mojo::IOLoop->is_running;
 
 =head2 C<drop>
 
-  $loop = Mojo::IOLoop->drop($id);
-  $loop = $loop->drop($id);
+  Mojo::IOLoop->drop($id);
+  $loop->drop($id);
 
-Drop anything with an id.
-Connections will be dropped gracefully by allowing them to finish writing all
-data in their write buffers.
+Drop anything with an id. Connections will be dropped gracefully by allowing
+them to finish writing all data in their write buffers.
 
 =head2 C<generate_port>
 
@@ -720,13 +523,10 @@ amount of time in seconds.
 
 Create a new recurring timer, invoking the callback repeatedly after a given
 amount of seconds.
-This for example allows you to run multiple reactors next to each other.
 
-  my $loop2 = Mojo::IOLoop->new(timeout => 0);
-  Mojo::IOLoop->recurring(0 => sub { $loop2->one_tick });
-
-Note that the loop timeout can be changed dynamically at any time to adjust
-responsiveness.
+  # Run multiple reactors next to each other
+  my $loop2 = Mojo::IOLoop->new;
+  Mojo::IOLoop->recurring(0 => sub { $loop2->one_tick(0) });
 
 =head2 C<server>
 
@@ -736,11 +536,12 @@ responsiveness.
 
 Accept TCP connections with C<server_class>, which is usually
 L<Mojo::IOLoop::Server>, takes the same arguments as
-L<Mojo::IOLoop::Server/"listen">.
-Note that this method is EXPERIMENTAL and might change without warning!
+L<Mojo::IOLoop::Server/"listen">. Note that this method is EXPERIMENTAL and
+might change without warning!
 
   Mojo::IOLoop->server({port => 3000} => sub {
     my ($loop, $stream, $id) = @_;
+    ...
   });
 
 =head2 C<singleton>
@@ -778,14 +579,8 @@ and the loop can be restarted by running C<start> again.
 Get L<Mojo::IOLoop::Stream> object for id or turn object into a connection.
 Note that this method is EXPERIMENTAL and might change without warning!
 
-=head2 C<timeout>
-
-  my $timeout = Mojo::IOLoop->timeout($id);
-  my $timeout = $loop->timeout($id);
-  $loop       = $loop->timeout($id => 45);
-
-Maximum amount of time in seconds a connection can be inactive before getting
-dropped, defaults to C<15>.
+  # Increase timeout for the connection of a transaction to 300 seconds
+  Mojo::IOLoop->stream($tx->connection)->timeout(300);
 
 =head2 C<timer>
 

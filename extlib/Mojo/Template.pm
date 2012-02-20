@@ -38,13 +38,9 @@ sub capture;
 *capture = sub { shift->(@_) };
 sub escape;
 *escape = sub {
-  return "$_[0]" if ref $_[0] && ref $_[0] eq 'Mojo::ByteStream';
-  my $v;
-  {
-    no warnings 'uninitialized';
-    $v = "$_[0]";
-  }
-  Mojo::Util::xml_escape $v;
+  return $_[0] if ref $_[0] && ref $_[0] eq 'Mojo::ByteStream';
+  no warnings 'uninitialized';
+  Mojo::Util::xml_escape "$_[0]";
 };
 use Mojo::Base -strict;
 EOF
@@ -98,11 +94,11 @@ sub build {
           my $a = $self->auto_escape;
           if (($type eq 'escp' && !$a) || ($type eq 'expr' && $a)) {
             $lines[-1] .= "\$_M .= escape";
-            $lines[-1] .= " +$value" if length $value;
+            $lines[-1] .= " scalar $value" if length $value;
           }
 
           # Raw
-          else { $lines[-1] .= "\$_M .= $value" }
+          else { $lines[-1] .= "\$_M .= scalar $value" }
         }
 
         # Multiline
@@ -356,7 +352,7 @@ sub render_file {
 
   # Slurp file
   $self->name($path) unless defined $self->{name};
-  croak "Can't open template '$path': $!"
+  croak qq/Can't open template "$path": $!/
     unless my $file = IO::File->new("< $path");
   my $tmpl = '';
   while ($file->sysread(my $buffer, CHUNK_SIZE, 0)) {
@@ -410,10 +406,11 @@ sub _write_file {
   my ($self, $path, $output) = @_;
 
   # Encode and write to file
-  croak "Can't open file '$path': $!"
+  croak qq/Can't open file "$path": $!/
     unless my $file = IO::File->new("> $path");
   $output = encode $self->encoding, $output if $self->encoding;
-  $file->syswrite($output) or croak "Can't write to file '$path': $!";
+  croak qq/Can't write to file "$path": $!/
+    unless defined $file->syswrite($output);
 
   return;
 }
@@ -456,9 +453,8 @@ Mojo::Template - Perl-ish templates!
 
 L<Mojo::Template> is a minimalistic and very Perl-ish template engine,
 designed specifically for all those small tasks that come up during big
-projects.
-Like preprocessing a config file, generating text from heredocs and stuff
-like that.
+projects. Like preprocessing a configuration file, generating text from
+heredocs and stuff like that.
 
   <% Perl code %>
   <%= Perl expression, replaced with result %>
@@ -515,8 +511,8 @@ Perl lines can also be indented freely.
 =head2 Arguments
 
 L<Mojo::Template> templates work just like Perl subs (actually they get
-compiled to a Perl sub internally).
-That means you can access arguments simply via C<@_>.
+compiled to a Perl sub internally). That means you can access arguments
+simply via C<@_>.
 
   % my ($foo, $bar) = @_;
   % my $x = shift;
@@ -544,9 +540,8 @@ And a backslash in front of a newline can be escaped with another backslash.
 =head2 Exceptions
 
 Templates get compiled to Perl code internally, this can make debugging a bit
-tricky.
-But L<Mojo::Template> will return L<Mojo::Exception> objects that stringify
-to error messages with context.
+tricky. But L<Mojo::Template> will return L<Mojo::Exception> objects that
+stringify to error messages with context.
 
   Bareword "xx" not allowed while "strict subs" in use at template line 4.
   2: </head>
@@ -667,8 +662,8 @@ Character indicating the start of a code line, defaults to C<%>.
   my $name = $mt->name;
   $mt      = $mt->name('foo.mt');
 
-Name of template currently being processed, defaults to C<template>.
-Note that this method is attribute and might change without warning!
+Name of template currently being processed, defaults to C<template>. Note
+that this method is attribute and might change without warning!
 
 =head2 C<namespace>
 

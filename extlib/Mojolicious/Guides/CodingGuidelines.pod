@@ -12,16 +12,16 @@ Please do not send patches unless you agree with them.
 
 =head1 MISSION STATEMENT
 
-L<Mojo> is a runtime environment for Perl real-time web frameworks.
-It provides all the basic tools and helpers needed to write simple web
+L<Mojo> is a runtime environment for Perl real-time web frameworks. It
+provides all the basic tools and helpers needed to write simple web
 applications and higher level web frameworks such as L<Mojolicious>.
 
 All components should be reusable in other projects and in a UNIXish way
 only loosely coupled.
 
 Especially for people new to Perl it should be as easy as possible to
-install Mojolicious and get started.
-Writing web applications can be one of the most fun ways to learn a language!
+install Mojolicious and get started. Writing web applications can be one of
+the most fun ways to learn a language!
 
 For developers of other web frameworks it should be possible to reuse all the
 infrastructure and just consider the higher levels of the L<Mojolicious>
@@ -37,12 +37,20 @@ The web is a moving target, to stay relevant we have to stay in motion too.
 
 Keep it simple, no magic unless absolutely necessary.
 
-The installation process should be as fast and painless as possible.
-(Less than a minute on most common hardware is a good rule of thumb)
+The installation process should be as fast and painless as possible. (Less
+than a minute on most common hardware is a good rule of thumb)
 
 Code should be written with a Perl6 port in mind.
 
 No refactoring unless a very important feature absolutely depends on it.
+
+The addition and modification of features is decided by majority vote or the
+pumpking.
+
+Any core developer may nominate a new one, who must then be accepted by a 2/3
+majority vote.
+
+The pumpking has veto rights and may select his successor.
 
 It's not a feature without a test and documentation.
 
@@ -69,6 +77,8 @@ Documentation belongs to the guides, module POD is just an API reference.
 
 The main focus of the included documentation should be on examples, no walls
 of text. (An example for every one or two sentences is a good rule of thumb)
+
+Everything should be ordered alphabetically if possible.
 
 The master source code repository should always be kept in a stable state,
 use feature branches for actual development.

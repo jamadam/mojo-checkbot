@@ -16,8 +16,8 @@ sub parse {
   # Parse
   my $json   = Mojo::JSON->new;
   my $config = $json->decode($content);
-  my $error  = $json->error;
-  die qq/Couldn't parse config "$file": $error/ if !$config && $error;
+  my $err    = $json->error;
+  die qq/Couldn't parse config "$file": $err/ if !$config && $err;
   die qq/Invalid config "$file"./ if !$config || ref $config ne 'HASH';
 
   return $config;
@@ -70,22 +70,18 @@ Mojolicious::Plugin::JSONConfig - JSON configuration plugin
   # Mojolicious::Lite
   my $config = plugin 'JSONConfig';
 
-  # Reads myapp.json by default and puts the parsed version into the stash
-  my $config = $self->stash('config');
+  # Reads "myapp.json" by default
+  my $config = app->config;
 
   # Everything can be customized with options
-  my $config = plugin JSONConfig => {
-    file      => '/etc/myapp.conf',
-    stash_key => 'conf'
-  };
+  my $config = plugin JSONConfig => {file => '/etc/myapp.conf'};
 
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::JSONConfig> is a JSON configuration plugin that
-preprocesses it's input with L<Mojo::Template>.
-The application object can be accessed via C<$app> or the C<app> helper.
-You can extend the normal config file C<myapp.json> with C<mode> specific
-ones like C<myapp.$mode.json>.
+preprocesses it's input with L<Mojo::Template>. The application object can be
+accessed via C<$app> or the C<app> helper. You can extend the normal config
+file C<myapp.json> with C<mode> specific ones like C<myapp.$mode.json>.
 
 =head1 OPTIONS
 
@@ -98,11 +94,6 @@ L<Mojolicious::Plugin::Config> and supports the following new ones.
   plugin JSONConfig => {template => {line_start => '.'}};
 
 Template options.
-
-=head1 HELPERS
-
-L<Mojolicious::Plugin::JSONConfig> inherits all helpers from
-L<Mojolicious::Plugin::Config>.
 
 =head1 METHODS
 

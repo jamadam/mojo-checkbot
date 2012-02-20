@@ -29,15 +29,6 @@ sub error {
   return;
 }
 
-# DEPRECATED in Leaf Fluttering In Wind!
-sub is_done {
-  warn <<EOF;
-Mojo::Transaction->is_done is DEPRECATED in favor of
-Mojo::Transaction->is_finished!
-EOF
-  shift->is_finished;
-}
-
 sub is_finished { (shift->{state} || '') eq 'finished' }
 
 sub is_websocket {undef}
@@ -45,22 +36,6 @@ sub is_websocket {undef}
 sub is_writing {
   return 1 unless my $state = shift->{state};
   return $state ~~ [qw/write write_start_line write_headers write_body/];
-}
-
-# DEPRECATED in Smiling Face With Sunglasses!
-sub on_finish {
-  warn <<EOF;
-Mojo::Transaction->on_finish is DEPRECATED in favor of Mojo::Transaction->on!
-EOF
-  shift->on(finish => shift);
-}
-
-# DEPRECATED in Smiling Face With Sunglasses!
-sub on_resume {
-  warn <<EOF;
-Mojo::Transaction->on_resume is DEPRECATED in favor of Mojo::Transaction->on!
-EOF
-  shift->on(resume => shift);
 }
 
 sub remote_address {
@@ -75,8 +50,8 @@ sub remote_address {
   # Reverse proxy
   if ($ENV{MOJO_REVERSE_PROXY}) {
     return $self->{forwarded_for} if $self->{forwarded_for};
-    return $self->{forwarded_for} = $1
-      if ($self->req->headers->x_forwarded_for || '') =~ /([^,\s]+)$/;
+    ($self->req->headers->header('X-Forwarded-For') || '') =~ /([^,\s]+)$/
+      and return $self->{forwarded_for} = $1;
   }
 
   return $self->{remote_address};
@@ -122,15 +97,16 @@ L<Mojo::Transaction> can emit the following events.
 
   $tx->on(connection => sub {
     my ($tx, $connection) = @_;
+    ...
   });
 
 Emitted when a connection has been assigned to transaction.
-Note that this event is EXPERIMENTAL and might change without warning!
 
 =head2 C<finish>
 
   $tx->on(finish => sub {
     my $tx = shift;
+    ...
   });
 
 Emitted when transaction is finished.
@@ -139,6 +115,7 @@ Emitted when transaction is finished.
 
   $tx->on(resume => sub {
     my $tx = shift;
+    ...
   });
 
 Emitted when transaction is resumed.
@@ -289,9 +266,8 @@ Write server data.
   my $res = $tx->success;
 
 Returns the L<Mojo::Message::Response> object (C<res>) if transaction was
-successful or C<undef> otherwise.
-Connection and parser errors have only a message in C<error>, 400 and 500
-responses also a code.
+successful or C<undef> otherwise. Connection and parser errors have only a
+message in C<error>, 400 and 500 responses also a code.
 
   if (my $res = $tx->success) {
     say $res->body;

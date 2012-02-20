@@ -4,9 +4,8 @@ use Mojo::Base -base;
 # "Don't let Krusty's death get you down, boy.
 #  People die all the time, just like that.
 #  Why, you could wake up dead tomorrow! Well, good night."
-use Carp 'carp';
-use File::Basename;
-use File::Spec;
+use File::Basename 'fileparse';
+use File::Spec::Functions qw/catdir catfile splitdir/;
 use Mojo::Command;
 use Mojo::Exception;
 
@@ -43,7 +42,7 @@ sub search {
   my $modules = [];
   my %found;
   foreach my $directory (exists $INC{'blib.pm'} ? grep {/blib/} @INC : @INC) {
-    my $path = File::Spec->catdir($directory, (split /::/, $namespace));
+    my $path = catdir $directory, (split /::/, $namespace);
     next unless (-e $path && -d $path);
 
     # Get files
@@ -53,10 +52,10 @@ sub search {
 
     # Check files
     for my $file (@files) {
-      next if -d File::Spec->catfile(File::Spec->splitdir($path), $file);
+      next if -d catfile splitdir($path), $file;
 
       # Module found
-      my $name = File::Basename::fileparse($file, qr/\.pm/);
+      my $name = fileparse $file, qr/\.pm/;
       my $class = "$namespace\::$name";
       push @$modules, $class unless $found{$class};
       $found{$class} ||= 1;
@@ -99,9 +98,8 @@ following new ones.
 
   my $e = $loader->load('Foo::Bar');
 
-Load a class and catch exceptions.
-Note that classes are checked for a C<new> method to see if they are already
-loaded.
+Load a class and catch exceptions. Note that classes are checked for a C<new>
+method to see if they are already loaded.
 
   if (my $e = $loader->load('Foo::Bar')) {
     die "Exception: $e" if ref $e;

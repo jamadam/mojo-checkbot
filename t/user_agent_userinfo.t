@@ -26,7 +26,7 @@ use Test::Mojo;
 				$stream->write(
                     "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-					sub {shift->drop(shift) }
+					sub {shift->close }
 				);
 			});
 		});
@@ -43,7 +43,7 @@ use Test::Mojo;
 				$stream->write(
                     "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-					sub {shift->drop(shift) }
+					sub {shift->close }
 				);
 			});
 		});
@@ -59,7 +59,7 @@ use Test::Mojo;
 				$stream->write(
                     "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-					sub {shift->drop(shift) }
+					sub {shift->close }
 				);
 			});
 		});

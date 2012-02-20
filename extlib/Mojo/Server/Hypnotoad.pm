@@ -5,13 +5,14 @@ use Carp 'croak';
 use Cwd 'abs_path';
 use Fcntl ':flock';
 use File::Basename 'dirname';
-use File::Spec;
+use File::Spec::Functions qw/catfile tmpdir/;
 use IO::File;
 use IO::Poll 'POLLIN';
 use List::Util 'shuffle';
 use Mojo::Server::Daemon;
 use POSIX qw/setsid WNOHANG/;
 use Scalar::Util 'weaken';
+use Time::HiRes 'ualarm';
 
 # Preload
 use Mojo::UserAgent;
@@ -47,13 +48,12 @@ sub run {
   my ($self, $app, $config) = @_;
 
   # No windows support
-  _exit('Hypnotoad not available for Windows.')
-    if $^O eq 'MSWin32' || $^O =~ /cygwin/;
+  _exit('Hypnotoad not available for Windows.') if $^O eq 'MSWin32';
 
   # Application
   $ENV{HYPNOTOAD_APP} ||= abs_path $app;
 
-  # Config
+  # DEPRECATED in Leaf Fluttering In Wind!
   $ENV{HYPNOTOAD_CONFIG} ||= abs_path $config;
 
   # This is a production server
@@ -66,13 +66,10 @@ sub run {
   # Clean start
   exec $ENV{HYPNOTOAD_EXE} unless $ENV{HYPNOTOAD_REV}++;
 
-  # Preload application
+  # Preload application and configure server
   my $daemon = $self->{daemon} = Mojo::Server::Daemon->new;
   warn "APPLICATION $ENV{HYPNOTOAD_APP}\n" if DEBUG;
-  $daemon->load_app($ENV{HYPNOTOAD_APP});
-
-  # Load configuration
-  $self->_config;
+  $self->_config($daemon->load_app($ENV{HYPNOTOAD_APP}));
 
   # Testing
   _exit('Everything looks good!') if $ENV{HYPNOTOAD_TEST};
@@ -83,16 +80,7 @@ sub run {
   # Initiate hot deployment
   $self->_hot_deploy unless $ENV{HYPNOTOAD_PID};
 
-  # Prepare loop
-  $daemon->prepare_ioloop;
-
-  # Pipe for worker communication
-  pipe($self->{reader}, $self->{writer})
-    or croak "Can't create pipe: $!";
-  $self->{poll} = IO::Poll->new;
-  $self->{poll}->mask($self->{reader}, POLLIN);
-
-  # Daemonize
+  # Daemonize as early as possible
   if (!DEBUG && !$ENV{HYPNOTOAD_FOREGROUND}) {
 
     # Fork and kill parent
@@ -105,6 +93,15 @@ sub run {
     open STDOUT, '>/dev/null';
     open STDERR, '>&STDOUT';
   }
+
+  # Start accepting connections
+  $daemon->start;
+
+  # Pipe for worker communication
+  pipe($self->{reader}, $self->{writer})
+    or croak "Can't create pipe: $!";
+  $self->{poll} = IO::Poll->new;
+  $self->{poll}->mask($self->{reader}, POLLIN);
 
   # Manager environment
   my $c = $self->{config};
@@ -127,13 +124,16 @@ sub run {
 }
 
 sub _config {
-  my $self = shift;
+  my ($self, $app) = @_;
 
-  # Load config file
+  # Load configuration from application
+  my $c = $app->config('hypnotoad') || {};
+
+  # DEPRECATED in Leaf Fluttering In Wind!
   my $file = $ENV{HYPNOTOAD_CONFIG};
   warn "CONFIG $file\n" if DEBUG;
-  my $c = {};
   if (-r $file) {
+    warn "Hypnotoad config files are DEPRECATED!\n";
     unless ($c = do $file) {
       die qq/Can't load config file "$file": $@/ if $@;
       die qq/Can't load config file "$file": $!/ unless defined $c;
@@ -141,18 +141,16 @@ sub _config {
         unless ref $c eq 'HASH';
     }
   }
-  $self->{config} = $c;
 
   # Hypnotoad settings
+  $self->{config} = $c;
   $c->{graceful_timeout}   ||= 30;
   $c->{heartbeat_interval} ||= 5;
   $c->{heartbeat_timeout}  ||= 10;
-  $c->{lock_file}
-    ||= File::Spec->catfile($ENV{MOJO_TMPDIR} || File::Spec->tmpdir,
-    'hypnotoad.lock');
+  $c->{lock_file} ||= catfile($ENV{MOJO_TMPDIR} || tmpdir, 'hypnotoad.lock');
   $c->{lock_file} .= ".$$";
-  $c->{pid_file}
-    ||= File::Spec->catfile(dirname($ENV{HYPNOTOAD_APP}), 'hypnotoad.pid');
+  $c->{lock_timeout} ||= '0.5';
+  $c->{pid_file} ||= catfile(dirname($ENV{HYPNOTOAD_APP}), 'hypnotoad.pid');
   $c->{upgrade_timeout} ||= 60;
   $c->{workers}         ||= 4;
 
@@ -163,13 +161,17 @@ sub _config {
   $daemon->max_clients($c->{clients} || 1000);
   $daemon->group($c->{group}) if $c->{group};
   $daemon->max_requests($c->{keep_alive_requests}      || 25);
-  $daemon->keep_alive_timeout($c->{keep_alive_timeout} || 15);
+  $daemon->inactivity_timeout($c->{inactivity_timeout} || 15);
   $daemon->user($c->{user}) if $c->{user};
   $daemon->websocket_timeout($c->{websocket_timeout} || 300);
   $daemon->ioloop->max_accepts($c->{accepts} || 1000);
   my $listen = $c->{listen} || ['http://*:8080'];
   $listen = [$listen] unless ref $listen;
   $daemon->listen($listen);
+
+  # DEPRECATED in Leaf Fluttering In Wind!
+  $daemon->inactivity_timeout($c->{keep_alive_timeout})
+    if $c->{keep_alive_timeout};
 }
 
 sub _exit { say shift and exit 0 }
@@ -353,9 +355,9 @@ sub _spawn {
       if ($_[1]) {
         eval {
           local $SIG{ALRM} = sub { die "alarm\n" };
-          my $old = alarm 1;
+          my $old = ualarm $c->{lock_timeout} * 1000000;
           $l = flock $lock, LOCK_EX;
-          alarm $old;
+          ualarm $old;
         };
         if ($@) {
           die $@ unless $@ eq "alarm\n";
@@ -412,7 +414,7 @@ Mojo::Server::Hypnotoad - ALL GLORY TO THE HYPNOTOAD!
   use Mojo::Server::Hypnotoad;
 
   my $toad = Mojo::Server::Hypnotoad->new;
-  $toad->run('./myapp.pl', './hypnotoad.conf');
+  $toad->run('./myapp.pl');
 
 =head1 DESCRIPTION
 
@@ -442,7 +444,8 @@ See L<Mojolicious::Guides::Cookbook> for deployment recipes.
 
 =head1 SIGNALS
 
-You can control C<hypnotoad> at runtime with signals.
+L<Mojo::Server::Hypnotoad> can be controlled at runtime with the following
+signals.
 
 =head2 Manager
 
@@ -499,23 +502,18 @@ Stop worker gracefully.
 
 =back
 
-=head1 CONFIGURATION
+=head1 SETTINGS
 
-C<Hypnotoad> configuration files are normal Perl scripts returning a hash.
-
-  # hypnotoad.conf
-  {listen => ['http://*:3000', 'http://*:4000'], workers => 10};
-
-The following parameters are currently available:
+L<Mojo::Server::Hypnotoad> can be configured with the following settings, see
+L<Mojolicious::Guides::Cookbook/"Hypnotoad"> for examples.
 
 =head2 C<accepts>
 
   accepts => 100
 
 Maximum number of connections a worker is allowed to accept before stopping
-gracefully, defaults to C<1000>.
-Setting the value to C<0> will allow workers to accept new connections
-infinitely.
+gracefully, defaults to C<1000>. Setting the value to C<0> will allow workers
+to accept new connections infinitely.
 
 =head2 C<backlog>
 
@@ -534,8 +532,8 @@ C<1000>.
 
   graceful_timeout => 15
 
-Time in seconds a graceful worker stop may take before being forced, defaults
-to C<30>.
+Maximum amount of time in seconds a graceful worker stop may take before
+being forced, defaults to C<30>.
 
 =head2 C<group>
 
@@ -553,8 +551,16 @@ Heartbeat interval in seconds, defaults to C<5>.
 
   heartbeat_timeout => 2
 
-Time in seconds before a worker without a heartbeat will be stopped, defaults
-to C<10>.
+Maximum amount of time in seconds before a worker without a heartbeat will be
+stopped, defaults to C<10>.
+
+=head2 C<inactivity_timeout>
+
+  inactivity_timeout => 10
+
+Maximum amount of time in seconds a connection can be inactive before getting
+dropped, defaults to C<15>. Setting the value to C<0> will allow connections
+to be inactive indefinitely.
 
 =head2 C<keep_alive_requests>
 
@@ -562,25 +568,25 @@ to C<10>.
 
 Number of keep alive requests per connection, defaults to C<25>.
 
-=head2 C<keep_alive_timeout>
-
-  keep_alive_timeout => 10
-
-Maximum amount of time in seconds a connection can be inactive before being
-dropped, defaults to C<15>.
-
 =head2 C<listen>
 
   listen => ['http://*:80']
 
-List of one or more locations to listen on, defaults to C<http://*:8080>.
-See also L<Mojo::Server::Daemon/"listen"> for more examples.
+List of one or more locations to listen on, defaults to C<http://*:8080>. See
+also L<Mojo::Server::Daemon/"listen"> for more examples.
 
 =head2 C<lock_file>
 
   lock_file => '/tmp/hypnotoad.lock'
 
 Full path to accept mutex lock file, defaults to a random temporary file.
+
+=head2 C<lock_timeout>
+
+  lock_timeout => 1
+
+Maximum amount of time in seconds a worker may block when waiting for the
+accept mutex, defaults to C<0.5>.
 
 =head2 C<pid_file>
 
@@ -600,8 +606,8 @@ the C<MOJO_REVERSE_PROXY> environment variable.
 
   upgrade_timeout => 30
 
-Time in seconds a zero downtime software upgrade may take before being
-aborted, defaults to C<60>.
+Maximum amount of time in seconds a zero downtime software upgrade may take
+before getting canceled, defaults to C<60>.
 
 =head2 C<user>
 
@@ -614,14 +620,15 @@ Username for worker processes.
   websocket_timeout => 150
 
 Maximum amount of time in seconds a WebSocket connection can be inactive
-before getting dropped, defaults to C<300>.
+before getting dropped, defaults to C<300>. Setting the value to C<0> will
+allow WebSocket connections to be inactive indefinitely.
 
 =head2 C<workers>
 
   workers => 10
 
-Number of worker processes, defaults to C<4>.
-A good rule of thumb is two worker processes per cpu core.
+Number of worker processes, defaults to C<4>. A good rule of thumb is two
+worker processes per cpu core.
 
 =head1 METHODS
 
@@ -630,9 +637,9 @@ implements the following new ones.
 
 =head2 C<run>
 
-  $toad->run('script/myapp', 'hypnotoad.conf');
+  $toad->run('script/myapp');
 
-Start server.
+Run server.
 
 =head1 DEBUGGING
 

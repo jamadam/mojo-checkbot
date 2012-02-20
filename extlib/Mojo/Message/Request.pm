@@ -12,15 +12,13 @@ has url => sub { Mojo::URL->new };
 
 my $START_LINE_RE = qr|
   ^\s*
-  (?<method>[a-zA-Z]+)                                          # Method
+  ([a-zA-Z]+)                                                   # Method
   \s+
-  (?<path>
-    [0-9a-zA-Z\-\.\_\~\:/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\%]+   # Path
-  )
-  (?:\s+HTTP/(?<version>\d+\.\d+))?                             # Version
+  ([0-9a-zA-Z\-\.\_\~\:/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\%]+)   # Path
+  (?:\s+HTTP/(\d+\.\d+))?                                       # Version
   $
 |x;
-my $HOST_RE = qr/^(?<host>[^\:]*)\:?(?<port>.*)$/;
+my $HOST_RE = qr/^([^\:]*)\:?(.*)$/;
 
 sub clone {
   my $self = shift;
@@ -42,24 +40,20 @@ sub cookies {
   my $self = shift;
 
   # Add cookies
+  my $headers = $self->headers;
   if (@_) {
-    my $cookies = shift;
-    $cookies = Mojo::Cookie::Request->new($cookies)
-      if ref $cookies eq 'HASH';
-    $cookies = $cookies->to_string_with_prefix;
+    my @cookies = $headers->cookie || ();
     for my $cookie (@_) {
-      $cookie = Mojo::Cookie::Request->new($cookie)
-        if ref $cookie eq 'HASH';
-      $cookies .= "; $cookie";
+      $cookie = Mojo::Cookie::Request->new($cookie) if ref $cookie eq 'HASH';
+      push @cookies, $cookie;
     }
-    $self->headers->add('Cookie', $cookies);
+    $headers->cookie(join('; ', @cookies));
     return $self;
   }
 
   # Cookie
   my @cookies;
-  push @cookies, @{Mojo::Cookie::Request->parse($_)}
-    for $self->headers->cookie;
+  push @cookies, @{Mojo::Cookie::Request->parse($_)} for $headers->cookie;
   return \@cookies;
 }
 
@@ -103,8 +97,7 @@ sub is_xhr {
 
 sub param {
   my $self = shift;
-  $self->{params} = $self->params unless $self->{params};
-  return $self->{params}->param(@_);
+  return ($self->{params} ||= $self->params)->param(@_);
 }
 
 sub params {
@@ -163,13 +156,13 @@ sub parse {
       # "X-Forwarded-Host"
       if (my $host = $headers->header('X-Forwarded-Host')) {
         if ($host =~ $HOST_RE) {
-          $base->host($+{host});
-          $base->port($+{port}) if defined $+{port};
+          $base->host($1);
+          $base->port($2) if defined $2;
         }
       }
 
       # "X-Forwarded-HTTPS"
-      if ($headers->header('X-Forwarded-HTTPS')) { $base->scheme('https') }
+      $base->scheme('https') if $headers->header('X-Forwarded-HTTPS');
     }
   }
 
@@ -259,9 +252,8 @@ sub _parse_env {
     if ($name eq 'HOST') {
       my $host = $value;
       my $port;
-      ($host, $port) = ($+{host}, $+{port}) if $host =~ $HOST_RE;
-      $base->host($host);
-      $base->port($port);
+      ($host, $port) = ($1, $2) if $host =~ $HOST_RE;
+      $base->host($host)->port($port);
     }
   }
 
@@ -324,13 +316,13 @@ sub _parse_start_line {
   # We have a (hopefully) full request line
   return $self->error('Bad request start line.', 400)
     unless $line =~ $START_LINE_RE;
-  $self->method($+{method});
+  $self->method($1);
   my $url = $self->url;
-  $+{method} eq 'CONNECT' ? $url->authority($+{path}) : $url->parse($+{path});
+  $1 eq 'CONNECT' ? $url->authority($2) : $url->parse($2);
 
   # HTTP 0.9 is identified by the missing version
   $self->{state} = 'content';
-  return $self->version($+{version}) if defined $+{version};
+  return $self->version($3) if defined $3;
   $self->version('0.9');
   $self->{state}  = 'finished';
   $self->{buffer} = '';
@@ -405,8 +397,8 @@ implements the following new ones.
 
   my $clone = $req->clone;
 
-Clone request if possible.
-Note that this method is EXPERIMENTAL and might change without warning!
+Clone request if possible, otherwise return C<undef>. Note that this method
+is EXPERIMENTAL and might change without warning!
 
 =head2 C<cookies>
 

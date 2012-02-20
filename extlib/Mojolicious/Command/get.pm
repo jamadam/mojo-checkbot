@@ -1,38 +1,39 @@
 package Mojolicious::Command::get;
 use Mojo::Base 'Mojo::Command';
 
-use Getopt::Long 'GetOptions';
+use Getopt::Long qw/GetOptions :config no_auto_abbrev no_ignore_case/;
 use Mojo::DOM;
 use Mojo::IOLoop;
+use Mojo::JSON;
+use Mojo::JSON::Pointer;
 use Mojo::Transaction::HTTP;
 use Mojo::UserAgent;
 use Mojo::Util qw/decode encode/;
 
-has description => <<'EOF';
-Perform HTTP 1.1 request.
-EOF
-has usage => <<"EOF";
-usage: $0 get [OPTIONS] URL [SELECTOR] [COMMANDS]
+has description => "Perform HTTP 1.1 request.\n";
+has usage       => <<"EOF";
+usage: $0 get [OPTIONS] URL [SELECTOR|JSON-POINTER] [COMMANDS]
 
   mojo get /
   mojo get mojolicio.us
   mojo get -v -r google.com
-  mojo get --method POST --content 'trololo' mojolicio.us
-  mojo get --header 'X-Bender: Bite my shiny metal ass!' mojolicio.us
+  mojo get -M POST -c 'trololo' mojolicio.us
+  mojo get -H 'X-Bender: Bite my shiny metal ass!' mojolicio.us
   mojo get mojolicio.us 'head > title' text
   mojo get mojolicio.us .footer all
   mojo get mojolicio.us a attr href
   mojo get mojolicio.us '*' attr id
   mojo get mojolicio.us 'h1, h2, h3' 3 text
+  mojo get http://search.twitter.com/search.json /error
 
 These options are available:
-  --charset <charset>     Charset of HTML5/XML content, defaults to auto
-                          detection or "UTF-8".
-  --content <content>     Content to send with request.
-  --header <name:value>   Additional HTTP header.
-  --method <method>       HTTP method to use, defaults to "GET".
-  --redirect              Follow up to 5 redirects.
-  --verbose               Print verbose debug information to STDERR.
+  -C, --charset <charset>     Charset of HTML5/XML content, defaults to auto
+                              detection or "UTF-8".
+  -c, --content <content>     Content to send with request.
+  -H, --header <name:value>   Additional HTTP header.
+  -M, --method <method>       HTTP method to use, defaults to "GET".
+  -r, --redirect              Follow up to 5 redirects.
+  -v, --verbose               Print request and response headers to STDERR.
 EOF
 
 # "Objection.
@@ -43,18 +44,17 @@ sub run {
 
   # Options
   local @ARGV = @_;
-  my $method = 'GET';
-  my @headers;
-  my $content = '';
+  my ($method, $content, @headers) = ('GET', '');
   my ($charset, $redirect, $verbose) = 0;
   GetOptions(
-    'charset=s' => sub { $charset  = $_[1] },
-    'content=s' => sub { $content  = $_[1] },
-    'header=s'  => \@headers,
-    'method=s'  => sub { $method   = $_[1] },
-    redirect    => sub { $redirect = 1 },
-    verbose     => sub { $verbose  = 1 }
+    'C|charset=s' => sub { $charset  = $_[1] },
+    'c|content=s' => sub { $content  = $_[1] },
+    'H|header=s'  => \@headers,
+    'M|method=s'  => sub { $method   = $_[1] },
+    'r|redirect'  => sub { $redirect = 1 },
+    'v|verbose'   => sub { $verbose  = 1 }
   );
+  $verbose = 1 if $method eq 'HEAD';
 
   # Headers
   my $headers = {};
@@ -71,11 +71,10 @@ sub run {
 
   # Fresh user agent
   my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
-  $ua->log->level('fatal');
   $ua->max_redirects(5) if $redirect;
 
   # Absolute URL
-  if ($url =~ m#^\w+://#) { $ua->detect_proxy }
+  if ($url !~ m#/#) { $ua->detect_proxy }
 
   # Application
   else { $ua->app($ENV{MOJO_APP} || 'Mojo::HelloWorld') }
@@ -142,9 +141,22 @@ sub run {
   $url = encode 'UTF-8', $url;
   warn qq/Problem loading URL "$url". ($message)\n/ if $message && !$code;
 
-  # Select
-  $charset //= $tx->res->content->charset;
-  $self->_select($buffer, $charset, $selector) if $selector;
+  # JSON Pointer
+  return unless $selector;
+  return $self->_json($buffer, $selector)
+    if ($tx->res->headers->content_type || '') =~ /JSON/i;
+
+  # Selector
+  $self->_select($buffer, $charset // $tx->res->content->charset, $selector);
+}
+
+sub _json {
+  my ($self, $buffer, $pointer) = @_;
+  my $json = Mojo::JSON->new;
+  return unless my $data = $json->decode($buffer);
+  return unless $data = Mojo::JSON::Pointer->get($data, $pointer);
+  ref $data eq 'HASH'
+    || ref $data eq 'ARRAY' ? say($json->encode($data)) : _say($data);
 }
 
 sub _say {

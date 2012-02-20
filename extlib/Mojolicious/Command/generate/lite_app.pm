@@ -1,12 +1,8 @@
 package Mojolicious::Command::generate::lite_app;
 use Mojo::Base 'Mojo::Command';
 
-has description => <<'EOF';
-Generate Mojolicious::Lite application.
-EOF
-has usage => <<"EOF";
-usage: $0 generate lite_app [NAME]
-EOF
+has description => "Generate Mojolicious::Lite application.\n";
+has usage       => "usage: $0 generate lite_app [NAME]\n";
 
 # "As a scientist,
 #  I can assure you that we did in fact evolve from filthy monkey-men."
@@ -28,7 +24,7 @@ use Mojolicious::Lite;
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
 
-get '/welcome' => sub {
+get '/' => sub {
   my $self = shift;
   $self->render('index');
 };
@@ -39,7 +35,7 @@ app->start;
 <% %>@@ index.html.ep
 %% layout 'default';
 %% title 'Welcome';
-Welcome to Mojolicious!
+Welcome to the Mojolicious real-time web framework!
 
 <% %>@@ layouts/default.html.ep
 <!DOCTYPE html>

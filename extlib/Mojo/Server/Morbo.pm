@@ -115,7 +115,7 @@ sub _spawn {
   $daemon->load_app($self->watch->[0]);
   $daemon->silent(1) if $ENV{MORBO_REV} > 1;
   $daemon->listen($self->listen) if @{$self->listen};
-  $daemon->prepare_ioloop;
+  $daemon->start;
   my $loop = $daemon->ioloop;
   $loop->recurring(
     1 => sub { shift->stop if !kill(0, $manager) || $self->{finished} });
@@ -142,8 +142,8 @@ Mojo::Server::Morbo - DOOOOOOOOOOOOOOOOOOM!
 L<Mojo::Server::Morbo> is a full featured self-restart capable non-blocking
 I/O HTTP 1.1 and WebSocket server built around the very well tested and
 reliable L<Mojo::Server::Daemon> with C<IPv6>, C<TLS>, C<Bonjour> and
-C<libev> support.
-Note that this module is EXPERIMENTAL and might change without warning!
+C<libev> support. Note that this module is EXPERIMENTAL and might change
+without warning!
 
 To start applications with it you can use the L<morbo> script.
 
@@ -189,7 +189,7 @@ Check if file has been modified since last check.
 
   $morbo->run('script/myapp');
 
-Start server.
+Run server.
 
 =head1 DEBUGGING
 

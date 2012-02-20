@@ -34,7 +34,7 @@ EOF
 			$stream->write(
 				"HTTP/1.1 404 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0aNot Found",
-				sub { shift->drop(shift) }
+				sub { shift->close }
 			);
 		});
 	});
@@ -55,7 +55,7 @@ EOF
 			$stream->write(
 				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-				sub { shift->drop(shift) }
+				sub { shift->close }
 			);
 		});
 	});
@@ -145,7 +145,7 @@ EOF
 				$stream->write(
 					"HTTP/1.1 200 OK\x0d\x0a"
 						. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-					sub {shift->drop(shift) }
+					sub {shift->close }
 				);
 			});
 		});
@@ -252,7 +252,7 @@ EOF
 				$stream->write(
 					"HTTP/1.1 200 OK\x0d\x0a"
 						. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-					sub { shift->drop(shift) }
+					sub { shift->close }
 				);
 			});
 		});

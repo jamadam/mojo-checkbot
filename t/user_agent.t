@@ -11,7 +11,7 @@ BEGIN {
   $ENV{MOJO_IOWATCHER} = 'Mojo::IOWatcher';
 }
 
-use Test::More tests => 67;
+use Test::More tests => 73;
 
 # "The strong must protect the sweet."
 use Mojo::IOLoop;
@@ -29,7 +29,8 @@ get '/' => {text => 'works!'};
 my $timeout = undef;
 get '/timeout' => sub {
   my $self = shift;
-  Mojo::IOLoop->timeout($self->tx->connection => '0.5');
+  Mojo::IOLoop->stream($self->tx->connection)
+    ->timeout($self->param('timeout'));
   $self->on(finish => sub { $timeout = 1 });
   $self->render_later;
 };
@@ -48,54 +49,46 @@ get '/echo' => sub {
 };
 
 # Proxy detection
-my $ua      = MojoCheckbot::UserAgent->new;
-my $backup  = $ENV{HTTP_PROXY} || '';
-my $backup2 = $ENV{HTTPS_PROXY} || '';
-my $backup3 = $ENV{NO_PROXY} || '';
-my $backup4 = $ENV{http_proxy} || '';
-my $backup5 = $ENV{https_proxy} || '';
-my $backup6 = $ENV{no_proxy} || '';
-$ENV{HTTP_PROXY}  = 'http://127.0.0.1';
-$ENV{HTTPS_PROXY} = 'http://127.0.0.1:8080';
-$ENV{NO_PROXY}    = 'mojolicio.us';
-$ua->detect_proxy;
-is $ua->http_proxy,  'http://127.0.0.1',      'right proxy';
-is $ua->https_proxy, 'http://127.0.0.1:8080', 'right proxy';
-$ua->http_proxy(undef);
-$ua->https_proxy(undef);
-is $ua->http_proxy,  undef, 'right proxy';
-is $ua->https_proxy, undef, 'right proxy';
-ok !$ua->need_proxy('dummy.mojolicio.us'), 'no proxy needed';
-ok $ua->need_proxy('icio.us'),   'proxy needed';
-ok $ua->need_proxy('localhost'), 'proxy needed';
-$ENV{HTTP_PROXY}  = undef;
-$ENV{HTTPS_PROXY} = undef;
-$ENV{NO_PROXY}    = undef;
-$ENV{http_proxy}  = 'proxy.kraih.com';
-$ENV{https_proxy} = 'tunnel.kraih.com';
-$ENV{no_proxy}    = 'localhost,localdomain,foo.com,kraih.com';
-$ua->detect_proxy;
-is $ua->http_proxy,  'proxy.kraih.com',  'right proxy';
-is $ua->https_proxy, 'tunnel.kraih.com', 'right proxy';
-ok $ua->need_proxy('dummy.mojolicio.us'), 'proxy needed';
-ok $ua->need_proxy('icio.us'),            'proxy needed';
-ok !$ua->need_proxy('localhost'),             'proxy needed';
-ok !$ua->need_proxy('localhost.localdomain'), 'no proxy needed';
-ok !$ua->need_proxy('foo.com'),               'no proxy needed';
-ok !$ua->need_proxy('kraih.com'),             'no proxy needed';
-ok !$ua->need_proxy('www.kraih.com'),         'no proxy needed';
-ok $ua->need_proxy('www.kraih.com.com'), 'proxy needed';
-$ENV{HTTP_PROXY}  = $backup;
-$ENV{HTTPS_PROXY} = $backup2;
-$ENV{NO_PROXY}    = $backup3;
-$ENV{http_proxy}  = $backup4;
-$ENV{https_proxy} = $backup5;
-$ENV{no_proxy}    = $backup6;
+{
+  my $ua = MojoCheckbot::UserAgent->new;
+  local $ENV{HTTP_PROXY}  = 'http://127.0.0.1';
+  local $ENV{HTTPS_PROXY} = 'http://127.0.0.1:8080';
+  local $ENV{NO_PROXY}    = 'mojolicio.us';
+  $ua->detect_proxy;
+  is $ua->http_proxy,  'http://127.0.0.1',      'right proxy';
+  is $ua->https_proxy, 'http://127.0.0.1:8080', 'right proxy';
+  $ua->http_proxy(undef);
+  $ua->https_proxy(undef);
+  is $ua->http_proxy,  undef, 'right proxy';
+  is $ua->https_proxy, undef, 'right proxy';
+  ok !$ua->need_proxy('dummy.mojolicio.us'), 'no proxy needed';
+  ok $ua->need_proxy('icio.us'),   'proxy needed';
+  ok $ua->need_proxy('localhost'), 'proxy needed';
+  $ENV{HTTP_PROXY} = $ENV{HTTPS_PROXY} = $ENV{NO_PROXY} = undef;
+  local $ENV{http_proxy}  = 'proxy.kraih.com';
+  local $ENV{https_proxy} = 'tunnel.kraih.com';
+  local $ENV{no_proxy}    = 'localhost,localdomain,foo.com,kraih.com';
+  $ua->detect_proxy;
+  is $ua->http_proxy,  'proxy.kraih.com',  'right proxy';
+  is $ua->https_proxy, 'tunnel.kraih.com', 'right proxy';
+  ok $ua->need_proxy('dummy.mojolicio.us'), 'proxy needed';
+  ok $ua->need_proxy('icio.us'),            'proxy needed';
+  ok !$ua->need_proxy('localhost'),             'proxy needed';
+  ok !$ua->need_proxy('localhost.localdomain'), 'no proxy needed';
+  ok !$ua->need_proxy('foo.com'),               'no proxy needed';
+  ok !$ua->need_proxy('kraih.com'),             'no proxy needed';
+  ok !$ua->need_proxy('www.kraih.com'),         'no proxy needed';
+  ok $ua->need_proxy('www.kraih.com.com'), 'proxy needed';
+}
 
-# User agent
-$ua = MojoCheckbot::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
+# Max redirects
+{
+  local $ENV{MOJO_MAX_REDIRECTS} = 25;
+  is(MojoCheckbot::UserAgent->new->max_redirects, 25, 'right value');
+}
 
 # GET / (non-blocking)
+my $ua = MojoCheckbot::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
 my ($success, $code, $body);
 $ua->get(
   '/' => sub {
@@ -110,6 +103,20 @@ Mojo::IOLoop->start;
 ok $success, 'successful';
 is $code,    200, 'right status';
 is $body,    'works!', 'right content';
+
+# Error in callback is logged
+my $message = app->log->subscribers('message')->[0];
+app->log->unsubscribe(message => $message);
+app->log->level('error');
+app->ua->once(error => sub { Mojo::IOLoop->stop });
+ok app->ua->has_subscribers('error'), 'has subscribers';
+my $err;
+app->log->once(message => sub { $err .= pop });
+app->ua->get('/' => sub { die 'error event works' });
+Mojo::IOLoop->start;
+app->log->level('fatal');
+app->log->on(message => $message);
+like $err, qr/error event works/, 'right error';
 
 # GET / (blocking)
 my $tx = $ua->get('/');
@@ -134,14 +141,13 @@ is $tx->res->body, 'works!', 'right content';
 # GET / (callbacks)
 my $finished;
 $tx = $ua->build_tx(GET => '/');
-$ua->on(
+$ua->once(
   start => sub {
     my ($self, $tx) = @_;
     $tx->on(finish => sub { $finished++ });
   }
 );
 $tx = $ua->start($tx);
-$ua->unsubscribe('start');
 ok $tx->success, 'successful';
 is $finished, 1, 'finish event has been emitted';
 is $tx->res->code, 200,      'right status';
@@ -156,17 +162,41 @@ ok !$tx->keep_alive, 'keep connection not alive';
 is $tx->res->code, 200,          'right status';
 is $tx->res->body, 'works too!', 'right content';
 
-# GET / (built-in server)
+# GET / (built-in web server)
 $tx = $ua->get('/');
 ok $tx->success, 'successful';
 is $tx->res->code, 200,      'right status';
 is $tx->res->body, 'works!', 'right content';
 
-# GET / (built-in server times out)
-$tx = $ua->get('/timeout');
+# GET /timeout (built-in web server times out)
+my $log = '';
+$message = app->log->subscribers('message')->[0];
+app->log->unsubscribe(message => $message);
+app->log->level('error');
+app->log->on(message => sub { $log .= pop });
+$tx = $ua->get('/timeout?timeout=0.5');
+app->log->level('fatal');
+app->log->on(message => $message);
 ok !$tx->success, 'not successful';
 is $tx->error, 'Premature connection close.', 'right error';
 is $timeout, 1, 'finish event has been emitted';
+like $log, qr/Inactivity timeout\./, 'right log message';
+
+# GET /timeout (client times out)
+$ua->once(
+  start => sub {
+    my ($ua, $tx) = @_;
+    $tx->on(
+      connection => sub {
+        my ($tx, $connection) = @_;
+        Mojo::IOLoop->stream($connection)->timeout('0.5');
+      }
+    );
+  }
+);
+$tx = $ua->get('/timeout?timeout=5');
+ok !$tx->success, 'not successful';
+is $tx->error, 'Inactivity timeout.', 'right error';
 
 # GET / (introspect)
 my $req = my $res = '';
@@ -203,9 +233,9 @@ $tx = $ua->get('/', 'whatever');
 ok $tx->success, 'successful';
 is $tx->res->code, 200,      'right status';
 is $tx->res->body, 'works!', 'right content';
-is scalar @{Mojo::IOLoop->stream($tx->connection)->subscribers('write')}, 1,
+is scalar @{Mojo::IOLoop->stream($tx->connection)->subscribers('write')}, 0,
   'unsubscribed successfully';
-is scalar @{Mojo::IOLoop->stream($tx->connection)->subscribers('read')}, 2,
+is scalar @{Mojo::IOLoop->stream($tx->connection)->subscribers('read')}, 1,
   'unsubscribed successfully';
 like $req, qr#^GET / .*whatever$#s,      'right request';
 like $res, qr#^HTTP/.*200 OK.*works!$#s, 'right response';

@@ -13,8 +13,8 @@ my @HEADERS = (
   qw/Expires Host If-Modified-Since Last-Modified Location/,
   qw/Proxy-Authenticate Proxy-Authorization Range Sec-WebSocket-Accept/,
   qw/Sec-WebSocket-Key Sec-WebSocket-Origin Sec-WebSocket-Protocol/,
-  qw/Sec-WebSocket-Version Server Set-Cookie Set-Cookie2 Trailer/,
-  qw/Transfer-Encoding Upgrade User-Agent WWW-Authenticate X-Forwarded-For/,
+  qw/Sec-WebSocket-Version Server Set-Cookie Status Trailer/,
+  qw/Transfer-Encoding Upgrade User-Agent WWW-Authenticate/
 );
 {
   no strict 'refs';
@@ -86,14 +86,6 @@ sub header {
 
   # Array
   return @$headers;
-}
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub is_done {
-  warn <<EOF;
-Mojo::Headers->is_done is DEPRECATED in favor of Mojo::Headers->is_finished!
-EOF
-  shift->is_finished;
 }
 
 sub is_finished { (shift->{state} || '') eq 'finished' }
@@ -195,6 +187,12 @@ sub to_string {
   return join "\x0d\x0a", @headers;
 }
 
+# DEPRECATED in Leaf Fluttering In Wind!
+sub x_forwarded_for {
+  warn "Mojo::Headers->x_forwarded_for is DEPRECATED!\n";
+  shift->header('X-Forwarded-For' => @_);
+}
+
 1;
 __END__
 
@@ -224,8 +222,8 @@ L<Mojo::Headers> implements the following attributes.
   $headers = $headers->max_line_size(1024);
 
 Maximum line size in bytes, defaults to the value of C<MOJO_MAX_LINE_SIZE> or
-C<10240>.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+C<10240>. Note that this attribute is EXPERIMENTAL and might change without
+warning!
 
 =head1 METHODS
 
@@ -277,8 +275,8 @@ Shortcut for the C<Cache-Control> header.
 
   my $clone = $headers->clone;
 
-Clone headers.
-Note that this method is EXPERIMENTAL and might change without warning!
+Clone headers. Note that this method is EXPERIMENTAL and might change without
+warning!
 
 =head2 C<connection>
 
@@ -342,7 +340,6 @@ Shortcut for the C<Date> header.
   $headers = $headers->dnt(1);
 
 Shortcut for the C<DNT> (Do Not Track) header.
-Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<etag>
 
@@ -350,7 +347,6 @@ Note that this method is EXPERIMENTAL and might change without warning!
   $headers = $headers->etag('abc321');
 
 Shortcut for the C<ETag> header.
-Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<expect>
 
@@ -414,8 +410,8 @@ Check if header parser is finished.
 
   my $success = $headers->is_limit_exceeded;
 
-Check if a header has exceeded C<max_line_size>.
-Note that this method is EXPERIMENTAL and might change without warning!
+Check if a header has exceeded C<max_line_size>. Note that this method is
+EXPERIMENTAL and might change without warning!
 
 =head2 C<last_modified>
 
@@ -533,13 +529,6 @@ Shortcut for the C<Server> header.
 
 Shortcut for the C<Set-Cookie> header.
 
-=head2 C<set_cookie2>
-
-  my $set_cookie2 = $headers->set_cookie2;
-  $headers        = $headers->set_cookie2('f=b; Version=1; Path=/');
-
-Shortcut for the C<Set-Cookie2> header.
-
 =head2 C<status>
 
   my $status = $headers->status;
@@ -552,8 +541,8 @@ Shortcut for the C<Status> header.
   my $hash = $headers->to_hash;
   my $hash = $headers->to_hash(arrayref => 1);
 
-Format headers as a hash.
-Nested arrayrefs to represent multi line values are optional.
+Format headers as a hash. Nested arrayrefs to represent multi line values are
+optional.
 
 =head2 C<to_string>
 
@@ -595,13 +584,6 @@ Shortcut for the C<User-Agent> header.
   $headers         = $headers->www_authenticate('Basic realm="realm"');
 
 Shortcut for the C<WWW-Authenticate> header.
-
-=head2 C<x_forwarded_for>
-
-  my $x_forwarded_for = $headers->x_forwarded_for;
-  $headers            = $headers->x_forwarded_for('127.0.0.1');
-
-Shortcut for the C<X-Forwarded-For> header.
 
 =head1 SEE ALSO
 

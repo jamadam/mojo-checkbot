@@ -2,16 +2,14 @@ package Mojolicious::Command::routes;
 use Mojo::Base 'Mojo::Command';
 
 use re 'regexp_pattern';
-use Getopt::Long 'GetOptions';
+use Getopt::Long qw/GetOptions :config no_auto_abbrev no_ignore_case/;
 
-has description => <<'EOF';
-Show available routes.
-EOF
-has usage => <<"EOF";
+has description => "Show available routes.\n";
+has usage       => <<"EOF";
 usage: $0 routes [OPTIONS]
 
 These options are available:
-  --verbose   Print additional details about routes.
+  -v, --verbose   Print additional details about routes.
 EOF
 
 # "I'm finally richer than those snooty ATM machines."
@@ -21,15 +19,11 @@ sub run {
   # Options
   local @ARGV = @_;
   my $verbose;
-  GetOptions(verbose => sub { $verbose = 1 });
-
-  # Check if application has routes
-  my $app = $self->app;
-  die "Application has no routes.\n" unless $app->can('routes');
+  GetOptions('v|verbose' => sub { $verbose = 1 });
 
   # Walk and draw
   my $routes = [];
-  $self->_walk($_, 0, $routes) for @{$app->routes->children};
+  $self->_walk($_, 0, $routes) for @{$self->app->routes->children};
   $self->_draw($routes, $verbose);
 }
 

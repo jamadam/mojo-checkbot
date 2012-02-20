@@ -26,6 +26,9 @@ sub register {
     );
   }
 
+  # Add "config" helper
+  $app->helper(config => sub { shift->app->config(@_) });
+
   # Add "content" helper
   $app->helper(content => sub { shift->render_content(@_) });
 
@@ -98,6 +101,14 @@ sub register {
       $memorize->{$name}->{content} = $cb->();
     }
   );
+
+  # Add "url_with" helper
+  $app->helper(
+    url_with => sub {
+      my $self = shift;
+      return $self->url_for(@_)->query($self->req->url->query->clone);
+    }
+  );
 }
 
 1;
@@ -118,9 +129,8 @@ Mojolicious::Plugin::DefaultHelpers - Default helpers plugin
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::DefaultHelpers> is a collection of renderer helpers
-for L<Mojolicious>.
-This is a core plugin, that means it is always enabled and its code a good
-example for learning to build new plugins.
+for L<Mojolicious>. This is a core plugin, that means it is always enabled
+and its code a good example for learning to build new plugins.
 
 =head1 HELPERS
 
@@ -131,6 +141,12 @@ L<Mojolicious::Plugin::DefaultHelpers> implements the following helpers.
   %= app->secret
 
 Alias for L<Mojolicious::Controller/"app">.
+
+=head2 C<config>
+
+  %= config 'something'
+
+Alias for L<Mojo/"config">.
 
 =head2 C<content>
 
@@ -235,6 +251,16 @@ Page title.
   %= url_for 'named', controller => 'bar', action => 'baz'
 
 Alias for L<Mojolicious::Controller/"url_for">.
+
+=head2 C<url_with>
+
+  %= url_with 'named', controller => 'bar', action => 'baz'
+
+Does the same as C<url_for>, but inherits query parameters from the current
+request. Note that this helper is EXPERIMENTAL and might change without
+warning!
+
+  %= url_with->query([page => 2])
 
 =head1 METHODS
 

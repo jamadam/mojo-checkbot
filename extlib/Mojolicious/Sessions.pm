@@ -25,8 +25,9 @@ sub load {
   return unless my $session = $JSON->decode(b64_decode $value);
 
   # Expiration
-  return unless my $expires = delete $session->{expires};
-  return unless $expires > time;
+  my $expiration = $self->default_expiration;
+  return if !(my $expires = delete $session->{expires}) && $expiration;
+  return if defined $expires && $expires <= time;
 
   # Content
   my $stash = $c->stash;
@@ -52,30 +53,24 @@ sub store {
     if $stash->{'mojo.static'};
   delete $session->{new_flash} unless keys %{$session->{new_flash}};
 
-  # Default to expiring session
-  my $expires = 1;
-  my $value   = '';
+  # Expiration
+  my $expiration = $self->default_expiration;
+  my $default    = delete $session->{expires};
+  $session->{expires} = $default || time + $expiration
+    if $expiration || $default;
 
-  # Actual session data
-  my $default = delete $session->{expires};
-  if (keys %$session) {
-
-    # Expiration
-    $expires = $session->{expires} = $default
-      ||= time + $self->default_expiration;
-
-    # Serialize
-    $value = b64_encode $JSON->encode($session), '';
-    $value =~ s/\=/\-/g;
-  }
-
-  # Options
-  my $options = {expires => $expires, path => $self->cookie_path};
-  my $domain = $self->cookie_domain;
-  $options->{domain} = $domain if $domain;
-  $options->{secure} = 1       if $self->secure;
+  # Serialize
+  my $value = b64_encode $JSON->encode($session), '';
+  $value =~ s/\=/\-/g;
 
   # Session cookie
+  my $options = {
+    domain   => $self->cookie_domain,
+    expires  => $session->{expires},
+    httponly => 1,
+    path     => $self->cookie_path,
+    secure   => $self->secure
+  };
   $c->signed_cookie($self->cookie_name, $value, $options);
 }
 
@@ -95,9 +90,8 @@ Mojolicious::Sessions - Signed cookie based sessions
 =head1 DESCRIPTION
 
 L<Mojolicious::Sessions> is a very simple signed cookie based session
-implementation.
-All data gets serialized with L<Mojo::JSON> and stored on the client-side,
-but is protected from unwanted changes with a signature.
+implementation. All data gets serialized with L<Mojo::JSON> and stored on the
+client-side, but is protected from unwanted changes with a signature.
 
 =head1 ATTRIBUTES
 
@@ -130,10 +124,12 @@ Path for session cookie, defaults to C</>.
   my $time = $session->default_expiration;
   $session = $session->default_expiration(3600);
 
-Time for the session to expire in seconds from now, defaults to C<3600>.
-The expiration timeout gets refreshed for every request.
-For more control you can also use the C<expires> session value to set the
-expiration date to a specific time in epoch seconds.
+Time for the session to expire in seconds from now, defaults to C<3600>. The
+expiration timeout gets refreshed for every request. Setting the value to
+C<0> will allow sessions to persist until the browser window is closed, this
+can have security implications though. For more control you can also use the
+C<expires> session value to set the expiration date to a specific time in
+epoch seconds.
 
   # Expire a week from now
   $c->session(expires => time + 604800);

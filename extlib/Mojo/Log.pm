@@ -35,7 +35,8 @@ sub new {
       my $self = shift;
       return unless my $handle = $self->handle;
       flock $handle, LOCK_EX;
-      $handle->syswrite($self->format(@_));
+      croak "Can't write to log: $!"
+        unless defined $handle->syswrite($self->format(@_));
       flock $handle, LOCK_UN;
     }
   );
@@ -121,10 +122,10 @@ L<Mojo::Log> can emit the following events.
 
   $log->on(message => sub {
     my ($log, $level, @messages) = @_;
+    ...
   });
 
 Emitted when a new message gets logged.
-Note that this event is EXPERIMENTAL and might change without warning!
 
   $log->unsubscribe('message');
   $log->on(message => sub {

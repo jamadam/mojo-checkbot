@@ -32,7 +32,7 @@ has static   => sub { Mojolicious::Static->new };
 has types    => sub { Mojolicious::Types->new };
 
 our $CODENAME = 'Leaf Fluttering In Wind';
-our $VERSION  = '2.36';
+our $VERSION  = '2.51';
 
 # "These old doomsday devices are dangerously unstable.
 #  I'll rest easier not knowing where they are."
@@ -59,10 +59,10 @@ sub DESTROY { }
 sub new {
   my $self = shift->SUPER::new(@_);
 
-  # Root directories
+  # Paths
   my $home = $self->home;
-  $self->renderer->root($home->rel_dir('templates'));
-  $self->static->root($home->rel_dir('public'));
+  push @{$self->renderer->paths}, $home->rel_dir('templates');
+  push @{$self->static->paths},   $home->rel_dir('public');
 
   # Default to application namespace
   my $r = $self->routes;
@@ -110,26 +110,7 @@ sub build_tx {
   return $tx;
 }
 
-# "Amy, technology isn't intrinsically good or evil. It's how it's used.
-#  Like the Death Ray."
-sub defaults {
-  my $self = shift;
-
-  # Hash
-  $self->{defaults} ||= {};
-  return $self->{defaults} unless @_;
-
-  # Get
-  return $self->{defaults}->{$_[0]} unless @_ > 1 || ref $_[0];
-
-  # Set
-  my $values = ref $_[0] ? $_[0] : {@_};
-  for my $key (keys %$values) {
-    $self->{defaults}->{$key} = $values->{$key};
-  }
-
-  return $self;
-}
+sub defaults { shift->_dict(defaults => @_) }
 
 sub dispatch {
   my ($self, $c) = @_;
@@ -150,10 +131,7 @@ sub dispatch {
   return if $res->code;
   if (my $code = ($tx->req->error)[1]) { $res->code($code) }
   elsif ($tx->is_websocket) { $res->code(426) }
-  unless ($self->routes->dispatch($c)) {
-    $c->render_not_found
-      unless $res->code;
-  }
+  $c->render_not_found unless $self->routes->dispatch($c) || $res->code;
 }
 
 # "Bite my shiny metal ass!"
@@ -176,16 +154,14 @@ sub handler {
   weaken $c->{tx};
 
   # Dispatcher
-  unless ($self->{dispatcher}) {
+  unless ($self->{dispatch}) {
     $self->hook(
       around_dispatch => sub {
         my ($next, $c) = @_;
-
-        # DEPRECATED in Leaf Fluttering In Wind!
-        $self->on_process->($c->app, $c);
+        $c->app->dispatch($c);
       }
     );
-    $self->{dispatcher}++;
+    $self->{dispatch}++;
   }
 
   # Process
@@ -200,8 +176,6 @@ sub handler {
     unless $stash->{'mojo.rendered'} || $tx->is_writing;
 }
 
-# "This snow is beautiful. I'm glad global warming never happened.
-#  Actually, it did. But thank God nuclear winter canceled it out."
 sub helper {
   my ($self, $name) = (shift, shift);
   my $r = $self->renderer;
@@ -218,18 +192,6 @@ sub helper {
 #  You're better off dead, I'm tellin' you, dude.
 #  Santa Claus is gunning you down!"
 sub hook { shift->plugins->on(@_) }
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub on_process {
-  my ($self, $cb) = @_;
-  return $self->{on_process} ||= sub { shift->dispatch(@_) }
-    unless $cb;
-  warn <<EOF;
-Mojolicious->on_process is DEPRECATED in favor of the around_dispatch hook!
-EOF
-  $self->{on_process} = $cb;
-  return $self;
-}
 
 sub plugin {
   my $self = shift;
@@ -303,10 +265,9 @@ L<Mojolicious::Controller>.
   $app     = $app->mode('production');
 
 The operating mode for your application, defaults to the value of the
-C<MOJO_MODE> environment variable or C<development>.
-You can also add per mode logic to your application by defining methods named
-C<${mode}_mode> in the application class, which will be called right before
-C<startup>.
+C<MOJO_MODE> environment variable or C<development>. You can also add per
+mode logic to your application by defining methods named C<${mode}_mode> in
+the application class, which will be called right before C<startup>.
 
   sub development_mode {
     my $self = shift;
@@ -327,9 +288,9 @@ level from C<debug> to C<info> if it has a value other than C<development>.
   my $plugins = $app->plugins;
   $app        = $app->plugins(Mojolicious::Plugins->new);
 
-The plugin loader, defaults to a L<Mojolicious::Plugins> object.
-You can usually leave this alone, see L<Mojolicious::Plugin> if you want to
-write a plugin or the C<plugin> method below if you want to load a plugin.
+The plugin loader, defaults to a L<Mojolicious::Plugins> object. You can
+usually leave this alone, see L<Mojolicious::Plugin> if you want to write a
+plugin or the C<plugin> method below if you want to load a plugin.
 
 =head2 C<renderer>
 
@@ -337,18 +298,20 @@ write a plugin or the C<plugin> method below if you want to load a plugin.
   $app         = $app->renderer(Mojolicious::Renderer->new);
 
 Used in your application to render content, defaults to a
-L<Mojolicious::Renderer> object.
-The two main renderer plugins L<Mojolicious::Plugin::EPRenderer> and
-L<Mojolicious::Plugin::EPLRenderer> contain more information.
+L<Mojolicious::Renderer> object. The two main renderer plugins
+L<Mojolicious::Plugin::EPRenderer> and L<Mojolicious::Plugin::EPLRenderer>
+contain more information.
+
+  # Add another "templates" directory
+  push @{$app->renderer->paths}, '/foo/bar/templates';
 
 =head2 C<routes>
 
   my $routes = $app->routes;
   $app       = $app->routes(Mojolicious::Routes->new);
 
-The routes dispatcher, defaults to a L<Mojolicious::Routes> object.
-You use this in your startup method to define the url endpoints for your
-application.
+The routes dispatcher, defaults to a L<Mojolicious::Routes> object. You use
+this in your startup method to define the url endpoints for your application.
 
   sub startup {
     my $self = shift;
@@ -363,9 +326,9 @@ application.
   $app       = $app->secret('passw0rd');
 
 A secret passphrase used for signed cookies and the like, defaults to the
-application name which is not very secure, so you should change it!!!
-As long as you are using the unsecure default there will be debug messages in
-the log file reminding you to change your passphrase.
+application name which is not very secure, so you should change it!!! As long
+as you are using the unsecure default there will be debug messages in the log
+file reminding you to change your passphrase.
 
 =head2 C<sessions>
 
@@ -373,17 +336,20 @@ the log file reminding you to change your passphrase.
   $app         = $app->sessions(Mojolicious::Sessions->new);
 
 Simple signed cookie based sessions, defaults to a L<Mojolicious::Sessions>
-object.
-You can usually leave this alone, see L<Mojolicious::Controller/"session">
-for more information about working with session data.
+object. You can usually leave this alone, see
+L<Mojolicious::Controller/"session"> for more information about working with
+session data.
 
 =head2 C<static>
 
   my $static = $app->static;
   $app       = $app->static(Mojolicious::Static->new);
 
-For serving static assets from your C<public> directory, defaults to a
+For serving static files from your C<public> directories, defaults to a
 L<Mojolicious::Static> object.
+
+  # Add another "public" directory
+  push @{$app->static->paths}, '/foo/bar/public';
 
 =head2 C<types>
 
@@ -404,10 +370,9 @@ new ones.
 
   my $app = Mojolicious->new;
 
-Construct a new L<Mojolicious> application.
-Will automatically detect your home directory and set up logging based on
-your current operating mode.
-Also sets up the renderer, static dispatcher and a default set of plugins.
+Construct a new L<Mojolicious> application. Will automatically detect your
+home directory and set up logging based on your current operating mode. Also
+sets up the renderer, static dispatcher and a default set of plugins.
 
 =head2 C<build_tx>
 
@@ -463,78 +428,88 @@ and the application object, as well as a function in C<ep> templates.
 
   $app->hook(after_dispatch => sub {...});
 
-Extend L<Mojolicious> by adding hooks.
+Extend L<Mojolicious> with hooks.
+
+  # Dispatchers will not run if there's already a response code defined
+  $app->hook(before_dispatch => sub {
+    my $c = shift;
+    $c->render(text => 'Skipped dispatchers!')
+      if $c->req->url->path->contains('/do_not_dispatch');
+  });
 
 These hooks are currently available and are emitted in the listed order:
 
 =over 2
 
-=item after_build_tx
+=item B<after_build_tx>
 
 Emitted right after the transaction is built and before the HTTP request gets
 parsed.
 
   $app->hook(after_build_tx => sub {
     my ($tx, $app) = @_;
+    ...
   });
 
 This is a very powerful hook and should not be used lightly, it makes some
 rather advanced features such as upload progress bars possible, just note
-that it will not work for embedded applications.
-(Passed the transaction and application instances)
+that it will not work for embedded applications. (Passed the transaction and
+application instances)
 
-=item before_dispatch
+=item B<before_dispatch>
 
 Emitted right before the static and routes dispatchers start their work.
 
   $app->hook(before_dispatch => sub {
     my $c = shift;
+    ...
   });
 
 Very useful for rewriting incoming requests and other preprocessing tasks.
 (Passed the default controller instance)
 
-=item after_static_dispatch
+=item B<after_static_dispatch>
 
 Emitted in reverse order after the static dispatcher determined if a static
 file should be served and before the routes dispatcher starts its work.
 
   $app->hook(after_static_dispatch => sub {
     my $c = shift;
+    ...
   });
 
 Mostly used for custom dispatchers and postprocessing static file responses.
 (Passed the default controller instance)
 
-=item after_dispatch
+=item B<after_dispatch>
 
-Emitted in reverse order after a response has been rendered.
-Note that this hook can trigger before C<after_static_dispatch> due to its
-dynamic nature.
+Emitted in reverse order after a response has been rendered. Note that this
+hook can trigger before C<after_static_dispatch> due to its dynamic nature.
 
   $app->hook(after_dispatch => sub {
     my $c = shift;
+    ...
   });
 
-Useful for all kinds of postprocessing tasks.
-(Passed the current controller instance)
+Useful for all kinds of postprocessing tasks. (Passed the current controller
+instance)
 
-=item around_dispatch
+=item B<around_dispatch>
 
 Emitted right before the C<before_dispatch> hook and wraps around the whole
 dispatch process, so you have to manually forward to the next hook if you
 want to continue the chain.
-Note that this hook is EXPERIMENTAL and might change without warning!
 
   $app->hook(around_dispatch => sub {
     my ($next, $c) = @_;
+    ...
     $next->();
+    ...
   });
 
 This is a very powerful hook and should not be used lightly, consider it the
-sledgehammer in your toolbox.
-(Passed a closure leading to the next hook andthe current controller
-instance)
+sledgehammer in your toolbox. (Passed a closure leading to the next hook and
+the current controller instance)
 
 =back
 
@@ -632,12 +607,11 @@ startup.
 =head1 HELPERS
 
 In addition to the attributes and methods above you can also call helpers on
-instances of L<Mojolicious>.
-This includes all helpers from L<Mojolicious::Plugin::DefaultHelpers> and
-L<Mojolicious::Plugin::TagHelpers>.
-Note that application helpers are always called with a new
-C<controller_class> instance, so they can't depend on or change controller
-state, which includes request, response and stash.
+instances of L<Mojolicious>. This includes all helpers from
+L<Mojolicious::Plugin::DefaultHelpers> and
+L<Mojolicious::Plugin::TagHelpers>. Note that application helpers are always
+called with a new C<controller_class> instance, so they can't depend on or
+change controller state, which includes request, response and stash.
 
   $app->log->debug($app->dumper({foo => 'bar'}));
 
@@ -645,21 +619,21 @@ state, which includes request, response and stash.
 
 =head2 Web
 
-  http://mojolicio.us
+L<http://mojolicio.us>
 
 =head2 IRC
 
-  #mojo on irc.perl.org
+C<#mojo> on C<irc.perl.org>
 
 =head2 Mailing-List
 
-  http://groups.google.com/group/mojolicious
+L<http://groups.google.com/group/mojolicious>
 
 =head1 DEVELOPMENT
 
 =head2 Repository
 
-  http://github.com/kraih/mojo
+L<http://github.com/kraih/mojo>
 
 =head1 BUNDLED FILES
 
@@ -668,7 +642,7 @@ directory.
 
 =head2 Mojolicious Artwork
 
-  Copyright (C) 2010-2011, Sebastian Riedel.
+  Copyright (C) 2010-2012, Sebastian Riedel.
 
 Licensed under the CC-SA License, Version 3.0
 L<http://creativecommons.org/licenses/by-sa/3.0>.
@@ -709,15 +683,27 @@ that have been used in the past.
 
 =head1 AUTHOR
 
-Sebastian Riedel, C<sri@cpan.org>.
+Sebastian Riedel, C<sri@cpan.org>
+
+=head1 CORE DEVELOPERS
+
+Current members of the core team in alphabetical order:
+
+=over 4
+
+Abhijit Menon-Sen, C<ams@cpan.org>
+
+Glen Hinkle, C<tempire@cpan.org>
+
+Marcus Ramberg, C<mramberg@cpan.org>
+
+=back
 
 =head1 CREDITS
 
 In alphabetical order:
 
 =over 2
-
-Abhijit Menon-Sen
 
 Adam Kennedy
 
@@ -753,6 +739,8 @@ Ben van Staveren
 
 Benjamin Erhart
 
+Bernhard Graf
+
 Breno G. de Oliveira
 
 Brian Duggan
@@ -777,15 +765,17 @@ Danijel Tasov
 
 David Davis
 
+Diego Kuperman
+
 Dmitriy Shalashov
 
 Dmitry Konstantinov
 
+Douglas Christopher Wilson
+
 Eugene Toropov
 
 Gisle Aas
-
-Glen Hinkle
 
 Graham Barr
 
@@ -800,6 +790,8 @@ Jan Jona Javorsek
 Jaroslav Muhin
 
 Jesse Vincent
+
+Johannes Plunien
 
 John Kingsley
 
@@ -819,8 +811,6 @@ Magnus Holm
 
 Maik Fischer
 
-Marcus Ramberg
-
 Mark Stosberg
 
 Matthew Lineen
@@ -836,6 +826,8 @@ Mirko Westermeier
 Mons Anderson
 
 Moritz Lenz
+
+Neil Watkiss
 
 Nils Diewald
 
@@ -879,6 +871,8 @@ Skye Shaw
 
 Stanis Trendelenburg
 
+Stephane Este-Gracias
+
 Tatsuhiko Miyagawa
 
 Terrence Brannon
@@ -899,6 +893,8 @@ Victor Engmark
 
 Viliam Pucik
 
+Wes Cravens
+
 Yaroslav Korshak
 
 Yuki Kimoto
@@ -909,7 +905,7 @@ Zak B. Elep
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008-2011, Sebastian Riedel.
+Copyright (C) 2008-2012, Sebastian Riedel.
 
 This program is free software, you can redistribute it and/or modify it under
 the terms of the Artistic License version 2.0.

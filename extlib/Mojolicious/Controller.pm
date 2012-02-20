@@ -22,14 +22,13 @@ has match => sub {
 has tx => sub { Mojo::Transaction::HTTP->new };
 
 # Bundled files
-my $H = Mojo::Home->new;
+our $H = Mojo::Home->new;
 $H->parse($H->parse($H->mojo_lib_dir)->rel_dir('Mojolicious/templates'));
-our $EXCEPTION = $H->slurp_rel_file('exception.html.ep');
-our $DEVELOPMENT_EXCEPTION =
-  $H->slurp_rel_file('exception.development.html.ep');
-our $NOT_FOUND = $H->slurp_rel_file('not_found.html.ep');
-our $DEVELOPMENT_NOT_FOUND =
-  $H->slurp_rel_file('not_found.development.html.ep');
+our $EXCEPTION     = $H->slurp_rel_file('exception.html.ep');
+our $DEV_EXCEPTION = $H->slurp_rel_file('exception.development.html.ep');
+our $MOJOBAR       = $H->slurp_rel_file('mojobar.html.ep');
+our $NOT_FOUND     = $H->slurp_rel_file('not_found.html.ep');
+our $DEV_NOT_FOUND = $H->slurp_rel_file('not_found.development.html.ep');
 
 # Reserved stash values
 my @RESERVED = (
@@ -130,10 +129,6 @@ sub flash {
   $flash = {} unless $flash && ref $flash eq 'HASH';
   $session->{new_flash} = $flash;
 
-  # DEPRECATED in Smiling Face With Sunglasses!
-  warn "Direct hash access to the flash is DEPRECATED!\n" and return $flash
-    unless @_;
-
   # Set
   my $values = @_ > 1 ? {@_} : $_[0];
   $session->{new_flash} = {%$flash, %$values};
@@ -149,15 +144,6 @@ sub on {
   $tx->on($name => sub { shift and $self->$cb(@_) });
 }
 
-# DEPRECATED in Leaf Fluttering In Wind!
-sub on_finish {
-  warn <<EOF;
-Mojolicious::Controller->on_finish is DEPRECATED in favor of
-Mojolicious::Controller->on!
-EOF
-  shift->on(finish => @_);
-}
-
 # "Just make a simple cake. And this time, if someone's going to jump out of
 #  it make sure to put them in *after* you cook it."
 sub param {
@@ -165,9 +151,11 @@ sub param {
 
   # List
   my $p = $self->stash->{'mojo.captures'} || {};
+  my $req = $self->req;
   unless (defined $name) {
     my %seen;
-    my @keys = grep { !$seen{$_}++ } $self->req->param;
+    my @keys = grep { !$seen{$_}++ } $req->param;
+    push @keys, grep { !$seen{$_}++ } map { $_->name } @{$req->uploads};
     push @keys, grep { !$RESERVED{$_} && !$seen{$_}++ } keys %$p;
     return sort @keys;
   }
@@ -181,8 +169,12 @@ sub param {
   # Captured unreserved value
   return $p->{$name} if !$RESERVED{$name} && exists $p->{$name};
 
+  # Upload
+  my $upload = $req->upload($name);
+  return $upload if $upload;
+
   # Param value
-  return $self->req->param($name);
+  return $req->param($name);
 }
 
 # "Is there an app for kissing my shiny metal ass?
@@ -233,7 +225,7 @@ sub render {
   # Render
   my ($output, $type) = $self->app->renderer->render($self, $args);
   return unless defined $output;
-  return $output if $args->{partial};
+  return Mojo::ByteStream->new($output) if $args->{partial};
 
   # Prepare response
   my $res = $self->res;
@@ -304,7 +296,7 @@ sub render_exception {
     exception        => $e,
     'mojo.exception' => 1
   };
-  my $inline = $mode eq 'development' ? $DEVELOPMENT_EXCEPTION : $EXCEPTION;
+  my $inline = $mode eq 'development' ? $DEV_EXCEPTION : $EXCEPTION;
   return if $self->_render_fallbacks($options, 'exception', $inline);
   $options->{format} = 'html';
   $self->_render_fallbacks($options, 'exception', $inline);
@@ -332,22 +324,15 @@ sub render_not_found {
   return if $stash->{'mojo.exception'};
   return if $stash->{'mojo.not_found'};
 
-  # Check for POD plugin
-  my $guide =
-      $self->app->renderer->helpers->{pod_to_html}
-    ? $self->url_for('/perldoc')
-    : 'http://mojolicio.us/perldoc';
-
   # Render with fallbacks
   my $mode    = $self->app->mode;
   my $options = {
     template         => "not_found.$mode",
     format           => $stash->{format} || 'html',
     status           => 404,
-    guide            => $guide,
     'mojo.not_found' => 1
   };
-  my $inline = $mode eq 'development' ? $DEVELOPMENT_NOT_FOUND : $NOT_FOUND;
+  my $inline = $mode eq 'development' ? $DEV_NOT_FOUND : $NOT_FOUND;
   return if $self->_render_fallbacks($options, 'not_found', $inline);
   $options->{format} = 'html';
   $self->_render_fallbacks($options, 'not_found', $inline);
@@ -358,12 +343,9 @@ sub render_not_found {
 sub render_partial {
   my $self     = shift;
   my $template = @_ % 2 ? shift : undef;
-  my $args     = {@_};
-
+  my $args     = {@_, partial => 1};
   $args->{template} = $template if defined $template;
-  $args->{partial} = 1;
-
-  return Mojo::ByteStream->new($self->render($args));
+  return $self->render($args);
 }
 
 sub render_static {
@@ -460,22 +442,17 @@ sub send_message {
 sub session {
   my $self = shift;
 
-  # Get
-  my $stash   = $self->stash;
-  my $session = $stash->{'mojo.session'};
-  if ($_[0] && !defined $_[1] && !ref $_[0]) {
-    return unless $session && ref $session eq 'HASH';
-    return $session->{$_[0]};
-  }
-
   # Hash
-  $session = {} unless $session && ref $session eq 'HASH';
-  $stash->{'mojo.session'} = $session;
-  return $session unless @_;
+  my $stash = $self->stash;
+  $stash->{'mojo.session'} ||= {};
+  return $stash->{'mojo.session'} unless @_;
+
+  # Get
+  return $stash->{'mojo.session'}->{$_[0]} unless @_ > 1 || ref $_[0];
 
   # Set
-  my $values = @_ > 1 ? {@_} : $_[0];
-  $stash->{'mojo.session'} = {%$session, %$values};
+  my $values = ref $_[0] ? $_[0] : {@_};
+  $stash->{'mojo.session'} = {%{$stash->{'mojo.session'}}, %$values};
 
   return $self;
 }
@@ -659,9 +636,8 @@ Mojolicious::Controller - Controller base class
 =head1 DESCRIPTION
 
 L<Mojolicious::Controller> is the base class for your L<Mojolicious>
-controllers.
-It is also the default controller class for L<Mojolicious> unless you set
-C<controller_class> in your application.
+controllers. It is also the default controller class for L<Mojolicious>
+unless you set C<controller_class> in your application.
 
 =head1 ATTRIBUTES
 
@@ -685,6 +661,8 @@ controller, defaults to a L<Mojolicious> object.
 
 Routes dispatcher results for the current request, defaults to a
 L<Mojolicious::Routes::Match> object.
+
+  my $name = $c->match->endpoint->name;
 
 =head2 C<tx>
 
@@ -756,14 +734,17 @@ or L<Mojo::Transaction::WebSocket> object.
   my @foo   = $c->param('foo');
   $c        = $c->param(foo => 'ba;r');
 
-Access GET/POST parameters and route captures that are not reserved stash
-values.
+Access GET/POST parameters, file uploads and route captures that are not
+reserved stash values.
 
   # Only GET parameters
   my $foo = $c->req->url->query->param('foo');
 
   # Only GET and POST parameters
   my $foo = $c->req->param('foo');
+
+  # Only file uploads
+  my $foo = $c->req->upload('foo');
 
 =head2 C<redirect_to>
 
@@ -796,11 +777,9 @@ C<url_for>.
   $c->render('foo/bar', format => 'html');
 
 This is a wrapper around L<Mojolicious::Renderer> exposing pretty much all
-functionality provided by it.
-It will set a default template to use based on the controller and action name
-or fall back to the route name.
-You can call it with a hash of options which can be preceded by an optional
-template name.
+functionality provided by it. It will set a default template to use based on
+the controller and action name or fall back to the route name. You can call
+it with a hash of options which can be preceded by an optional template name.
 
 =head2 C<render_content>
 
@@ -814,8 +793,8 @@ C<extends> features.
 
 =head2 C<render_data>
 
-  $c->render_data($bits);
-  $c->render_data($bits, format => 'png');
+  $c->render_data($bytes);
+  $c->render_data($bytes, format => 'png');
 
 Render the given content as raw bytes, similar to C<render_text> but data
 will not be encoded.
@@ -831,7 +810,7 @@ C<exception.$format.*> and set the response status code to C<500>.
 =head2 C<render_json>
 
   $c->render_json({foo => 'bar'});
-  $c->render_json([1, 2, -3]);
+  $c->render_json([1, 2, -3], status => 201);
 
 Render a data structure as JSON.
 
@@ -867,8 +846,8 @@ Same as C<render> but returns the rendered result.
   my $success = $c->render_static('images/logo.png');
   my $success = $c->render_static('../lib/MyApp.pm');
 
-Render a static file using L<Mojolicious::Static> relative to the
-C<public> directory of your application.
+Render a static file using L<Mojolicious::Static>, relative to the
+C<public> directories of your application.
 
 =head2 C<render_text>
 
@@ -876,8 +855,8 @@ C<public> directory of your application.
   $c->render_text('Hello World', layout => 'green');
 
 Render the given content as Perl characters, which will be encoded to bytes.
-See C<render_data> for an alternative without encoding.
-Note that this does not change the content type of the response, which is
+See C<render_data> for an alternative without encoding. Note that this does
+not change the content type of the response, which is
 C<text/html;charset=UTF-8> by default.
 
   $c->render_text('Hello World!', format => 'txt');
@@ -889,12 +868,17 @@ C<text/html;charset=UTF-8> by default.
 
 Finalize response and run C<after_dispatch> plugin hook.
 
+  # Stream content directly from file
+  $c->res->content->asset(Mojo::Asset::File->new(path => '/etc/passwd'));
+  $c->res->headers->content_type('text/plain');
+  $c->rendered(200);
+
 =head2 C<req>
 
   my $req = $c->req;
 
-Alias for C<$c-E<gt>tx-E<gt>req>.
-Usually refers to a L<Mojo::Message::Request> object.
+Alias for C<$c-E<gt>tx-E<gt>req>. Usually refers to a
+L<Mojo::Message::Request> object.
 
   $c->render_json({url => $c->req->url->to_abs->to_string});
 
@@ -902,8 +886,8 @@ Usually refers to a L<Mojo::Message::Request> object.
 
   my $res = $c->res;
 
-Alias for C<$c-E<gt>tx-E<gt>res>.
-Usually refers to a L<Mojo::Message::Response> object.
+Alias for C<$c-E<gt>tx-E<gt>res>. Usually refers to a
+L<Mojo::Message::Response> object.
 
   $c->res->headers->content_disposition('attachment; filename=foo.png;');
 
@@ -918,7 +902,6 @@ Usually refers to a L<Mojo::Message::Response> object.
 Automatically select best possible representation for resource from C<Accept>
 request header, C<format> stash value or C<format> GET/POST parameter,
 defaults to rendering an empty C<204> response.
-Note that this method is EXPERIMENTAL and might change without warning!
 
   $c->respond_to(
     json => sub { $c->render_json({just => 'works'}) },
@@ -928,12 +911,17 @@ Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<send_message>
 
+  $c = $c->send_message([binary => $bytes]);
+  $c = $c->send_message([text   => $bytes]);
   $c = $c->send_message('Hi there!');
   $c = $c->send_message('Hi there!', sub {...});
 
 Send a message non-blocking via WebSocket, the optional drain callback will
-be invoked once all data has been written.
-Note that this method is EXPERIMENTAL and might change without warning!
+be invoked once all data has been written. Note that this method is
+EXPERIMENTAL and might change without warning!
+
+  # Send JSON object as text frame
+  $c->send_message([text => Mojo::JSON->new->encode({hello => 'world'})]);
 
 =head2 C<session>
 
@@ -942,8 +930,8 @@ Note that this method is EXPERIMENTAL and might change without warning!
   $c          = $c->session({foo => 'bar'});
   $c          = $c->session(foo => 'bar');
 
-Persistent data storage, stored C<JSON> serialized in a signed cookie.
-Note that cookies are generally limited to 4096 bytes of data.
+Persistent data storage, stored C<JSON> serialized in a signed cookie. Note
+that cookies are generally limited to 4096 bytes of data.
 
   $c->session->{foo} = 'bar';
   my $foo = $c->session->{foo};
@@ -977,8 +965,8 @@ be set with L<Mojolicious/"defaults">.
 
   my $ua = $c->ua;
 
-Alias for C<$c-E<gt>app-E<gt>ua>.
-Usually refers to a L<Mojo::UserAgent> object.
+Alias for C<$c-E<gt>app-E<gt>ua>. Usually refers to a L<Mojo::UserAgent>
+object.
 
   # Blocking
   my $tx = $c->ua->get('http://mojolicio.us');
@@ -1013,11 +1001,17 @@ Usually refers to a L<Mojo::UserAgent> object.
 
 Generate a portable L<Mojo::URL> object with base for a route, path or URL.
 
-  # "/perldoc" if application is deployed under "/"
-  say $c->url_for('/perldoc');
+  # "/perldoc?foo=bar" if application is deployed under "/"
+  $c->url_for('/perldoc')->query(foo => 'bar');
 
-  # "/myapp/perldoc" if application is deployed under "/myapp"
-  say $c->url_for('/perldoc');
+  # "/myapp/perldoc?foo=bar" if application is deployed under "/myapp"
+  $c->url_for('/perldoc')->query(foo => 'bar');
+
+You can also use L<Mojolicious::Plugin::DefaultHelpers/"url_with"> to inherit
+query parameters from the current request.
+
+  # "/list?q=mojo&page=2" if current request was for "/list?q=mojo&page=1"
+  $c->url_with->query([page => 2]);
 
 =head2 C<write>
 
@@ -1049,7 +1043,7 @@ For Comet (C<long polling>) you might also want to increase the connection
 timeout, which usually defaults to C<15> seconds.
 
   # Increase timeout for current connection to 300 seconds
-  Mojo::IOLoop->timeout($c->tx->connection => 300);
+  Mojo::IOLoop->stream($c->tx->connection)->timeout(300);
 
 =head2 C<write_chunk>
 
@@ -1082,8 +1076,8 @@ You can call C<finish> at any time to end the stream.
 =head1 HELPERS
 
 In addition to the attributes and methods above you can also call helpers on
-instances of L<Mojolicious::Controller>.
-This includes all helpers from L<Mojolicious::Plugin::DefaultHelpers> and
+instances of L<Mojolicious::Controller>. This includes all helpers from
+L<Mojolicious::Plugin::DefaultHelpers> and
 L<Mojolicious::Plugin::TagHelpers>.
 
   $c->layout('green');

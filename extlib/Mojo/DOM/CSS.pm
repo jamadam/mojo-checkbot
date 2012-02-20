@@ -4,37 +4,37 @@ use Mojo::Base -base;
 my $ESCAPE_RE = qr/\\[^0-9a-fA-F]|\\[0-9a-fA-F]{1,6}/;
 my $ATTR_RE   = qr/
   \[
-  (?<key>(?:$ESCAPE_RE|[\w-])+)                         # Key
+  ((?:$ESCAPE_RE|[\w-])+)         # Key
   (?:
-    (?<op>\W)?                                          # Operator
+    (\W)?                         # Operator
     =
-    (?:"(?<escaped>(?:\\"|[^"])+)"|(?<unescaped>\S+))   # Value
+    (?:"((?:\\"|[^"])+)"|(\S+))   # Value
   )?
   \]
 /x;
 my $CLASS_ID_RE = qr/
   (?:
-    (?:\.(?<class>(?:\\\.|[^\#\.])+))   # Class
+    (?:\.((?:\\\.|[^\#\.])+))   # Class
   |
-    (?:\#(?<id>(?:\\\#|[^\.\#])+))      # ID
+    (?:\#((?:\\\#|[^\.\#])+))   # ID
   )
 /x;
-my $ELEMENT_RE      = qr/^(?<element>(?:\\\.|\\\#|[^\.\#])+)/;
+my $ELEMENT_RE      = qr/^((?:\\\.|\\\#|[^\.\#])+)/;
 my $PSEUDO_CLASS_RE = qr/
   (?:\:
-  (?<class>[\w\-]+)                     # Class
+  ([\w\-]+)                       # Class
   (?:\(
-    (?<args>(?:\([^\)]+\)|[^\)])+)\))?  # Arguments
+    ((?:\([^\)]+\)|[^\)])+)\))?   # Arguments
   )
 /x;
 my $TOKEN_RE = qr/
-  (?<separator>\s*,\s*)?                          # Separator
-  (?<element>(?:[^\[\\\:\s\,]|$ESCAPE_RE\s?)+)?   # Element
-  (?<pc>$PSEUDO_CLASS_RE*)?                       # Pseudoclass
-  (?<attrs>(?:$ATTR_RE)*)?                        # Attributes
+  (\s*,\s*)?                            # Separator
+  ((?:[^\[\\\:\s\,]|$ESCAPE_RE\s?)+)?   # Element
+  ($PSEUDO_CLASS_RE*)?                  # Pseudoclass
+  ((?:$ATTR_RE)*)?                      # Attributes
   (?:
     \s*
-    (?<combinator>[\>\+\~])                       # Combinator
+    ([\>\+\~])                          # Combinator
   )?
 /x;
 
@@ -44,7 +44,7 @@ has 'tree';
 sub select {
   my $self = shift;
 
-  # Compile selector
+  # Compile selectors
   my $pattern = $self->_compile(shift);
 
   # Walk tree
@@ -55,28 +55,57 @@ sub select {
     my $type = $current->[0];
 
     # Root
-    if ($type eq 'root') {
-
-      # Fill queue
-      unshift @queue, @$current[1 .. $#$current];
-      next;
-    }
+    if ($type eq 'root') { unshift @queue, @$current[1 .. $#$current] }
 
     # Tag
     elsif ($type eq 'tag') {
-
-      # Fill queue
       unshift @queue, @$current[4 .. $#$current];
 
-      # Parts
+      # Try all selectors with element
       for my $part (@$pattern) {
         push(@results, $current) and last
-          if $self->_element($current, $part, $tree);
+          if $self->_combinator([reverse @$part], $current, $tree);
       }
     }
   }
 
   return \@results;
+}
+
+sub _ancestor {
+  my ($self, $selectors, $current, $tree) = @_;
+  while ($current = $current->[3]) {
+    return if $current->[0] eq 'root' || $current eq $tree;
+    return 1 if $self->_combinator($selectors, $current, $tree);
+  }
+  return;
+}
+
+sub _combinator {
+  my ($self, $selectors, $current, $tree) = @_;
+
+  # Selector
+  my @s = @$selectors;
+  return unless my $combinator = shift @s;
+  if ($combinator->[0] ne 'combinator') {
+    return unless $self->_selector($combinator, $current);
+    return 1 unless $combinator = shift @s;
+  }
+
+  # " " (ancestor)
+  my $c = $combinator->[1];
+  if ($c eq ' ') { return unless $self->_ancestor(\@s, $current, $tree) }
+
+  # ">" (parent only)
+  elsif ($c eq '>') { return unless $self->_parent(\@s, $current, $tree) }
+
+  # "~" (preceding siblings)
+  elsif ($c eq '~') { return unless $self->_sibling(\@s, $current, $tree, 0) }
+
+  # "+" (immediately preceding siblings)
+  elsif ($c eq '+') { return unless $self->_sibling(\@s, $current, $tree, 1) }
+
+  return 1;
 }
 
 sub _compile {
@@ -86,22 +115,26 @@ sub _compile {
   my $pattern = [[]];
   while ($css =~ /$TOKEN_RE/g) {
     my ($separator, $element, $pc, $attrs, $combinator) =
-      ($+{separator}, $+{element} // '', $+{pc}, $+{attrs}, $+{combinator});
+      ($1, $2 // '', $3, $6, $11);
 
     # Trash
     next unless $separator || $element || $pc || $attrs || $combinator;
 
     # New selector
     push @$pattern, [] if $separator;
+    my $part = $pattern->[-1];
+
+    # Empty combinator
+    push @$part, [combinator => ' ']
+      if $part->[-1] && $part->[-1]->[0] ne 'combinator';
 
     # Selector
-    my $part = $pattern->[-1];
     push @$part, ['element'];
     my $selector = $part->[-1];
 
     # Element
     my $tag = '*';
-    $element =~ s/$ELEMENT_RE// and $tag = $self->_unescape($+{element});
+    $element =~ s/$ELEMENT_RE// and $tag = $self->_unescape($1);
 
     # Tag
     push @$selector, ['tag', $tag];
@@ -110,137 +143,38 @@ sub _compile {
     while ($element =~ /$CLASS_ID_RE/g) {
 
       # Class
-      push @$selector, ['attribute', 'class', $self->_regex('~', $+{class})]
-        if defined $+{class};
+      push @$selector, ['attribute', 'class', $self->_regex('~', $1)]
+        if defined $1;
 
       # ID
-      push @$selector, ['attribute', 'id', $self->_regex('', $+{id})]
-        if defined $+{id};
+      push @$selector, ['attribute', 'id', $self->_regex('', $2)]
+        if defined $2;
     }
 
     # Pseudo classes
     while ($pc =~ /$PSEUDO_CLASS_RE/g) {
 
       # "not"
-      if ($+{class} eq 'not') {
-        my $subpattern = $self->_compile($+{args})->[-1]->[-1];
+      if ($1 eq 'not') {
+        my $subpattern = $self->_compile($2)->[-1]->[-1];
         push @$selector, ['pseudoclass', 'not', $subpattern];
       }
 
       # Everything else
-      else { push @$selector, ['pseudoclass', $+{class}, $+{args}] }
+      else { push @$selector, ['pseudoclass', $1, $2] }
     }
 
     # Attributes
     while ($attrs =~ /$ATTR_RE/g) {
-      my $key   = $self->_unescape($+{key});
-      my $op    = $+{op} // '';
-      my $value = $+{escaped} // $+{unescaped};
-
+      my ($key, $op, $value) = ($self->_unescape($1), $2 // '', $3 // $4);
       push @$selector, ['attribute', $key, $self->_regex($op, $value)];
     }
 
     # Combinator
-    push @$part, ['combinator', $combinator] if $combinator;
+    push @$part, [combinator => $combinator] if $combinator;
   }
 
   return $pattern;
-}
-
-sub _element {
-  my ($self, $candidate, $selectors, $tree) = @_;
-
-  # Match
-  my @selectors  = reverse @$selectors;
-  my $first      = 2;
-  my $parentonly = 0;
-  my ($current, $marker, $previous, $siblings);
-  for (my $i = 0; $i <= $#selectors; $i++) {
-    my $selector = $selectors[$i];
-
-    # Combinator
-    $parentonly-- if $parentonly > 0;
-    if ($selector->[0] eq 'combinator') {
-      my $c = $selector->[1];
-
-      # Parent only ">"
-      if ($c eq '>') {
-        $parentonly += 2;
-
-        # Can't go back to the first
-        unless ($first) {
-          $marker   //= $i;
-          $previous //= $current;
-        }
-      }
-
-      # Preceding siblings "~" and "+"
-      elsif ($c eq '~' || $c eq '+') {
-        my $parent = $current->[3];
-        my $start = $parent->[0] eq 'root' ? 1 : 4;
-        $siblings = [];
-
-        # Siblings
-        for my $i ($start .. $#$parent) {
-          my $sibling = $parent->[$i];
-          next unless $sibling->[0] eq 'tag';
-
-          # Reached current
-          if ($sibling eq $current) {
-            @$siblings = ($siblings->[-1]) if $c eq '+';
-            last;
-          }
-          push @$siblings, $sibling;
-        }
-      }
-
-      next;
-    }
-
-    # Walk backwards
-    while (1) {
-      $first-- if $first > 0;
-
-      # Next sibling
-      if ($siblings) { return unless $current = shift @$siblings }
-
-      # Next parent
-      else {
-        return
-          unless $current = $current ? $current->[3] : $candidate;
-
-        # Don't search beyond the current tree
-        return if $current eq $tree;
-      }
-
-      # Not a tag
-      return if $current->[0] ne 'tag';
-
-      # Compare part to element
-      if ($self->_selector($selector, $current)) {
-        $siblings = undef;
-        last;
-      }
-
-      # First selector needs to match
-      return if $first;
-
-      # Parent only
-      if ($parentonly) {
-
-        # First parent needs to match
-        return unless defined $marker;
-
-        # Reset
-        $i       = $marker - 2;
-        $current = $previous;
-        ($marker, $previous) = undef;
-        last;
-      }
-    }
-  }
-
-  return 1;
 }
 
 # "Rock stars... is there anything they don't know?"
@@ -264,6 +198,34 @@ sub _equation {
   }
 
   return $num;
+}
+
+sub _parent {
+  my ($self, $selectors, $current, $tree) = @_;
+  return unless my $parent = $current->[3];
+  return if $parent->[0] eq 'root';
+  return $self->_combinator($selectors, $parent, $tree) ? 1 : undef;
+}
+
+sub _sibling {
+  my ($self, $selectors, $current, $tree, $immediate) = @_;
+
+  # Find preceding elements
+  my $parent = $current->[3];
+  my $found;
+  my $start = $parent->[0] eq 'root' ? 1 : 4;
+  for my $e (@$parent[$start .. $#$parent]) {
+    return $found if $e eq $current;
+    next unless $e->[0] eq 'tag';
+
+    # "+" (immediately preceding sibling)
+    if ($immediate) { $found = $self->_combinator($selectors, $e, $tree) }
+
+    # "~" (preceding sibling)
+    else { return 1 if $self->_combinator($selectors, $e, $tree) }
+  }
+
+  return;
 }
 
 sub _regex {
@@ -459,8 +421,8 @@ Mojo::DOM::CSS - CSS3 selector engine
 
 =head1 DESCRIPTION
 
-L<Mojo::DOM::CSS> is the CSS3 selector engine used by L<Mojo::DOM>.
-Note that this module is EXPERIMENTAL and might change without warning!
+L<Mojo::DOM::CSS> is the CSS3 selector engine used by L<Mojo::DOM>. Note that
+this module is EXPERIMENTAL and might change without warning!
 
 =head1 SELECTORS
 
@@ -470,7 +432,7 @@ All CSS3 selectors that make sense for a standalone parser are supported.
 
 Any element.
 
-  my $first = $css->select('*');
+  my $all = $css->select('*');
 
 =head2 C<E>
 

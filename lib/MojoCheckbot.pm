@@ -112,7 +112,10 @@ our $VERSION = '0.37';
     ### ---
     sub startup {
         my $self = shift;
+        
         $self->app->secret(time());
+        $self->plugin(Config => {file => $self->home->rel_file('myapp.conf')});
+        
         $self->home->parse(File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot'));
         $self->static->root($self->home->rel_dir('public'));
         $self->renderer->root($self->home->rel_dir('templates'));

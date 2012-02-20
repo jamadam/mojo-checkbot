@@ -7,15 +7,7 @@ use Mojo::Util 'get_line';
 
 has [qw/code message/];
 
-my $START_LINE_RE = qr|
-  ^\s*
-  HTTP/(?<version>\d\.\d)   # Version
-  \s+
-  (?<code>\d\d\d)            # Code
-  \s*
-  (?<message>[\w\'\s]+)?     # Message (with "I'm a teapot" support)
-  $
-|x;
+my $START_LINE_RE = qr|^\s*HTTP/(\d\.\d)\s+(\d\d\d)\s*(.+)?$|x;
 
 # Umarked codes are from RFC 2616
 my %MESSAGES = (
@@ -82,25 +74,19 @@ sub cookies {
   my $self = shift;
 
   # Add cookies
+  my $headers = $self->headers;
   if (@_) {
     for my $cookie (@_) {
-      $cookie = Mojo::Cookie::Response->new($cookie)
-        if ref $cookie eq 'HASH';
-      $self->headers->add('Set-Cookie', "$cookie");
+      $cookie = Mojo::Cookie::Response->new($cookie) if ref $cookie eq 'HASH';
+      $headers->add('Set-Cookie', "$cookie");
     }
     return $self;
   }
 
-  # Set-Cookie2
+  # Parse cookies
   my @cookies;
-  my $headers = $self->headers;
-  push @cookies, @{Mojo::Cookie::Response->parse($_)}
-    for $headers->set_cookie2;
-
-  # Set-Cookie
   push @cookies, @{Mojo::Cookie::Response->parse($_)}
     for $headers->set_cookie;
-
   return \@cookies;
 }
 
@@ -152,9 +138,7 @@ sub _parse_start_line {
   return unless defined(my $line = get_line \$self->{buffer});
   return $self->error('Bad response start line.')
     unless $line =~ $START_LINE_RE;
-  $self->version($+{version});
-  $self->code($+{code});
-  $self->message($+{message});
+  $self->version($1)->code($2)->message($3);
   $self->content->auto_relax(1);
   $self->{state} = 'content';
 }

@@ -14,7 +14,9 @@ has ua   => sub {
 
   # Fresh user agent
   require Mojo::UserAgent;
-  my $ua = Mojo::UserAgent->new(log => $self->log)->app($self);
+  my $ua = Mojo::UserAgent->new->app($self);
+  weaken $self;
+  $ua->on(error => sub { $self->log->error(pop) });
   weaken $ua->{app};
 
   return $ua;
@@ -36,8 +38,27 @@ sub new {
 
 sub build_tx { Mojo::Transaction::HTTP->new }
 
+sub config { shift->_dict(config => @_) }
+
 # "D’oh."
 sub handler { croak 'Method "handler" not implemented in subclass' }
+
+sub _dict {
+  my ($self, $name) = (shift, shift);
+
+  # Hash
+  $self->{$name} ||= {};
+  return $self->{$name} unless @_;
+
+  # Get
+  return $self->{$name}->{$_[0]} unless @_ > 1 || ref $_[0];
+
+  # Set
+  my $values = ref $_[0] ? $_[0] : {@_};
+  $self->{$name} = {%{$self->{$name}}, %$values};
+
+  return $self;
+}
 
 1;
 __END__
@@ -71,9 +92,9 @@ Mojo - Duct tape for the HTML5 web!
 =head1 DESCRIPTION
 
 Mojo provides a flexible runtime environment for Perl real-time web
-frameworks.
-It provides all the basic tools and helpers needed to write simple web
-applications and higher level web frameworks such as L<Mojolicious>.
+frameworks. It provides all the basic tools and helpers needed to write
+simple web applications and higher level web frameworks such as
+L<Mojolicious>.
 
 See L<Mojolicious> for more!
 
@@ -117,9 +138,9 @@ new ones.
 
   my $app = Mojo->new;
 
-Construct a new L<Mojo> application.
-Will automatically detect your home directory and set up logging to
-C<log/mojo.log> if there's a C<log> directory.
+Construct a new L<Mojo> application. Will automatically detect your home
+directory and set up logging to C<log/mojo.log> if there's a C<log>
+directory.
 
 =head2 C<build_tx>
 
@@ -127,6 +148,20 @@ C<log/mojo.log> if there's a C<log> directory.
 
 Transaction builder, defaults to building a L<Mojo::Transaction::HTTP>
 object.
+
+=head2 C<config>
+
+  my $config = $app->config;
+  my $foo    = $app->config('foo');
+  $app       = $app->config({foo => 'bar'});
+  $app       = $app->config(foo => 'bar');
+
+Application configuration. Note that this method is EXPERIMENTAL and might
+change without warning!
+
+  $app->config->{foo} = 'bar';
+  my $foo = $app->config->{foo};
+  delete $app->config->{foo};
 
 =head2 C<handler>
 

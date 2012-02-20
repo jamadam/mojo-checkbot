@@ -5,9 +5,7 @@ use IO::File;
 use Mojo::Asset::File;
 use Mojo::ByteStream 'b';
 use Mojo::DOM;
-use Mojo::Home;
 use Mojo::Util 'url_escape';
-
 use Pod::Simple::HTML;
 use Pod::Simple::Search;
 
@@ -15,10 +13,7 @@ use Pod::Simple::Search;
 our @PATHS = map { $_, "$_/pods" } @INC;
 
 # Bundled files
-my $H = Mojo::Home->new;
-$H->parse($H->parse($H->mojo_lib_dir)->rel_dir('Mojolicious/templates'));
-our $MOJOBAR = $H->slurp_rel_file('mojobar.html.ep');
-our $PERLDOC = $H->slurp_rel_file('perldoc.html.ep');
+our $PERLDOC = $Mojolicious::Controller::H->slurp_rel_file('perldoc.html.ep');
 
 # "This is my first visit to the Galaxy of Terror and I'd like it to be a
 #  pleasant one."
@@ -77,7 +72,8 @@ sub register {
       # Rewrite code sections for syntax highlighting
       $dom->find('pre')->each(
         sub {
-          my $attrs = shift->attrs;
+          return if (my $e = shift)->all_text =~ /^\s*\$\s+/m;
+          my $attrs = $e->attrs;
           my $class = $attrs->{class};
           $attrs->{class} =
             defined $class ? "$class prettyprint" : 'prettyprint';
@@ -90,15 +86,14 @@ sub register {
       my $sections = [];
       $dom->find('h1, h2, h3')->each(
         sub {
-          my $tag    = shift;
-          my $text   = $tag->all_text;
-          my $anchor = $text;
+          my $e = shift;
+          my $anchor = my $text = $e->all_text;
           $anchor =~ s/\s+/_/g;
           $anchor = url_escape $anchor, 'A-Za-z0-9_';
           $anchor =~ s/\%//g;
-          push @$sections, [] if $tag->type eq 'h1' || !@$sections;
+          push @$sections, [] if $e->type eq 'h1' || !@$sections;
           push @{$sections->[-1]}, $text, $url->fragment($anchor)->to_abs;
-          $tag->replace_content(
+          $e->replace_content(
             $self->link_to(
               $text => $url->fragment('toc')->to_abs,
               class => 'mojoscroll',
@@ -113,9 +108,7 @@ sub register {
       $dom->find('h1 + p')->first(sub { $title = shift->text });
 
       # Combine everything to a proper response
-      $self->content_for(mojobar => $self->include(inline => $MOJOBAR));
       $self->content_for(perldoc => "$dom");
-      $self->app->plugins->emit_hook(before_perldoc => $self);
       $self->render(
         inline   => $PERLDOC,
         title    => $title,
@@ -198,8 +191,8 @@ Handler name.
   # Mojolicious::Lite
   plugin PODRenderer => {no_perldoc => 1};
 
-Disable perldoc browser.
-Note that this option is EXPERIMENTAL and might change without warning!
+Disable perldoc browser. Note that this option is EXPERIMENTAL and might
+change without warning!
 
 =head2 C<preprocess>
 

@@ -295,9 +295,9 @@ push @EXPORT_OK, qw/punycode_encode qp_decode qp_encode quote/;
 push @EXPORT_OK, qw/secure_compare sha1_bytes sha1_sum trim unquote/;
 push @EXPORT_OK, qw/url_escape url_unescape xml_escape/;
 
-sub b64_decode { MIME::Base64::decode_base64(@_) }
+sub b64_decode { MIME::Base64::decode_base64(shift) }
 
-sub b64_encode { MIME::Base64::encode_base64(@_) }
+sub b64_encode { MIME::Base64::encode_base64(shift, shift) }
 
 sub camelize {
   my $string = shift;
@@ -545,9 +545,9 @@ sub punycode_encode {
   return $output;
 }
 
-sub qp_decode { MIME::QuotedPrint::decode_qp(@_) }
+sub qp_decode { MIME::QuotedPrint::decode_qp(shift) }
 
-sub qp_encode { MIME::QuotedPrint::encode_qp(@_) }
+sub qp_encode { MIME::QuotedPrint::encode_qp(shift) }
 
 sub quote {
   my $string = shift;
@@ -701,8 +701,14 @@ Base64 encode string.
 
 Convert snake case string to camel case and replace C<-> with C<::>.
 
-  foo_bar     -> FooBar
-  foo_bar-baz -> FooBar::Baz
+  # "FooBar"
+  camelize 'foo_bar';
+
+  # "FooBar::Baz"
+  camelize 'foo_bar-baz';
+
+  # "FooBar::Baz"
+  camelize 'FooBar::Baz';
 
 =head2 C<decamelize>
 
@@ -710,8 +716,14 @@ Convert snake case string to camel case and replace C<-> with C<::>.
 
 Convert camel case string to snake case and replace C<::> with C<->.
 
-  FooBar      -> foo_bar
-  FooBar::Baz -> foo_bar-baz
+  # "foo_bar"
+  decamelize 'FooBar';
+
+  # "foo_bar-baz"
+  decamelize 'FooBar::Baz';
+
+  # "foo_bar-baz"
+  decamelize 'foo_bar-baz';
 
 =head2 C<decode>
 
@@ -729,8 +741,8 @@ Encode characters to bytes.
 
   my $line = get_line \$string;
 
-Extract whole line from string or return C<undef>.
-Lines are expected to end with C<0x0d 0x0a> or C<0x0a>.
+Extract whole line from string or return C<undef>. Lines are expected to end
+with C<0x0d 0x0a> or C<0x0a>.
 
 =head2 C<hmac_md5_sum>
 

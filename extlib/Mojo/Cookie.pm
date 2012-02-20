@@ -8,20 +8,20 @@ use overload
 use Carp 'croak';
 use Mojo::Util 'unquote';
 
-has [qw/name path value version/];
+has [qw/name value/];
 
 my $COOKIE_SEPARATOR_RE = qr/^\s*\,\s*/;
 my $NAME_RE             = qr/
   ^\s*
-  (?<name>[^\=\;\,]+)   # Relaxed Netscape token, allowing whitespace
+  ([^\=\;\,]+)   # Relaxed Netscape token, allowing whitespace
   \s*
-  \=?                   # '=' (optional)
+  \=?            # '=' (optional)
   \s*
 /x;
 my $SEPARATOR_RE = qr/^\s*\;\s*/;
 my $VALUE_RE     = qr/
   ^
-  (?<value>
+  (
     "(?:\\\\|\\"|[^"])+"   # Quoted
   |
     [^\;\,]+               # Unquoted
@@ -34,6 +34,9 @@ my $VALUE_RE     = qr/
 #  but he is not a porn star."
 sub to_string { croak 'Method "to_string" not implemented by subclass' }
 
+# DEPRECATED in Leaf Fluttering In Wind!
+sub version { warn "Mojo::Cookie->version is DEPRECATED!\n" }
+
 sub _tokenize {
   my ($self, $string) = @_;
 
@@ -43,14 +46,14 @@ sub _tokenize {
 
     # Name
     if ($string =~ s/$NAME_RE//) {
-      my $name = $+{name};
+      my $name = $1;
 
       # "expires" is a special case, thank you Netscape...
       $string =~ s/^([^\;\,]+\,?[^\;\,]+)/"$1"/ if $name =~ /^expires$/i;
 
       # Value
       my $value;
-      $value = unquote $+{value} if $string =~ s/$VALUE_RE//;
+      $value = unquote $1 if $string =~ s/$VALUE_RE//;
 
       # Token
       push @token, [$name, $value];
@@ -100,26 +103,12 @@ L<Mojo::Cookie> implements the following attributes.
 
 Cookie name.
 
-=head2 C<path>
-
-  my $path = $cookie->path;
-  $cookie  = $cookie->path('/test');
-
-Cookie path.
-
 =head2 C<value>
 
   my $value = $cookie->value;
   $cookie   = $cookie->value('/test');
 
 Cookie value.
-
-=head2 C<version>
-
-  my $version = $cookie->version;
-  $cookie     = $cookie->version(1);
-
-Cookie version.
 
 =head1 METHODS
 

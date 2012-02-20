@@ -6,6 +6,7 @@ use Mojo::Asset::Memory;
 use Mojo::Content::Single;
 use Mojo::DOM;
 use Mojo::JSON;
+use Mojo::JSON::Pointer;
 use Mojo::Parameters;
 use Mojo::Upload;
 use Mojo::Util qw/decode url_unescape/;
@@ -75,7 +76,8 @@ sub body_params {
   # "x-application-urlencoded" and "application/x-www-form-urlencoded"
   my $type = $self->headers->content_type || '';
   if ($type =~ m#(?:x-application|application/x-www-form)-urlencoded#i) {
-    $params->parse($self->content->asset->slurp);
+    return $params if (my $asset = $self->content->asset)->is_file;
+    $params->parse($asset->slurp);
   }
 
   # "multipart/formdata"
@@ -89,7 +91,7 @@ sub body_params {
       my $value    = $data->[2];
 
       # File
-      next if $filename;
+      next if defined $filename;
 
       # Form value
       $params->append($name, $value);
@@ -191,8 +193,8 @@ sub error {
 
   # Get
   unless (@_) {
-    return unless my $error = $self->{error};
-    return wantarray ? @$error : $error->[0];
+    return unless my $err = $self->{error};
+    return wantarray ? @$err : $err->[0];
   }
 
   # Set
@@ -257,23 +259,11 @@ sub get_start_line_chunk {
 
 sub has_leftovers { shift->content->has_leftovers }
 
-sub header_size {
-  my $self = shift;
-  $self->fix_headers;
-  return $self->content->header_size;
-}
+sub header_size { shift->fix_headers->content->header_size }
 
 sub headers { shift->content->headers(@_) }
 
 sub is_chunked { shift->content->is_chunked }
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub is_done {
-  warn <<EOF;
-Mojo::Message->is_done is DEPRECATED in favor of Mojo::Message->is_finished!
-EOF
-  shift->is_finished;
-}
 
 sub is_dynamic { shift->content->is_dynamic }
 
@@ -287,34 +277,19 @@ sub is_limit_exceeded {
 sub is_multipart { shift->content->is_multipart }
 
 sub json {
-  my $self = shift;
+  my ($self, $pointer) = @_;
   return if $self->is_multipart;
-  return $self->json_class->new->decode($self->body);
+  my $data = $self->json_class->new->decode($self->body);
+  return $pointer ? Mojo::JSON::Pointer->get($data, $pointer) : $data;
 }
 
 sub leftovers { shift->content->leftovers }
 
 sub max_line_size { shift->headers->max_line_size(@_) }
 
-# DEPRECATED in Smiling Face With Sunglasses!
-sub on_finish {
-  warn
-    "Mojo::Message->on_finish is DEPRECATED in favor of Mojo::Message->on!\n";
-  shift->on(finish => shift);
-}
-
-# DEPRECATED in Smiling Face With Sunglasses!
-sub on_progress {
-  warn <<EOF;
-Mojo::Message->on_progress is DEPRECATED in favor of Mojo::Message->on!
-EOF
-  shift->on(progress => shift);
-}
-
 sub param {
   my $self = shift;
-  $self->{body_params} ||= $self->body_params;
-  return $self->{body_params}->param(@_);
+  return ($self->{body_params} ||= $self->body_params)->param(@_);
 }
 
 sub parse            { shift->_parse(0, @_) }
@@ -374,7 +349,7 @@ sub uploads {
     my $part     = $data->[2];
 
     # Just a form value
-    next unless $filename;
+    next unless defined $filename;
 
     # Uploaded file
     my $upload = Mojo::Upload->new;
@@ -504,8 +479,9 @@ sub _parse_formdata {
     }
 
     # Form value
-    unless ($filename) {
-      $value = $part->asset->slurp;
+    unless (defined $filename) {
+      next if (my $asset = $part->asset)->is_file;
+      $value = $asset->slurp;
       $value = decode($charset, $value) // $value
         if $charset && !$part->headers->content_transfer_encoding;
     }
@@ -540,6 +516,7 @@ L<Mojo::Message> can emit the following events.
 
   $message->on(finish => sub {
     my $message = shift;
+    ...
   });
 
 Emitted after message building or parsing is finished.
@@ -554,6 +531,7 @@ Emitted after message building or parsing is finished.
 
   $message->on(progress => sub {
     my $message = shift;
+    ...
   });
 
 Emitted when message building or parsing makes progress.
@@ -650,7 +628,7 @@ C<POST> parameters, usually a L<Mojo::Parameters> object.
 
   my $size = $message->body_size;
 
-Size of the body in bytes.
+Alias for L<Mojo::Content/"body_size">.
 
 =head2 C<build_body>
 
@@ -693,6 +671,7 @@ perform a C<find> on it right away, which returns a collection.
 
   # Use everything else Mojo::DOM has to offer
   say $message->dom->at('title')->text;
+  $message->dom->html->body->children->each(sub { say $_->type });
 
 =head2 C<error>
 
@@ -731,7 +710,7 @@ Get a chunk of start line data starting from a specific position.
 
   my $success = $message->has_leftovers;
 
-Check if message parser has leftover data.
+Alias for L<Mojo::Content/"has_leftovers">.
 
 =head2 C<header_size>
 
@@ -751,14 +730,14 @@ Alias for L<Mojo::Content/"headers">.
 
   my $success = $message->is_chunked;
 
-Check if message content is chunked.
+Alias for L<Mojo::Content/"is_chunked">.
 
 =head2 C<is_dynamic>
 
   my $success = $message->is_dynamic;
 
-Check if message content will be dynamic.
-Note that this method is EXPERIMENTAL and might change without warning!
+Alias for L<Mojo::Content/"is_dynamic">. Note that this method is
+EXPERIMENTAL and might change without warning!
 
 =head2 C<is_finished>
 
@@ -770,37 +749,40 @@ Check if parser is finished.
 
   my $success = $message->is_limit_exceeded;
 
-Check if message has exceeded C<max_line_size> or C<max_message_size>.
-Note that this method is EXPERIMENTAL and might change without warning!
+Check if message has exceeded C<max_line_size> or C<max_message_size>. Note
+that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<is_multipart>
 
   my $success = $message->is_multipart;
 
-Check if message content is a L<Mojo::Content::MultiPart> object.
+Alias for L<Mojo::Content/"is_multipart">.
 
 =head2 C<json>
 
   my $object = $message->json;
   my $array  = $message->json;
+  my $value  = $message->json('/foo/bar');
 
 Decode JSON message body directly using L<Mojo::JSON> if possible, returns
-C<undef> otherwise.
+C<undef> otherwise. An optional JSON Pointer can be used to extract a
+specific value with L<Mojo::JSON::Pointer>.
 
   say $message->json->{foo}->{bar}->[23];
+  say $message->json('/foo/bar/23');
 
 =head2 C<leftovers>
 
   my $bytes = $message->leftovers;
 
-Remove leftover data from message parser.
+Alias for L<Mojo::Content/"leftovers">.
 
 =head2 C<max_line_size>
 
   $message->max_line_size(1024);
 
-Alias for L<Mojo::Headers/"max_line_size">.
-Note that this method is EXPERIMENTAL and might change without warning!
+Alias for L<Mojo::Headers/"max_line_size">. Note that this method is
+EXPERIMENTAL and might change without warning!
 
 =head2 C<param>
 
@@ -855,16 +837,14 @@ All C<multipart/form-data> file uploads, usually L<Mojo::Upload> objects.
   $message->write('Hello!');
   $message->write('Hello!', sub {...});
 
-Write dynamic content non-blocking, the optional drain callback will be
-invoked once all data has been written.
+Alias for L<Mojo::Content/"write">.
 
 =head2 C<write_chunk>
 
   $message->write_chunk('Hello!');
   $message->write_chunk('Hello!', sub {...});
 
-Write dynamic content non-blocking with C<chunked> transfer encoding, the
-optional drain callback will be invoked once all data has been written.
+Alias for L<Mojo::Content/"write_headers">.
 
 =head1 SEE ALSO
 

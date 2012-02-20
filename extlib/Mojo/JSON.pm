@@ -146,7 +146,7 @@ sub _decode_object {
 
     # Quote
     m/\G$WHITESPACE_RE"/xgc
-      or _exception("Expected string while parsing object");
+      or _exception('Expected string while parsing object');
 
     # Key
     my $key = _decode_string();
@@ -165,7 +165,7 @@ sub _decode_object {
     last if m/\G$WHITESPACE_RE\}/xgc;
 
     # Invalid character
-    _exception(q/Expected comma or right curly bracket while parsing object/);
+    _exception('Expected comma or right curly bracket while parsing object');
   }
 
   return \%hash;
@@ -380,9 +380,9 @@ Mojo::JSON - Minimalistic JSON
 
 =head1 DESCRIPTION
 
-L<Mojo::JSON> is a minimalistic and relaxed implementation of RFC 4627.
-While it is possibly the fastest pure-Perl JSON parser available, you should
-not use it for validation.
+L<Mojo::JSON> is a minimalistic and relaxed implementation of RFC 4627. While
+it is possibly the fastest pure-Perl JSON parser available, you should not
+use it for validation.
 
 It supports normal Perl data types like C<Scalar>, C<Array>, C<Hash> and will
 try to stringify blessed references.
@@ -398,9 +398,8 @@ similar native Perl value.
   null  -> undef
 
 Decoding UTF-16 (LE/BE) and UTF-32 (LE/BE) will be handled transparently,
-encoding will only generate UTF-8.
-The two unicode whitespace characters C<u2028> and C<u2029> will always be
-escaped to make JSONP easier.
+encoding will only generate UTF-8. The two unicode whitespace characters
+C<u2028> and C<u2029> will always be escaped to make JSONP easier.
 
 =head1 ATTRIBUTES
 
@@ -408,8 +407,8 @@ L<Mojo::JSON> implements the following attributes.
 
 =head2 C<error>
 
-  my $error = $json->error;
-  $json     = $json->error('Oops!');
+  my $err = $json->error;
+  $json   = $json->error('Oops!');
 
 Parser errors.
 

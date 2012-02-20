@@ -13,7 +13,7 @@ use MojoCheckbot;
 	use Test::More tests => 1;
 	
 	my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
-	$ua->keep_alive_timeout(1);
+	$ua->inactivity_timeout(1);
 	my $port;
 	$port = Mojo::IOLoop->generate_port;
 	Mojo::IOLoop->server(port => $port, sub {
@@ -24,7 +24,7 @@ use MojoCheckbot;
 			$stream->write(
 				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a",
-				sub {shift->drop(shift) }
+				sub {shift->close }
 			);
 		});
 	});
@@ -35,7 +35,7 @@ use MojoCheckbot;
 				$MojoCheckbot::QUEUE_KEY_LITERAL_URI 	=> "http://localhost:$port/",
 			});
 		};
-		like $@, qr{^Premature connection close}, 'right error';
+		like $@, qr{^Inactivity timeout}, 'right error';
 	}
 
 1;

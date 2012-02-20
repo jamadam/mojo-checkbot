@@ -44,7 +44,7 @@ EOF
 			$stream->write(
 				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-				sub {shift->drop(shift) }
+				sub {shift->close }
 			);
 		});
 	});
@@ -62,7 +62,7 @@ EOF
 			$stream->write(
 				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html2,
-				sub {shift->drop(shift) }
+				sub {shift->close }
 			);
 		});
 	});
@@ -80,7 +80,7 @@ EOF
 			$stream->write(
 				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html; charset=cp932\x0d\x0a\x0d\x0a". $html,
-				sub {shift->drop(shift) }
+				sub {shift->close }
 			);
 		});
 	});
@@ -98,7 +98,7 @@ EOF
 			$stream->write(
 				"HTTP/1.1 200 OK\x0d\x0a"
 					. "Content-Type: text/html; charset=cp932; hoge\x0d\x0a\x0d\x0a". $html,
-				sub {shift->drop(shift) }
+				sub {shift->close }
 			);
 		});
 	});

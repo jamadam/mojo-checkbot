@@ -23,11 +23,7 @@ has iowatcher => sub {
   Mojo::IOLoop->singleton->iowatcher;
 };
 
-sub DESTROY {
-  my $self = shift;
-  return if $self->{connected};
-  $self->_cleanup;
-}
+sub DESTROY { shift->_cleanup }
 
 # "I wonder where Bart is, his dinner's getting all cold... and eaten."
 sub connect {
@@ -36,14 +32,16 @@ sub connect {
   $args->{address} ||= '127.0.0.1';
   $args->{address} = '127.0.0.1' if $args->{address} eq 'localhost';
   weaken $self;
-  $self->iowatcher->timer(0 => sub { $self->_connect($args) });
+  $self->{delay} =
+    $self->iowatcher->timer(0 => sub { $self->_connect($args) });
 }
 
 sub _cleanup {
   my $self = shift;
   return unless my $watcher = $self->{iowatcher};
-  $watcher->drop_timer($self->{timer})   if $self->{timer};
-  $watcher->drop_handle($self->{handle}) if $self->{handle};
+  $watcher->drop(delete $self->{delay})  if $self->{delay};
+  $watcher->drop(delete $self->{timer})  if $self->{timer};
+  $watcher->drop(delete $self->{handle}) if $self->{handle};
 }
 
 sub _connect {
@@ -52,23 +50,21 @@ sub _connect {
   # New socket
   my $handle;
   my $watcher = $self->iowatcher;
-  my $timeout = $args->{timeout} || 3;
   unless ($handle = $args->{handle}) {
     my %options = (
       Blocking => 0,
       PeerAddr => $args->{address},
       PeerPort => $args->{port} || ($args->{tls} ? 443 : 80),
-      Proto    => 'tcp',
-      %{$args->{args} || {}}
+      Proto    => 'tcp'
     );
+    $options{LocalAddr} = $args->{local_address} if $args->{local_address};
     $options{PeerAddr} =~ s/[\[\]]//g if $options{PeerAddr};
     my $class = IPV6 ? 'IO::Socket::IP' : 'IO::Socket::INET';
     return $self->emit_safe(error => "Couldn't connect.")
       unless $handle = $class->new(%options);
 
     # Timer
-    $self->{timer} =
-      $watcher->timer($timeout,
+    $self->{timer} = $watcher->timer($args->{timeout} || 3,
       sub { $self->emit_safe(error => 'Connect timeout.') });
 
     # IPv6 needs an early start
@@ -93,27 +89,22 @@ sub _connect {
       SSL_startHandshake => 0,
       SSL_error_trap     => sub {
         $self->_cleanup;
-        close delete $self->{handle};
         $self->emit_safe(error => $_[1]);
       },
-      SSL_cert_file   => $args->{tls_cert},
-      SSL_key_file    => $args->{tls_key},
-      SSL_verify_mode => 0x00,
-      Timeout         => $timeout,
-      %{$args->{tls_args} || {}}
+      SSL_cert_file => $args->{tls_cert},
+      SSL_key_file  => $args->{tls_key},
+      SSL_ca_file   => $args->{tls_ca}
+        && -T $args->{tls_ca} ? $args->{tls_ca} : undef,
+      SSL_verify_mode => $args->{tls_ca} ? 0x01 : 0x00
     );
     $self->{tls} = 1;
     return $self->emit_safe(error => 'TLS upgrade failed.')
       unless $handle = IO::Socket::SSL->start_SSL($handle, %options);
   }
 
-  # Start writing right away
+  # Wait for handle to become writable
   $self->{handle} = $handle;
-  $watcher->watch(
-    $handle,
-    sub { $self->_connecting },
-    sub { $self->_connecting }
-  );
+  $watcher->io($handle => sub { $self->_connecting })->watch($handle, 0, 1);
 }
 
 # "Have you ever seen that Blue Man Group? Total ripoff of the Smurfs.
@@ -125,9 +116,9 @@ sub _connecting {
   my $handle  = $self->{handle};
   my $watcher = $self->iowatcher;
   if ($self->{tls} && !$handle->connect_SSL) {
-    my $error = $IO::Socket::SSL::SSL_ERROR;
-    if    ($error == TLS_READ)  { $watcher->change($handle, 1, 0) }
-    elsif ($error == TLS_WRITE) { $watcher->change($handle, 1, 1) }
+    my $err = $IO::Socket::SSL::SSL_ERROR;
+    if    ($err == TLS_READ)  { $watcher->watch($handle, 1, 0) }
+    elsif ($err == TLS_WRITE) { $watcher->watch($handle, 1, 1) }
     return;
   }
 
@@ -136,7 +127,6 @@ sub _connecting {
     unless $handle->connected;
 
   # Connected
-  $self->{connected} = 1;
   $self->_cleanup;
   $self->emit_safe(connect => $handle);
 }
@@ -159,15 +149,15 @@ Mojo::IOLoop::Client - Non-blocking TCP client
     ...
   });
   $client->on(error => sub {
-    my ($client, $error) = @_;
+    my ($client, $err) = @_;
     ...
   });
   $client->connect(address => 'mojolicio.us', port => 80);
 
 =head1 DESCRIPTION
 
-L<Mojo::IOLoop::Client> opens TCP connections for L<Mojo::IOLoop>.
-Note that this module is EXPERIMENTAL and might change without warning!
+L<Mojo::IOLoop::Client> opens TCP connections for L<Mojo::IOLoop>. Note that
+this module is EXPERIMENTAL and might change without warning!
 
 =head1 EVENTS
 
@@ -177,6 +167,7 @@ L<Mojo::IOLoop::Client> can emit the following events.
 
   $client->on(connect => sub {
     my ($client, $handle) = @_;
+    ...
   });
 
 Emitted safely once the connection is established.
@@ -184,7 +175,8 @@ Emitted safely once the connection is established.
 =head2 C<error>
 
   $client->on(error => sub {
-    my ($client, $error) = @_;
+    my ($client, $err) = @_;
+    ...
   });
 
 Emitted safely if an error happens on the connection.
@@ -213,9 +205,8 @@ implements the following new ones.
     port    => 3000
   );
 
-Open a socket connection to a remote host.
-Note that TLS support depends on L<IO::Socket::SSL> and IPv6 support on
-L<IO::Socket::IP>.
+Open a socket connection to a remote host. Note that TLS support depends on
+L<IO::Socket::SSL> and IPv6 support on L<IO::Socket::IP>.
 
 These options are currently available:
 
@@ -229,17 +220,26 @@ Address or host name of the peer to connect to.
 
 Use an already prepared handle.
 
+=item C<local_address>
+
+Local address to bind to.
+
 =item C<port>
 
 Port to connect to.
 
 =item C<timeout>
 
-Maximum amount of time in seconds establishing connection may take.
+Maximum amount of time in seconds establishing connection may take before
+getting canceled.
 
 =item C<tls>
 
 Enable TLS.
+
+=item C<tls_ca>
+
+Path to TLS certificate authority file.
 
 =item C<tls_cert>
 

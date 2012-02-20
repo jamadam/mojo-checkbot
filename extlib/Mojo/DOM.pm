@@ -1,5 +1,5 @@
 package Mojo::DOM;
-use Mojo::Base -base;
+use Mojo::Base -strict;
 use overload
   '%{}'    => sub { shift->attrs },
   'bool'   => sub {1},
@@ -33,23 +33,14 @@ sub DESTROY { }
 sub new {
   my $class = shift;
   my $self = bless [Mojo::DOM::HTML->new], ref $class || $class;
-
-  # DEPRECATED in Leaf Fluttering In Wind!
-  my $input;
-  $input = shift if @_ % 2;
-  warn "Mojo::DOM->new with arguments is DEPRECATED!\n" if @_;
-  my %attrs = (@_);
-  exists($attrs{$_}) and $self->$_($attrs{$_}) for qw/tree charset xml/;
-
-  # Parse right away
-  $self->parse($input) if defined $input;
-
+  $self->parse(@_) if @_;
   return $self;
 }
 
 sub all_text {
   my ($self, $trim) = @_;
-  return $self->_text($self->tree, 1, defined $trim ? $trim : 1);
+  my $tree = $self->tree;
+  return _text(_elements($tree), 1, _trim($tree, $trim));
 }
 
 sub append { shift->_add(1, @_) }
@@ -67,8 +58,7 @@ sub attrs {
   my $self = shift;
 
   # Not a tag
-  my $tree = $self->tree;
-  return {} if $tree->[0] eq 'root';
+  return {} if (my $tree = $self->tree)->[0] eq 'root';
 
   # Hash
   my $attrs = $tree->[2];
@@ -79,9 +69,7 @@ sub attrs {
 
   # Set
   my $values = ref $_[0] ? $_[0] : {@_};
-  for my $key (keys %$values) {
-    $attrs->{$key} = $values->{$key};
-  }
+  $attrs->{$_} = $values->{$_} for keys %$values;
 
   return $self;
 }
@@ -152,8 +140,7 @@ sub namespace {
   my $self = shift;
 
   # Prefix
-  my $current = $self->tree;
-  return if $current->[0] eq 'root';
+  return if (my $current = $self->tree)->[0] eq 'root';
   my $prefix = '';
   if ($current->[1] =~ /^(.*?)\:/) { $prefix = $1 }
 
@@ -181,8 +168,7 @@ sub parent {
   my $self = shift;
 
   # Not a tag
-  my $tree = $self->tree;
-  return if $tree->[0] eq 'root';
+  return if (my $tree = $self->tree)->[0] eq 'root';
 
   # Parent
   return $self->new->charset($self->charset)->tree($tree->[3])
@@ -264,7 +250,39 @@ sub root {
 
 sub text {
   my ($self, $trim) = @_;
-  return $self->_text($self->tree, 0, defined $trim ? $trim : 1);
+  my $tree = $self->tree;
+  return _text(_elements($tree), 0, _trim($tree, $trim));
+}
+
+sub text_after {
+  my ($self, $trim) = @_;
+
+  # Find following text elements
+  return '' if (my $tree = $self->tree)->[0] eq 'root';
+  my (@elements, $started);
+  for my $e (@{_elements($tree->[3])}) {
+    ++$started and next if $e eq $tree;
+    next unless $started;
+    last if $e->[0] eq 'tag';
+    push @elements, $e;
+  }
+
+  return _text(\@elements, 0, _trim($tree->[3], $trim));
+}
+
+sub text_before {
+  my ($self, $trim) = @_;
+
+  # Find preceding text elements
+  return '' if (my $tree = $self->tree)->[0] eq 'root';
+  my @elements;
+  for my $e (@{_elements($tree->[3])}) {
+    last if $e eq $tree;
+    push @elements, $e;
+    @elements = () if $e->[0] eq 'tag';
+  }
+
+  return _text(\@elements, 0, _trim($tree->[3], $trim));
 }
 
 sub to_xml { shift->[0]->render }
@@ -280,8 +298,7 @@ sub type {
   my ($self, $type) = @_;
 
   # Not a tag
-  my $tree = $self->tree;
-  return if $tree->[0] eq 'root';
+  return if (my $tree = $self->tree)->[0] eq 'root';
 
   # Get
   return $tree->[1] unless $type;
@@ -307,8 +324,7 @@ sub _add {
   $new = $self->_parse("$new");
 
   # Not a tag
-  my $tree = $self->tree;
-  return $self if $tree->[0] eq 'root';
+  return $self if (my $tree = $self->tree)->[0] eq 'root';
 
   # Find
   my $parent = $tree->[3];
@@ -322,6 +338,11 @@ sub _add {
   splice @$parent, $i + $offset, 0, @{_parent($new, $parent)};
 
   return $self;
+}
+
+sub _elements {
+  my $e = shift;
+  return [@$e[($e->[0] eq 'root' ? 1 : 4) .. $#$e]];
 }
 
 sub _parent {
@@ -344,27 +365,18 @@ sub _parse {
 }
 
 sub _text {
-  my ($self, $tree, $recurse, $trim) = @_;
-
-  # Don't trim preformatted text
-  my $start = 4;
-  if ($tree->[0] eq 'root') { $start = 1 }
-  elsif ($trim) {
-    my $parent = $tree;
-    while ($parent->[0] eq 'tag') {
-      $trim = 0 if $parent->[1] eq 'pre';
-      last unless $parent = $parent->[3];
-    }
-  }
+  my ($elements, $recurse, $trim) = @_;
 
   # Walk tree
   my $text = '';
-  for my $e (@$tree[$start .. $#$tree]) {
+  for my $e (@$elements) {
     my $type = $e->[0];
 
     # Nested tag
     my $content = '';
-    if ($type eq 'tag' && $recurse) { $content = $self->_text($e, 1, $trim) }
+    if ($type eq 'tag' && $recurse) {
+      $content = _text(_elements($e), 1, _trim($e, $trim));
+    }
 
     # Text
     elsif ($type eq 'text') {
@@ -392,6 +404,21 @@ sub _text {
   return $text;
 }
 
+sub _trim {
+  my ($e, $trim) = @_;
+
+  # Deactivated
+  return 0 unless $trim = defined $trim ? $trim : 1;
+
+  # Detect "pre" tag
+  while ($e->[0] eq 'tag') {
+    return 0 if $e->[1] eq 'pre';
+    last unless $e = $e->[3];
+  }
+
+  return 1;
+}
+
 1;
 __END__
 
@@ -412,7 +439,7 @@ Mojo::DOM - Minimalistic HTML5/XML DOM parser with CSS3 selectors
 
   # Walk
   say $dom->div->p->[0]->text;
-  say $dom->div->p->[1]->{id};
+  say $dom->div->children('p')->first->{id};
 
   # Iterate
   $dom->find('p[id]')->each(sub { say shift->{id} });
@@ -431,9 +458,8 @@ Mojo::DOM - Minimalistic HTML5/XML DOM parser with CSS3 selectors
 =head1 DESCRIPTION
 
 L<Mojo::DOM> is a minimalistic and relaxed HTML5/XML DOM parser with CSS3
-selector support.
-It will even try to interpret broken XML, so you should not use it for
-validation.
+selector support. It will even try to interpret broken XML, so you should not
+use it for validation.
 
 =head1 CASE SENSITIVITY
 
@@ -461,8 +487,7 @@ XML detection can be also deactivated with the C<xml> method.
 
 =head1 METHODS
 
-L<Mojo::DOM> inherits all methods from L<Mojo::Base> and implements the
-following new ones.
+L<Mojo::DOM> implements the following methods.
 
 =head2 C<new>
 
@@ -477,9 +502,14 @@ Construct a new L<Mojo::DOM> object.
   my $untrimmed = $dom->all_text(0);
 
 Extract all text content from DOM structure, smart whitespace trimming is
-activated by default.
-Note that the trim argument of this method is EXPERIMENTAL and might change
-without warning!
+activated by default. Note that the trim argument of this method is
+EXPERIMENTAL and might change without warning!
+
+  # "foo bar baz"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->all_text;
+
+  # "foo\nbarbaz\n"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->all_text(0);
 
 =head2 C<append>
 
@@ -503,8 +533,8 @@ Append to element content.
 
   my $result = $dom->at('html title');
 
-Find a single element with CSS3 selectors.
-All selectors from L<Mojo::DOM::CSS> are supported.
+Find a single element with CSS3 selectors. All selectors from
+L<Mojo::DOM::CSS> are supported.
 
 =head2 C<attrs>
 
@@ -514,10 +544,6 @@ All selectors from L<Mojo::DOM::CSS> are supported.
   $dom      = $dom->attrs(foo => 'bar');
 
 Element attributes.
-
-  # Direct hash access to attributes is also available
-  say $dom->{foo};
-  say $dom->div->{id};
 
 =head2 C<charset>
 
@@ -529,15 +555,10 @@ Alias for L<Mojo::DOM::HTML/"charset">.
 =head2 C<children>
 
   my $collection = $dom->children;
-  my $collection = $dom->children('div')
+  my $collection = $dom->children('div');
 
 Return a L<Mojo::Collection> object containing the children of this element,
 similar to C<find>.
-
-  # Child elements are also automatically available as object methods
-  say $dom->div->text;
-  say $dom->div->[23]->text;
-  $dom->div->each(sub { say $_->text });
 
 =head2 C<content_xml>
 
@@ -624,9 +645,44 @@ Find root node.
   my $untrimmed = $dom->text(0);
 
 Extract text content from element only (not including child elements), smart
-whitespace trimming is activated by default.
-Note that the trim argument of this method is EXPERIMENTAL and might change
-without warning!
+whitespace trimming is activated by default. Note that the trim argument of
+this method is EXPERIMENTAL and might change without warning!
+
+  # "foo baz"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->text;
+
+  # "foo\nbaz\n"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->text(0);
+
+=head2 C<text_after>
+
+  my $trimmed   = $dom->text_after;
+  my $untrimmed = $dom->text_after(0);
+
+Extract text content immediately following element, smart whitespace trimming
+is activated by default. Note that this method is EXPERIMENTAL and might
+change without warning!
+
+  # "baz"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->p->text_after;
+
+  # "baz\n"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->p->text_after(0);
+
+=head2 C<text_before>
+
+  my $trimmed   = $dom->text_before;
+  my $untrimmed = $dom->text_before(0);
+
+Extract text content immediately preceding element, smart whitespace trimming
+is activated by default. Note that this method is EXPERIMENTAL and might
+change without warning!
+
+  # "foo"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->p->text_before;
+
+  # "foo\n"
+  $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->p->text_before(0);
 
 =head2 C<to_xml>
 
@@ -644,17 +700,36 @@ Alias for L<Mojo::DOM::HTML/"tree">.
 =head2 C<type>
 
   my $type = $dom->type;
-  $dom     = $dom->type('html');
+  $dom     = $dom->type('div');
 
 Element type.
+
+  $dom->children->each(sub { say $_->type });
 
 =head2 C<xml>
 
   my $xml = $dom->xml;
   $dom    = $dom->xml(1);
 
-Alias for L<Mojo::DOM::HTML/"xml">.
-Note that this method is EXPERIMENTAL and might change without warning!
+Alias for L<Mojo::DOM::HTML/"xml">. Note that this method is EXPERIMENTAL and
+might change without warning!
+
+=head1 CHILD ELEMENTS
+
+In addition to the methods above, many child elements are also automatically
+available as object methods, which return a L<Mojo::DOM> or
+L<Mojo::Collection> object, depending on number of children.
+
+  say $dom->div->text;
+  say $dom->div->[23]->text;
+  $dom->div->each(sub { say $_->text });
+
+=head1 ELEMENT ATTRIBUTES
+
+Direct hash access to element attributes is also possible.
+
+  say $dom->{foo};
+  say $dom->div->{id};
 
 =head1 SEE ALSO
 

@@ -4,12 +4,8 @@ use Mojo::Base 'Mojo::Command';
 use Mojo::Util 'camelize';
 
 # "You know Santa may have killed Scruffy, but he makes a good point."
-has description => <<'EOF';
-Generate Mojolicious plugin directory structure.
-EOF
-has usage => <<"EOF";
-usage: $0 generate plugin [NAME]
-EOF
+has description => "Generate Mojolicious plugin directory structure.\n";
+has usage       => "usage: $0 generate plugin [NAME]\n";
 
 # "There we were in the park when suddenly some old lady says I stole her
 #  purse.
@@ -84,7 +80,6 @@ L<Mojolicious>, L<Mojolicious::Guides>, L<http://mojolicio.us>.
 
 @@ test
 % my $name = shift;
-#!/usr/bin/env perl
 use Mojo::Base -strict;
 
 use Test::More tests => 3;
@@ -104,8 +99,6 @@ $t->get_ok('/')->status_is(200)->content_is('Hello Mojo!');
 
 @@ makefile
 % my ($class, $path) = @_;
-#!/usr/bin/env perl
-
 use strict;
 use warnings;
 
@@ -115,7 +108,7 @@ WriteMakefile(
   NAME         => '<%= $class %>',
   VERSION_FROM => 'lib/<%= $path %>',
   AUTHOR       => 'A Good Programmer <nospam@cpan.org>',
-  PREREQ_PM    => {'Mojolicious' => '2.0'},
+  PREREQ_PM    => {'Mojolicious' => '2.50'},
   test         => {TESTS => 't/*.t'}
 );
 

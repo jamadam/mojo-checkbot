@@ -37,20 +37,18 @@ days, including L<Mojolicious>.
 
 The C<controller> receives a request from a user, passes incoming data to the
 C<model> and retrieves data from it, which then gets turned into an actual
-response by the C<view>.
-But note that this pattern is just a guideline that most of the time results
-in cleaner more maintainable code, not a rule that should be followed at all
-costs.
+response by the C<view>. But note that this pattern is just a guideline that
+most of the time results in cleaner more maintainable code, not a rule that
+should be followed at all costs.
 
 =head2 REpresentational State Transfer
 
 REST is a software architectural style for distributed hypermedia systems
-such as the web.
-While it can be applied to many protocols it is most commonly used with
-C<HTTP> these days.
-In REST terms, when you are opening a URL like C<http://mojolicio.us/foo>
-with your browser, you are basically asking the web server for the HTML
-C<representation> of the C<http://mojolicio.us/foo> C<resource>.
+such as the web. While it can be applied to many protocols it is most
+commonly used with HTTP these days. In REST terms, when you are opening a URL
+like C<http://mojolicio.us/foo> with your browser, you are basically asking
+the web server for the HTML C<representation> of the
+C<http://mojolicio.us/foo> C<resource>.
 
   .--------.                                .--------.
   |        | -> http://mojolicio.us/foo  -> |        |
@@ -60,9 +58,8 @@ C<representation> of the C<http://mojolicio.us/foo> C<resource>.
 
 The fundamental idea here is that all resources are uniquely addressable with
 URLs and every resource can have different representations such as HTML, RSS
-or JSON.
-User interface concerns are separated from data storage concerns and all
-session state is kept client-side.
+or JSON. User interface concerns are separated from data storage concerns and
+all session state is kept client-side.
 
   .---------.                        .------------.
   |         | ->    PUT /foo      -> |            |
@@ -87,7 +84,7 @@ C<resources>.
 =head2 Sessions
 
 HTTP was designed as a stateless protocol, web servers don't know anything
-about previous requests, which makes user friendly login systems very tricky.
+about previous requests, which makes user-friendly login systems very tricky.
 Sessions solve this problem by allowing web applications to keep stateful
 information across several HTTP requests.
 
@@ -122,11 +119,10 @@ with the REST philosophy and reduces infrastructure requirements.
 
 TDD is a software development process where the developer starts writing
 failing test cases that define the desired functionality and then moves on to
-producing code that passes these tests.
-There are many advantages such as always having good test coverage and code
-being designed for testability, which will in turn often prevent future
-changes from breaking old code.
-Most of L<Mojolicious> was developed using TDD.
+producing code that passes these tests. There are many advantages such as
+always having good test coverage and code being designed for testability,
+which will in turn often prevent future changes from breaking old code. Most
+of L<Mojolicious> was developed using TDD.
 
 =head1 PROTOTYPE
 
@@ -271,7 +267,8 @@ L<Mojolicious> to make our C<model> available to all actions and templates.
   app->start;
 
 The C<param> method of our L<Mojolicious::Controller> instance is used to
-access query parameters, POST parameters and route placeholders, all at once.
+access query parameters, POST parameters, file uploads and route
+placeholders, all at once.
 
 =head2 Testing
 
@@ -294,10 +291,12 @@ on L<Mojo::DOM>.
   require "$FindBin::Bin/../myapp.pl";
 
   # Allow 302 redirect responses
-  my $t = Test::Mojo->new->max_redirects(1);
+  my $t = Test::Mojo->new;
+  $t->ua->max_redirects(1);
 
   # Test if the HTML login form exists
-  $t->get_ok('/')->status_is(200)
+  $t->get_ok('/')
+    ->status_is(200)
     ->element_exists('form input[name="user"]')
     ->element_exists('form input[name="pass"]')
     ->element_exists('form input[type="submit"]');
@@ -656,10 +655,12 @@ environments.
   use warnings;
 
   use File::Basename 'dirname';
-  use File::Spec;
+  use File::Spec::Functions qw/catdir splitdir/;
 
-  use lib join '/', File::Spec->splitdir(dirname(__FILE__)), 'lib';
-  use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '..', 'lib';
+  # Source directory has precedence
+  my @base = (splitdir(dirname(__FILE__)), '..');
+  my $lib = join('/', @base, 'lib');
+  -e catdir(@base, 't') ? unshift(@INC, $lib) : push(@INC, $lib);
 
   # Check if Mojolicious is installed
   die <<EOF unless eval 'use Mojolicious::Commands; 1';
@@ -676,16 +677,18 @@ environments.
 
 =head2 Simplified tests
 
-Normal L<Mojolicious> applications are a little easier to test and don't need
-help with home directory detection, so C<t/login.t> can be simplified.
+Normal L<Mojolicious> applications are a little easier to test, so
+C<t/login.t> can be simplified.
 
   use Test::More tests => 16;
   use Test::Mojo;
 
   # Load application class
-  my $t = Test::Mojo->new('MyApp')->max_redirects(1);
+  my $t = Test::Mojo->new('MyApp');
+  $t->ua->max_redirects(1);
 
-  $t->get_ok('/')->status_is(200)
+  $t->get_ok('/')
+    ->status_is(200)
     ->element_exists('form input[name="user"]')
     ->element_exists('form input[name="pass"]')
     ->element_exists('form input[type="submit"]');

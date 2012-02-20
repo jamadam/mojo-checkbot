@@ -86,10 +86,8 @@ sub generate_body_chunk {
   my ($self, $offset) = @_;
 
   # Drain
-  if (!delete $self->{delay} && !length $self->{body_buffer}) {
-    my $cb = delete $self->{drain};
-    $self->$cb($offset) if $cb;
-  }
+  $self->emit(drain => $offset)
+    if !delete $self->{delay} && !length $self->{body_buffer};
 
   # Get chunk
   my $chunk = $self->{body_buffer} // '';
@@ -123,14 +121,6 @@ sub header_size { length shift->build_headers }
 
 sub is_chunked { (shift->headers->transfer_encoding || '') =~ /chunked/i }
 
-# DEPRECATED in Leaf Fluttering In Wind!
-sub is_done {
-  warn <<EOF;
-Mojo::Content->is_done is DEPRECATED in favor of Mojo::Content->is_finished!
-EOF
-  shift->is_finished;
-}
-
 sub is_dynamic {
   my $self = shift;
   return $self->{dynamic} && !defined $self->headers->content_length;
@@ -143,13 +133,6 @@ sub is_multipart {undef}
 sub is_parsing_body { (shift->{state} || '') eq 'body' }
 
 sub leftovers { shift->{buffer} }
-
-# DEPRECATED in Smiling Face With Sunglasses!
-sub on_read {
-  warn
-    "Mojo::Content->on_read is DEPRECATED in favor of Mojo::Content->on!\n";
-  shift->on(read => shift);
-}
 
 sub parse {
   my $self = shift;
@@ -276,7 +259,7 @@ sub write {
   else { $self->{delay} = 1 }
 
   # Drain
-  $self->{drain} = $cb if $cb;
+  $self->once(drain => $cb) if $cb;
 
   # Finish
   $self->{eof} = 1 if defined $chunk && $chunk eq '';
@@ -425,14 +408,28 @@ in RFC 2616.
 
 L<Mojo::Content> can emit the following events.
 
+=head2 C<drain>
+
+  $content->on(drain => sub {
+    my ($content, $offset) = @_;
+    ...
+  });
+
+Emitted once all data has been written.
+
+  $content->on(drain => sub {
+    my $content = shift;
+    $content->write_chunk(time);
+  });
+
 =head2 C<body>
 
   $content->on(body => sub {
     my $content = shift;
+    ...
   });
 
 Emitted once all headers have been parsed and the body starts.
-Note that this event is EXPERIMENTAL and might change without warning!
 
   $content->on(body => sub {
     my $content = shift;
@@ -443,6 +440,7 @@ Note that this event is EXPERIMENTAL and might change without warning!
 
   $content->on(read => sub {
     my ($content, $chunk) = @_;
+    ...
   });
 
 Emitted when a new chunk of content arrives.
@@ -477,15 +475,16 @@ Content headers, defaults to a L<Mojo::Headers> object.
   $content = $content->max_leftover_size(1024);
 
 Maximum size in bytes of buffer for pipelined HTTP requests, defaults to the
-value of C<MOJO_MAX_LEFTOVER_SIZE> or C<262144>.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+value of C<MOJO_MAX_LEFTOVER_SIZE> or C<262144>. Note that this attribute is
+EXPERIMENTAL and might change without warning!
 
 =head2 C<relaxed>
 
   my $relaxed = $content->relaxed;
   $content    = $content->relaxed(1);
 
-Activate relaxed parsing for HTTP 0.9 and broken web servers.
+Activate relaxed parsing for HTTP 0.9 and responses that are terminated with
+a connection close.
 
 =head1 METHODS
 
@@ -508,8 +507,8 @@ Content size in bytes.
 
   my $boundary = $content->boundary;
 
-Extract multipart boundary from C<Content-Type> header.
-Note that this method is EXPERIMENTAL and might change without warning!
+Extract multipart boundary from C<Content-Type> header. Note that this method
+is EXPERIMENTAL and might change without warning!
 
 =head2 C<build_body>
 
@@ -527,15 +526,15 @@ Render all headers.
 
   my $charset = $content->charset;
 
-Extract charset from C<Content-Type> header.
-Note that this method is EXPERIMENTAL and might change without warning!
+Extract charset from C<Content-Type> header. Note that this method is
+EXPERIMENTAL and might change without warning!
 
 =head2 C<clone>
 
   my $clone = $content->clone;
 
-Clone content if possible.
-Note that this method is EXPERIMENTAL and might change without warning!
+Clone content if possible, otherwise return C<undef>. Note that this method
+is EXPERIMENTAL and might change without warning!
 
 =head2 C<generate_body_chunk>
 
@@ -577,8 +576,9 @@ Check if content is chunked.
 
   my $success = $content->is_dynamic;
 
-Check if content will be dynamic.
-Note that this method is EXPERIMENTAL and might change without warning!
+Check if content will be dynamically generated, which prevents C<clone> from
+working. Note that this method is EXPERIMENTAL and might change without
+warning!
 
 =head2 C<is_finished>
 
@@ -602,7 +602,7 @@ Check if body parsing started yet.
 
   my $bytes = $content->leftovers;
 
-Remove leftover data from content parser.
+Get leftover data from content parser.
 
 =head2 C<parse>
 
@@ -634,8 +634,8 @@ Parse chunk and stop after headers.
 
   my $size = $content->progress;
 
-Size of content already received from message in bytes.
-Note that this method is EXPERIMENTAL and might change without warning!
+Size of content already received from message in bytes. Note that this method
+is EXPERIMENTAL and might change without warning!
 
 =head2 C<write>
 

@@ -1,6 +1,6 @@
-% content_for header => begin
-  %= javascript '/js/jquery.js'
-  %= stylesheet begin
+%= javascript '/js/jquery.js'
+<div id="mojobar">
+  %= stylesheet scoped => 'scoped', begin
     #mojobar {
       background-color: #1a1a1a;
       background: -webkit-gradient(
@@ -41,7 +41,7 @@
     }
     #mojobar-links a {
       color: #ccc;
-      font: 1em 'Helvetica Neue', 'Helvetica', sans-serif;
+      font: 1em 'Helvetica Neue', Helvetica, sans-serif;
       font-weight: 300;
       margin-left: 0.5em;
       padding-bottom: 1em;
@@ -54,8 +54,6 @@
     }
     #mojobar-links a:hover { color: #fff }
   % end
-% end
-<div id="mojobar">
   <div id="mojobar-logo">
     %= link_to 'http://mojolicio.us' => begin
       %= image '/mojolicious-white.png', alt => 'Mojolicious logo'
@@ -70,7 +68,6 @@
     %= link_to MailingList => 'http://groups.google.com/group/mojolicious'
     %= link_to Blog => 'http://blog.kraih.com'
     %= link_to Twitter => 'http://twitter.com/kraih'
-    %= link_to 'T-Shirts' => 'http://kraih.spreadshirt.net'
   </div>
 </div>
 %= javascript begin

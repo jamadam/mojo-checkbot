@@ -1,6 +1,7 @@
 Revision history for mojo-checkbot
 
-0.37 2011/12/17
+0.37 2011/02/20
+  - Moved configuration from hypnotoad to myapp.conf
 
 0.36 2011/12/16
   - Fixed a bug that this hasn't been working without Clone.pm

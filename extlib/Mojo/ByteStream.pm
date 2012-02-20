@@ -1,5 +1,5 @@
 package Mojo::ByteStream;
-use Mojo::Base -base;
+use Mojo::Base -strict;
 use overload '""' => sub { shift->to_string }, fallback => 1;
 
 use Mojo::Collection;
@@ -115,8 +115,7 @@ manipulation functions in L<Mojo::Util>.
 
 =head1 METHODS
 
-L<Mojo::ByteStream> inherits all methods from L<Mojo::Base> and implements
-the following new ones.
+L<Mojo::ByteStream> implements the following methods.
 
 =head2 C<new>
 
@@ -281,7 +280,6 @@ Size of bytestream.
   my $collection = $stream->split(',');
 
 Turn bytestream into L<Mojo::Collection>.
-Note that this method is EXPERIMENTAL and might change without warning!
 
   $stream->split(',')->map(sub { $_->quote })->join("\n")->say;
 

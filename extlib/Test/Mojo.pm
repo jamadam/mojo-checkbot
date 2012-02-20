@@ -164,14 +164,44 @@ sub header_unlike {
 }
 
 sub json_content_is {
-  my ($self, $struct, $desc) = @_;
+  my ($self, $data, $desc) = @_;
   local $Test::Builder::Level = $Test::Builder::Level + 1;
-  Test::More::is_deeply $self->tx->res->json, $struct,
+  Test::More::is_deeply $self->tx->res->json, $data,
     $desc || 'exact match for JSON structure';
   return $self;
 }
 
+sub json_is {
+  my ($self, $p, $data, $desc) = @_;
+  local $Test::Builder::Level = $Test::Builder::Level + 1;
+  Test::More::is_deeply $self->tx->res->json($p),
+    $data, $desc || qq/exact match for JSON Pointer "$p"/;
+  return $self;
+}
+
+sub json_has {
+  my ($self, $p, $desc) = @_;
+  local $Test::Builder::Level = $Test::Builder::Level + 1;
+  Test::More::ok(
+    Mojo::JSON::Pointer->contains($self->tx->res->json, $p),
+    $desc || qq/has value for JSON Pointer "$p"/
+  );
+  return $self;
+}
+
+sub json_hasnt {
+  my ($self, $p, $desc) = @_;
+  local $Test::Builder::Level = $Test::Builder::Level + 1;
+  Test::More::ok(
+    !Mojo::JSON::Pointer->contains($self->tx->res->json, $p),
+    $desc || qq/has no value for JSON Pointer "$p"/
+  );
+  return $self;
+}
+
+# DEPRECATED in Leaf Fluttering In Wind!
 sub max_redirects {
+  warn "Test::Mojo->max_redirects is DEPRECATED!\n";
   my $self = shift;
   return $self->ua->max_redirects unless @_;
   $self->ua->max_redirects(@_);
@@ -258,8 +288,6 @@ sub status_isnt {
   return $self;
 }
 
-sub test_server { shift->ua->test_server(@_) }
-
 sub text_is {
   my ($self, $selector, $value, $desc) = @_;
   local $Test::Builder::Level = $Test::Builder::Level + 1;
@@ -335,8 +363,8 @@ sub _request_ok {
   # Perform request against application
   $self->tx($self->ua->$method($url, %$headers, $body));
   local $Test::Builder::Level = $Test::Builder::Level + 2;
-  my ($error, $code) = $self->tx->error;
-  Test::More::diag $error if !(my $ok = !$error || $code) && $error;
+  my ($err, $code) = $self->tx->error;
+  Test::More::diag $err if !(my $ok = !$err || $code) && $err;
   Test::More::ok $ok, encode('UTF-8', "$method $url");
 
   return $self;
@@ -358,24 +386,18 @@ Test::Mojo - Testing Mojo!
 
 =head1 SYNOPSIS
 
-  use Test::More tests => 10;
+  use Test::More tests => 12;
   use Test::Mojo;
 
   my $t = Test::Mojo->new('MyApp');
 
-  $t->get_ok('/welcome')
-    ->status_is(200)
-    ->content_like(qr/Hello!/, 'welcome message');
+  $t->get_ok('/welcome')->status_is(200)->text_is('div#message' => 'Hello!');
 
-  $t->post_form_ok('/search', {title => 'Perl', author => 'taro'})
-    ->status_is(200)
-    ->content_like(qr/Perl.+taro/);
-
-  $t->delete_ok('/something')
+  $t->post_form_ok('/search.json' => {q => 'Perl'})
     ->status_is(200)
     ->header_is('X-Powered-By' => 'Mojolicious (Perl)')
     ->header_isnt('X-Bender' => 'Bite my shiny metal ass!');
-    ->content_is('Hello world!');
+    ->json_is('/results/4/title' => 'Perl rocks!');
 
   $t->websocket_ok('/echo')
     ->send_message_ok('hello')
@@ -398,12 +420,17 @@ L<Test::Mojo> implements the following attributes.
 
 Current transaction, usually a L<Mojo::Transaction::HTTP> object.
 
+  # More specific tests
+  is $t->tx->res->json->{foo}, 'bar', 'right value';
+
 =head2 C<ua>
 
   my $ua = $t->ua;
   $t     = $t->ua(Mojo::UserAgent->new);
 
 User agent used for testing, defaults to a L<Mojo::UserAgent> object.
+
+  $t->get_ok($t->ua->app_url->userinfo('sri:secr3t')->path('/secrets'));
 
 =head1 METHODS
 
@@ -425,9 +452,17 @@ Construct a new L<Test::Mojo> object.
 
 Alias for L<Mojo::UserAgent/"app">.
 
-  my $secret = $t->app->secret;
+  # Change log level
   $t->app->log->level('fatal');
-  $t->app->defaults(testing => 'oh yea!');
+
+  # Disable inactivity timeout for all connections
+  $t->app->hook(after_build_tx => sub {
+    my ($tx, $app) = @_;
+    $tx->on(connection => sub {
+      my ($tx, $id) = @_;
+      Mojo::IOLoop->stream($id)->timeout(0);
+    });
+  });
 
 =head2 C<content_is>
 
@@ -487,8 +522,8 @@ Opposite of C<content_type_like>.
 
   $t = $t->delete_ok('/foo');
 
-Perform a C<DELETE> request and check for success, takes the exact same
-arguments as L<Mojo::UserAgent/"delete">.
+Perform a C<DELETE> request and check for transport errors, takes the exact
+same arguments as L<Mojo::UserAgent/"delete">.
 
 =head2 C<element_exists>
 
@@ -510,22 +545,22 @@ Opposite of C<element_exists>.
   $t = $t->finish_ok;
   $t = $t->finish_ok('finished successfully');
 
-Finish C<WebSocket> connection.
-Note that this method is EXPERIMENTAL and might change without warning!
+Finish C<WebSocket> connection. Note that this method is EXPERIMENTAL and
+might change without warning!
 
 =head2 C<get_ok>
 
   $t = $t->get_ok('/foo');
 
-Perform a C<GET> request and check for success, takes the exact same
+Perform a C<GET> request and check for transport errors, takes the exact same
 arguments as L<Mojo::UserAgent/"get">.
 
 =head2 C<head_ok>
 
   $t = $t->head_ok('/foo');
 
-Perform a C<HEAD> request and check for success, takes the exact same
-arguments as L<Mojo::UserAgent/"head">.
+Perform a C<HEAD> request and check for transport errors, takes the exact
+same arguments as L<Mojo::UserAgent/"head">.
 
 =head2 C<header_is>
 
@@ -556,69 +591,86 @@ Opposite of C<header_like>.
 =head2 C<json_content_is>
 
   $t = $t->json_content_is([1, 2, 3]);
-  $t = $t->json_content_is([1, 2, 3], 'right content!');
-  $t = $t->json_content_is({foo => 'bar', baz => 23}, 'right content!');
+  $t = $t->json_content_is([1, 2, 3], 'right content');
+  $t = $t->json_content_is({foo => 'bar', baz => 23}, 'right content');
 
 Check response content for JSON data.
 
-=head2 C<max_redirects>
+=head2 C<json_is>
 
-  my $max_redirects = $t->max_redirects;
-  $t                = $t->max_redirects(3);
+  $t = $t->json_is('/foo' => {bar => [1, 2, 3]});
+  $t = $t->json_is('/foo/bar' => [1, 2, 3]);
+  $t = $t->json_is('/foo/bar/1' => 2, 'right value');
 
-Alias for the L<Mojo::UserAgent/"max_redirects">.
+Check the value extracted from JSON response using the given JSON Pointer
+with L<Mojo::JSON::Pointer>.
+
+=head2 C<json_has>
+
+  $t = $t->json_has('/foo');
+  $t = $t->json_has('/minibar', 'has a minibar');
+
+Check if JSON response contains a value that can be identified using the
+given JSON Pointer with L<Mojo::JSON::Pointer>.
+
+=head2 C<json_hasnt>
+
+  $t = $t->json_hasnt('/foo');
+  $t = $t->json_hasnt('/minibar', 'no minibar');
+
+Opposite of C<json_has>.
 
 =head2 C<message_is>
 
   $t = $t->message_is('working!');
   $t = $t->message_is('working!', 'right message');
 
-Check WebSocket message for exact match.
-Note that this method is EXPERIMENTAL and might change without warning!
+Check WebSocket message for exact match. Note that this method is
+EXPERIMENTAL and might change without warning!
 
 =head2 C<message_isnt>
 
   $t = $t->message_isnt('working!');
   $t = $t->message_isnt('working!', 'different message');
 
-Opposite of C<message_is>.
-Note that this method is EXPERIMENTAL and might change without warning!
+Opposite of C<message_is>. Note that this method is EXPERIMENTAL and might
+change without warning!
 
 =head2 C<message_like>
 
   $t = $t->message_like(qr/working!/);
   $t = $t->message_like(qr/working!/, 'right message');
 
-Check WebSocket message for similar match.
-Note that this method is EXPERIMENTAL and might change without warning!
+Check WebSocket message for similar match. Note that this method is
+EXPERIMENTAL and might change without warning!
 
 =head2 C<message_unlike>
 
   $t = $t->message_unlike(qr/working!/);
   $t = $t->message_unlike(qr/working!/, 'different message');
 
-Opposite of C<message_like>.
-Note that this method is EXPERIMENTAL and might change without warning!
+Opposite of C<message_like>. Note that this method is EXPERIMENTAL and might
+change without warning!
 
 =head2 C<post_ok>
 
   $t = $t->post_ok('/foo');
 
-Perform a C<POST> request and check for success, takes the exact same
-arguments as L<Mojo::UserAgent/"post">.
+Perform a C<POST> request and check for transport errors, takes the exact
+same arguments as L<Mojo::UserAgent/"post">.
 
 =head2 C<post_form_ok>
 
   $t = $t->post_form_ok('/foo' => {test => 123});
 
-Submit a C<POST> form and check for success, takes the exact same arguments
-as L<Mojo::UserAgent/"post_form">.
+Submit a C<POST> form and check for transport errors, takes the exact same
+arguments as L<Mojo::UserAgent/"post_form">.
 
 =head2 C<put_ok>
 
   $t = $t->put_ok('/foo');
 
-Perform a C<PUT> request and check for success, takes the exact same
+Perform a C<PUT> request and check for transport errors, takes the exact same
 arguments as L<Mojo::UserAgent/"put">.
 
 =head2 C<reset_session>
@@ -632,8 +684,8 @@ Reset user agent session.
   $t = $t->send_message_ok('hello');
   $t = $t->send_message_ok('hello', 'sent successfully');
 
-Send C<WebSocket> message.
-Note that this method is EXPERIMENTAL and might change without warning!
+Send C<WebSocket> message. Note that this method is EXPERIMENTAL and might
+change without warning!
 
 =head2 C<status_is>
 
@@ -646,17 +698,6 @@ Check response status for exact match.
   $t = $t->status_isnt(200);
 
 Opposite of C<status_is>.
-
-=head2 C<test_server>
-
-  my $url = $t->test_server;
-  my $url = $t->test_server('http');
-  my $url = $t->test_server('https');
-
-Alias for L<Mojo::UserAgent/"test_server">.
-Note that this method is EXPERIMENTAL and might change without warning!
-
-  $t->get_ok($t->test_server->userinfo('sri:secr3t')->path('/protected'));
 
 =head2 C<text_is>
 
@@ -693,8 +734,8 @@ Opposite of C<text_like>.
   $t = $t->websocket_ok('/echo');
 
 Open a C<WebSocket> connection with transparent handshake, takes the exact
-same arguments as L<Mojo::UserAgent/"websocket">.
-Note that this method is EXPERIMENTAL and might change without warning!
+same arguments as L<Mojo::UserAgent/"websocket">. Note that this method is
+EXPERIMENTAL and might change without warning!
 
 =head1 SEE ALSO
 

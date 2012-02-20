@@ -56,12 +56,8 @@ sub new {
 # so we optimize them by compiling our own code, don't be scared, we have
 # tests for every single case
 sub attr {
-  my ($class, $attrs, $default) = (shift, shift, shift);
-
-  # Check arguments
-  Carp::croak('Attribute generator called with too many arguments') if @_;
-  return unless $class && $attrs;
-  $class = ref $class || $class;
+  my ($class, $attrs, $default) = @_;
+  return unless ($class = ref $class || $class) && $attrs;
 
   # Check default
   Carp::croak('Default has to be a code reference or constant value')
@@ -69,46 +65,32 @@ sub attr {
 
   # Create attributes
   $attrs = [$attrs] unless ref $attrs eq 'ARRAY';
-  my $ws = '  ';
   for my $attr (@$attrs) {
-
     Carp::croak(qq/Attribute "$attr" invalid/)
       unless $attr =~ /^[a-zA-Z_]\w*$/;
 
-    # Header
-    my $code = "sub {\n";
+    # Header (check arguments)
+    my $code = "sub {\n  if (\@_ == 1) {\n";
 
-    # No value
-    $code .= "${ws}if (\@_ == 1) {\n";
-    unless (defined $default) {
+    # No default value (return value)
+    unless (defined $default) { $code .= "    return \$_[0]->{'$attr'};" }
 
-      # Return value
-      $code .= "$ws${ws}return \$_[0]->{'$attr'};\n";
-    }
+    # Default value
     else {
 
       # Return value
-      $code .= "$ws${ws}return \$_[0]->{'$attr'} ";
-      $code .= "if exists \$_[0]->{'$attr'};\n";
+      $code .= "    return \$_[0]->{'$attr'} if exists \$_[0]->{'$attr'};\n";
 
       # Return default value
-      $code .= "$ws${ws}return \$_[0]->{'$attr'} = ";
-      $code .=
-        ref $default eq 'CODE'
-        ? '$default->($_[0])'
-        : '$default';
-      $code .= ";\n";
+      $code .= "    return \$_[0]->{'$attr'} = ";
+      $code .= ref $default eq 'CODE' ? '$default->($_[0]);' : '$default;';
     }
-    $code .= "$ws}\n";
 
     # Store value
-    $code .= "$ws\$_[0]->{'$attr'} = \$_[1];\n";
+    $code .= "\n  }\n  \$_[0]->{'$attr'} = \$_[1];\n";
 
-    # Return invocant
-    $code .= "${ws}\$_[0];\n";
-
-    # Footer
-    $code .= '};';
+    # Footer (return invocant)
+    $code .= "  \$_[0];\n};";
 
     # We compile custom attribute code for speed
     no strict 'refs';
@@ -119,10 +101,7 @@ sub attr {
     Carp::croak("Mojo::Base compiler error: \n$code\n$@\n") if $@;
 
     # Debug mode
-    if ($ENV{MOJO_BASE_DEBUG}) {
-      warn "\nATTRIBUTE: $class->$attr\n";
-      warn "$code\n\n";
-    }
+    warn "\nATTRIBUTE: $class->$attr\n$code\n\n" if $ENV{MOJO_BASE_DEBUG};
   }
 }
 
@@ -215,24 +194,23 @@ L<Mojo::Base> implements the following methods.
   my $instance = BaseSubClass->new(name => 'value');
   my $instance = BaseSubClass->new({name => 'value'});
 
-This base class provides a basic object constructor.
-You can pass it either a hash or a hash reference with attribute values.
+This base class provides a basic object constructor. You can pass it either a
+hash or a hash reference with attribute values.
 
 =head2 C<attr>
 
-  __PACKAGE__->attr('name');
-  __PACKAGE__->attr([qw/name1 name2 name3/]);
-  __PACKAGE__->attr(name => 'foo');
-  __PACKAGE__->attr(name => sub {...});
-  __PACKAGE__->attr([qw/name1 name2 name3/] => 'foo');
-  __PACKAGE__->attr([qw/name1 name2 name3/] => sub {...});
+  $instance->attr('name');
+  BaseSubClass->attr('name');
+  BaseSubClass->attr([qw/name1 name2 name3/]);
+  BaseSubClass->attr(name => 'foo');
+  BaseSubClass->attr(name => sub {...});
+  BaseSubClass->attr([qw/name1 name2 name3/] => 'foo');
+  BaseSubClass->attr([qw/name1 name2 name3/] => sub {...});
 
-Create attributes.
-An arrayref can be used to create more than one attribute.
+Create attributes. An arrayref can be used to create more than one attribute.
 Pass an optional second argument to set a default value, it should be a
-constant or a sub reference.
-The sub reference will be excuted at accessor read time if there's no set
-value.
+constant or a sub reference. The sub reference will be excuted at accessor
+read time if there's no set value.
 
 =head1 DEBUGGING
 

@@ -17,10 +17,7 @@ sub register {
       # Template
       my $inline = $options->{inline};
       my $path   = $r->template_path($options);
-      if (defined $inline) {
-        $inline = encode('UTF-8', $inline);
-        $path = md5_sum $inline;
-      }
+      $path = md5_sum encode('UTF-8', $inline) if defined $inline;
       return unless defined $path;
 
       # Cache
@@ -104,9 +101,9 @@ Mojolicious::Plugin::EPLRenderer - Embedded Perl Lite renderer plugin
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::EPLRenderer> is a renderer for C<epl> templates.
-C<epl> templates are pretty much just raw L<Mojo::Template>.
-This is a core plugin, that means it is always enabled and its code a good
-example for learning to build new plugins.
+C<epl> templates are pretty much just raw L<Mojo::Template>. This is a core
+plugin, that means it is always enabled and its code a good example for
+learning to build new plugins.
 
 =head1 METHODS
 

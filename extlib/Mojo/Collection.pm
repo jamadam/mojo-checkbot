@@ -1,5 +1,5 @@
 package Mojo::Collection;
-use Mojo::Base -base;
+use Mojo::Base -strict;
 use overload
   'bool'   => sub {1},
   '""'     => sub { shift->join("\n") },
@@ -89,6 +89,7 @@ Mojo::Collection - Collection
   # Manipulate collections
   use Mojo::Collection;
   my $collection = Mojo::Collection->new(qw/just works/);
+  unshift @$collection, 'it';
   $collection->map(sub { ucfirst })->each(sub {
     my ($word, $count) = @_;
     say "$count: $word";
@@ -101,12 +102,10 @@ Mojo::Collection - Collection
 =head1 DESCRIPTION
 
 L<Mojo::Collection> is a container for collections.
-Note that this module is EXPERIMENTAL and might change without warning!
 
 =head1 METHODS
 
-L<Mojo::Collection> inherits all methods from L<Mojo::Base> and implements
-the following new ones.
+L<Mojo::Collection> implements the following methods.
 
 =head2 C<new>
 

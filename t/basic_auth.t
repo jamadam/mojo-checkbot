@@ -17,14 +17,14 @@ use MojoCheckbot;
 
 	$port = Mojo::IOLoop->generate_port;
 	Mojo::IOLoop->server(port => $port, sub {
-		my ($loop, $stream) = @_;
+		my ($loop, $stream, $id) = @_;
 		$stream->on(read => sub {
 			my ($stream, $chunk) = @_;
 			$stream->write(
 				"HTTP/1.1 401 Authorization Required\x0d\x0a"
 					. q{"WWW-Authenticate: Basic realm="Secret Area"}
 					. q{Content-Type: text/html\x0d\x0a\x0d\x0a},
-				sub { shift->drop(shift) }
+				sub { shift->close }
 			);
 		});
 	});

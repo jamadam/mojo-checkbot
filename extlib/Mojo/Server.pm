@@ -51,13 +51,6 @@ EOF
   return $app;
 }
 
-# DEPRECATED in Smiling Face With Sunglasses!
-sub on_request {
-  warn
-    "Mojo::Server->on_request is DEPRECATED in favor of Mojo::Server->on!\n";
-  shift->on(request => shift);
-}
-
 # "Are you saying you're never going to eat any animal again? What about
 #  bacon?
 #  No.
@@ -101,6 +94,7 @@ L<Mojo::Server> can emit the following events.
 
   $server->on(request => sub {
     my ($server, $tx) = @_;
+    ...
   });
 
 Emitted when a request is ready and needs to be handled.
@@ -163,7 +157,7 @@ Load application from script.
 
   $server->run;
 
-Start server.
+Run server.
 
 =head1 SEE ALSO
 

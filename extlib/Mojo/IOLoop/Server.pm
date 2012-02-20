@@ -2,7 +2,7 @@ package Mojo::IOLoop::Server;
 use Mojo::Base 'Mojo::EventEmitter';
 
 use Carp 'croak';
-use File::Spec;
+use File::Spec::Functions qw/catfile tmpdir/;
 use IO::File;
 use IO::Socket::INET;
 use Scalar::Util 'weaken';
@@ -81,8 +81,8 @@ sub DESTROY {
   if (my $cert = $self->{cert}) { unlink $cert if -w $cert }
   if (my $key  = $self->{key})  { unlink $key  if -w $key }
   return unless my $watcher = $self->{iowatcher};
-  $self->pause if $self->{handle};
-  $watcher->drop_handle($_) for values %{$self->{handles}};
+  $self->stop if $self->{handle};
+  $watcher->drop($_) for values %{$self->{handles}};
 }
 
 # "And I gave that man directions, even though I didn't know the way,
@@ -117,8 +117,7 @@ sub listen {
       LocalPort => $port,
       Proto     => 'tcp',
       ReuseAddr => 1,
-      Type      => SOCK_STREAM,
-      %{$args->{args} || {}}
+      Type      => SOCK_STREAM
     );
     $options{LocalAddr} =~ s/[\[\]]//g;
     $handle = $class->new(%options)
@@ -135,19 +134,16 @@ sub listen {
   croak "IO::Socket::SSL 1.37 required for TLS support" unless TLS;
 
   # Options
-  my %options = (
+  my $options = $self->{tls} = {
     SSL_startHandshake => 0,
     SSL_cert_file      => $args->{tls_cert} || $self->_cert_file,
     SSL_key_file       => $args->{tls_key} || $self->_key_file,
-  );
-  %options = (
-    SSL_verify_callback => $args->{tls_verify},
-    SSL_ca_file         => -T $args->{tls_ca} ? $args->{tls_ca} : undef,
-    SSL_ca_path         => -d $args->{tls_ca} ? $args->{tls_ca} : undef,
-    SSL_verify_mode     => $args->{tls_ca} ? 0x03 : undef,
-    %options
+  };
+  %$options = (
+    %$options,
+    SSL_ca_file => -T $args->{tls_ca} ? $args->{tls_ca} : undef,
+    SSL_verify_mode => 0x03
   ) if $args->{tls_ca};
-  $self->{tls} = {%options, %{$args->{tls_args} || {}}};
 }
 
 sub generate_port {
@@ -167,16 +163,16 @@ sub generate_port {
   return;
 }
 
-sub pause {
-  my $self = shift;
-  $self->iowatcher->drop_handle($self->{handle});
-}
-
-sub resume {
+sub start {
   my $self = shift;
   weaken $self;
-  $self->iowatcher->watch($self->{handle},
-    sub { $self->_accept for 1 .. $self->accepts });
+  $self->iowatcher->io(
+    $self->{handle} => sub { $self->_accept for 1 .. $self->accepts });
+}
+
+sub stop {
+  my $self = shift;
+  $self->iowatcher->drop($self->{handle});
 }
 
 sub _accept {
@@ -194,15 +190,11 @@ sub _accept {
   weaken $self;
   $tls->{SSL_error_trap} = sub {
     return unless my $handle = delete $self->{handles}->{shift()};
-    $self->iowatcher->drop_handle($handle);
+    $self->iowatcher->drop($handle);
     close $handle;
   };
-  $handle = IO::Socket::SSL->start_SSL($handle, %$tls);
-  $self->iowatcher->watch(
-    $handle,
-    sub { $self->_tls($handle) },
-    sub { $self->_tls($handle) }
-  );
+  return unless $handle = IO::Socket::SSL->start_SSL($handle, %$tls);
+  $self->iowatcher->io($handle => sub { $self->_tls($handle) });
   $self->{handles}->{$handle} = $handle;
 }
 
@@ -214,8 +206,7 @@ sub _cert_file {
   return $cert if $cert && -r $cert;
 
   # Create temporary TLS cert file
-  $cert = File::Spec->catfile($ENV{MOJO_TMPDIR} || File::Spec->tmpdir,
-    'mojocert.pem');
+  $cert = catfile $ENV{MOJO_TMPDIR} || tmpdir, "mojocert-$$.pem";
   croak qq/Can't create temporary TLS cert file "$cert"/
     unless my $file = IO::File->new("> $cert");
   print $file CERT;
@@ -231,8 +222,7 @@ sub _key_file {
   return $key if $key && -r $key;
 
   # Create temporary TLS key file
-  $key = File::Spec->catfile($ENV{MOJO_TMPDIR} || File::Spec->tmpdir,
-    'mojokey.pem');
+  $key = catfile $ENV{MOJO_TMPDIR} || tmpdir, "mojokey-$$.pem";
   croak qq/Can't create temporary TLS key file "$key"/
     unless my $file = IO::File->new("> $key");
   print $file KEY;
@@ -247,15 +237,15 @@ sub _tls {
 
   # Accepted
   if ($handle->accept_SSL) {
-    $self->iowatcher->drop_handle($handle);
+    $self->iowatcher->drop($handle);
     delete $self->{handles}->{$handle};
     return $self->emit_safe(accept => $handle);
   }
 
   # Switch between reading and writing
-  my $error = $IO::Socket::SSL::SSL_ERROR;
-  if    ($error == TLS_READ)  { $self->iowatcher->change($handle, 1, 0) }
-  elsif ($error == TLS_WRITE) { $self->iowatcher->change($handle, 1, 1) }
+  my $err = $IO::Socket::SSL::SSL_ERROR;
+  if    ($err == TLS_READ)  { $self->iowatcher->watch($handle, 1, 0) }
+  elsif ($err == TLS_WRITE) { $self->iowatcher->watch($handle, 1, 1) }
 }
 
 1;
@@ -278,13 +268,13 @@ Mojo::IOLoop::Server - Non-blocking TCP server
   $server->listen(port => 3000);
 
   # Start and stop accepting connections
-  $server->resume;
-  $server->pause;
+  $server->start;
+  $server->stop;
 
 =head1 DESCRIPTION
 
-L<Mojo::IOLoop::Server> accepts TCP connections for L<Mojo::IOLoop>.
-Note that this module is EXPERIMENTAL and might change without warning!
+L<Mojo::IOLoop::Server> accepts TCP connections for L<Mojo::IOLoop>. Note
+that this module is EXPERIMENTAL and might change without warning!
 
 =head1 EVENTS
 
@@ -294,6 +284,7 @@ L<Mojo::IOLoop::Server> can emit the following events.
 
   $server->on(accept => sub {
     my ($server, $handle) = @_;
+    ...
   });
 
 Emitted safely for each accepted connection.
@@ -326,9 +317,8 @@ implements the following new ones.
 
   $server->listen(port => 3000);
 
-Create a new listen socket.
-Note that TLS support depends on L<IO::Socket::SSL> and IPv6 support on
-L<IO::Socket::IP>.
+Create a new listen socket. Note that TLS support depends on
+L<IO::Socket::SSL> and IPv6 support on L<IO::Socket::IP>.
 
 These options are currently available:
 
@@ -350,6 +340,10 @@ Port to listen on.
 
 Enable TLS.
 
+=item C<tls_ca>
+
+Path to TLS certificate authority file.
+
 =item C<tls_cert>
 
 Path to the TLS cert file, defaulting to a built-in test certificate.
@@ -357,10 +351,6 @@ Path to the TLS cert file, defaulting to a built-in test certificate.
 =item C<tls_key>
 
 Path to the TLS key file, defaulting to a built-in test key.
-
-=item C<tls_ca>
-
-Path to TLS certificate authority file or directory.
 
 =back
 
@@ -370,17 +360,17 @@ Path to TLS certificate authority file or directory.
 
 Find a free TCP port.
 
-=head2 C<pause>
+=head2 C<start>
 
-  $server->pause;
-
-Stop accepting connections.
-
-=head2 C<resume>
-
-  $server->resume;
+  $server->start;
 
 Start accepting connections.
+
+=head2 C<stop>
+
+  $server->stop;
+
+Stop accepting connections.
 
 =head1 SEE ALSO
 

@@ -23,24 +23,27 @@ utilizing multiple template systems and data encoding modules.
   {text => 'Oops.', status => '410'} -> 410 Gone, text/html, 'Oops.'
 
 Templates can be automatically detected if enough information is provided by
-the developer or routes.
-Template names are expected to follow the C<name.format.handler> scheme, with
-C<name> defaulting to C<controller/action> or the route name, C<format>
-defaulting to C<html> and C<handler> to C<ep>.
+the developer or routes. Template names are expected to follow the
+C<name.format.handler> scheme, with C<name> defaulting to
+C<controller/action> or the route name, C<format> defaulting to C<html> and
+C<handler> to C<ep>.
 
   {controller => 'users', action => 'list'} -> 'users/list.html.ep'
   {name => 'foo', format => 'txt'}          -> 'foo.txt.ep'
   {name => 'foo', handler => 'epl'}         -> 'foo.html.epl'
 
-All templates should be in the C<templates> directory of the application
-or the C<DATA> section of the class C<main>.
+All templates should be in the C<templates> directories of the application or
+the C<DATA> section of the class C<main>.
 
   __DATA__
+
   @@ time.html.ep
+  % use Time::Piece;
+  % my $now = localtime;
   <!DOCTYPE html>
   <html>
     <head><title>Time</title></head>
-    <body><%= localtime time %></body>
+    <body>The time is <%= $now->hms %>.</body>
   </html>
 
   @@ hello.txt.ep
@@ -52,9 +55,9 @@ with plugins, but more about that later.
 =head2 Embedded Perl
 
 L<Mojolicious> includes a minimalistic but very powerful template system out
-of the box called Embedded Perl or C<ep> for short.
-It allows the embedding of Perl code right into actual content using a small
-set of special tags and line start characters.
+of the box called Embedded Perl or C<ep> for short. It allows the embedding
+of Perl code right into actual content using a small set of special tags and
+line start characters.
 
   <% Perl code %>
   <%= Perl expression, replaced with XML escaped result %>
@@ -68,8 +71,8 @@ set of special tags and line start characters.
   %% Replaced with "%", useful for generating templates
 
 Tags and lines work pretty much the same, but depending on context one will
-usually look a bit better.
-Semicolons get automatically appended to all expressions.
+usually look a bit better. Semicolons get automatically appended to all
+expressions.
 
   <% my $i = 10; %>
   <ul>
@@ -129,9 +132,8 @@ Most commonly used features every L<Mojolicious> developer should know about.
 The renderer can be manually started by calling the C<render> controller
 method, but that's usually not necessary, because it will get automatically
 called if nothing has been rendered after the routes dispatcher finished its
-work.
-This also means you can have routes pointing only to templates without actual
-actions.
+work. This also means you can have routes pointing only to templates without
+actual actions.
 
   $self->render;
 
@@ -231,9 +233,9 @@ These mappings can be easily extended or changed with L<Mojolicious/"types">.
 Data can be passed to templates through the C<stash> in any of the native
 Perl data types.
 
-  $self->stash(author => 'Sebastian');
+  $self->stash(author     => 'Sebastian');
   $self->stash(frameworks => ['Catalyst', 'Mojolicious']);
-  $self->stash(examples => {tweetylicious => 'a microblogging app'});
+  $self->stash(examples   => {tweetylicious => 'a microblogging app'});
 
   %= $author
   %= $frameworks->[1]
@@ -341,8 +343,8 @@ trivial.
   </html>
 
 You just select the right layout template with the C<layout> helper and place
-the result of the current template with the C<content> helper.
-You can also pass along normal stash values to the C<layout> helper.
+the result of the current template with the C<content> helper. You can also
+pass along normal stash values to the C<layout> helper.
 
   @@ foo/bar.html.ep
   % layout 'mylayout', title => 'Hi there';
@@ -422,6 +424,7 @@ in the partial template.
 It's never fun to repeat yourself, that's why you can build reusable template
 blocks in C<ep> that work very similar normal Perl functions.
 
+  @@ welcome.html.ep
   <% my $block = begin %>
     <% my $name = shift; %>
     Hello <%= $name %>.
@@ -431,6 +434,7 @@ blocks in C<ep> that work very similar normal Perl functions.
 
 Blocks are always delimited by the C<begin> and C<end> keywords.
 
+  @@ welcome.html.ep
   % my $block = begin
     % my $name = shift;
     Hello <%= $name %>.
@@ -439,8 +443,9 @@ Blocks are always delimited by the C<begin> and C<end> keywords.
     %= $block->('Sebastian')
   % }
 
-A naive translation to equivalent Perl code could look like this.
+A naive translation to Perl pseudocode could look like this.
 
+  @@ welcome.html.pl
   my $output = '';
   my $block  = sub {
     my $name   = shift;
@@ -451,7 +456,7 @@ A naive translation to equivalent Perl code could look like this.
   for (1 .. 10) {
     $output .= $block->('Sebastian');
   }
-  print $output;
+  return $output;
 
 =head2 Content blocks
 
@@ -510,8 +515,10 @@ Compiled templates are always cached in memory, but with the C<memorize>
 helper you can go one step further and prevent template blocks from getting
 executed more than once.
 
+  @@ cached.html.ep
+  % use Time::Piece;
   %= memorize begin
-    This template was compiled at <%= localtime time %>.
+    This template was compiled at <%= localtime->hms %>.
   % end
 
 =head2 Adding helpers
@@ -612,19 +619,74 @@ to C<CPAN>.
   $ make dist
   $ mojo cpanify -u USER -p PASS Mojolicious-Plugin-DebugHelper-0.01.tar.gz
 
+=head2 Bundling assets with plugins
+
+Assets such as templates and static files can be easily bundled with your
+plugins, even if you plan to release them to C<CPAN>.
+
+  $ mojo generate plugin AlertAssets
+  $ mkdir AlertAssets/lib/Mojolicious/Plugin/AlertAssets
+  $ cd AlertAssets/lib/Mojolicious/Plugin/AlertAssets
+  $ mkdir public
+  $ echo 'alert("Hello World!");' > public/alertassets.js
+  $ mkdir templates
+  $ echo '%= javascript "/alertassets.js"' > templates/alertassets.html.ep
+
+Just append their respective directories to the list of search paths when
+C<register> is called.
+
+  package Mojolicious::Plugin::AlertAssets;
+  use Mojo::Base 'Mojolicious::Plugin';
+
+  use File::Basename 'dirname';
+  use File::Spec::Functions 'catdir';
+
+  sub register {
+    my ($self, $app) = @_;
+
+    # Append "templates" and "public" directories
+    my $base = catdir(dirname(__FILE__), 'AlertAssets');
+    push @{$app->renderer->paths}, catdir($base, 'templates');
+    push @{$app->static->paths},   catdir($base, 'public');
+  }
+
+  1;
+
+Both will work just like normal C<templates> and C<public> direcotries once
+you've installed and loaded the plugin, with slightly lower precedence.
+
+  use Mojolicious::Lite;
+
+  plugin 'AlertAssets';
+
+  get '/alert_me';
+
+  app->start;
+  __DATA__
+
+  @@ alert_me.html.ep
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <title>Alert me!</title>
+      %= include 'alertassets'
+    </head>
+    <body>You've been alerted.</body>
+  </html>
+
 =head2 Custom C<exception> and C<not_found> templates
 
 While the built-in C<exception> and C<not_found> templates are very useful
 during development, you most likely want to show your users something more
-related to your application in production.
-That's why L<Mojolicious> will always try to render
-C<exception.$mode.$format.*> or C<not_found.$mode.$format.*> before falling
-back to the built-in default templates.
+related to your application in production. That's why L<Mojolicious> will
+always try to render C<exception.$mode.$format.*> or
+C<not_found.$mode.$format.*> before falling back to the built-in default
+templates.
 
   @@ not_found.production.html.ep
   <!DOCTYPE html>
   <html>
-    <head><title>Page Not Found</title></head>
+    <head><title>Page not found</title></head>
     <body>Page does not seem to exist.</body>
   </html>
 
@@ -646,8 +708,8 @@ stylesheets.
   });
 
 The optional drain callback ensures that all previous chunks have been
-written before processing continues.
-An empty chunk or C<finish> call marks the end of the stream.
+written before processing continues. An empty chunk or C<finish> call marks
+the end of the stream.
 
   29
   <html><head><title>Example</title></head>
@@ -655,10 +717,9 @@ An empty chunk or C<finish> call marks the end of the stream.
   <body>Example</body></html>
   0
 
-Especially in combination with long connection timeouts this can be very
-useful for Comet (C<long polling>).
-Due to limitations in some web servers this might not work perfectly in all
-deployment environments.
+Especially in combination with long inactivity timeouts this can be very
+useful for Comet (C<long polling>). Due to limitations in some web servers
+this might not work perfectly in all deployment environments.
 
 =head2 Encoding
 
@@ -705,10 +766,9 @@ C<DATA> section of your application, similar to templates.
 
 Templates stored in files get preferred over files from the C<DATA> section,
 this allows you to include a default set of templates in your application
-that the user can later customize.
-The C<inflate> command will write all templates and static files from the
-C<DATA> section into actual files in the C<templates> and C<public>
-directories.
+that the user can later customize. The C<inflate> command will write all
+templates and static files from the C<DATA> section into actual files in the
+C<templates> and C<public> directories.
 
   $ ./myapp.pl inflate
 
@@ -765,6 +825,9 @@ to do is add a new C<handler>.
 
       # Pass the rendered result back to the renderer
       $$output = 'The rendered result';
+
+      # Return true if rendering succeeded and false if it didn't
+      return 1;
     }
   );
 

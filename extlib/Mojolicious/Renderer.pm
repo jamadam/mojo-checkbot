@@ -1,7 +1,7 @@
 package Mojolicious::Renderer;
 use Mojo::Base -base;
 
-use File::Spec;
+use File::Spec::Functions 'catfile';
 use Mojo::Cache;
 use Mojo::Command;
 use Mojo::Home;
@@ -9,14 +9,15 @@ use Mojo::JSON;
 use Mojo::Util 'encode';
 
 has cache => sub { Mojo::Cache->new };
-has default_format   => 'html';
-has detect_templates => 1;
-has encoding         => 'UTF-8';
-has handlers         => sub { {} };
-has helpers          => sub { {} };
-has layout_prefix    => 'layouts';
-has root             => '/';
-has [qw/default_handler default_template_class/];
+has default_format => 'html';
+has 'default_handler';
+has default_template_class => 'main';
+has detect_templates       => 1;
+has encoding               => 'UTF-8';
+has handlers               => sub { {} };
+has helpers                => sub { {} };
+has layout_prefix          => 'layouts';
+has paths                  => sub { [] };
 
 # "This is not how Xmas is supposed to be.
 #  In my day Xmas was about bringing people together,
@@ -156,6 +157,18 @@ sub render {
   return $output, $c->app->types->type($format) || 'text/plain';
 }
 
+# DEPRECATED in Leaf Fluttering In Wind!
+sub root {
+  warn <<EOF;
+Mojolicious::Renderer->root is DEPRECATED in favor of
+Mojolicious::Renderer->paths!
+EOF
+  my $self = shift;
+  return $self->paths->[0] unless @_;
+  $self->paths->[0] = shift;
+  return $self;
+}
+
 sub template_name {
   my ($self, $options) = @_;
 
@@ -170,8 +183,18 @@ sub template_name {
 
 sub template_path {
   my $self = shift;
+
+  # Nameless
   return unless my $name = $self->template_name(shift);
-  return File::Spec->catfile($self->root, split '/', $name);
+
+  # Search all paths
+  foreach my $path (@{$self->paths}) {
+    my $file = catfile($path, split '/', $name);
+    return $file if -r $file;
+  }
+
+  # Fall back to first path
+  return catfile($self->paths->[0], split '/', $name);
 }
 
 sub _detect_handler {
@@ -184,13 +207,13 @@ sub _detect_handler {
   my $templates = $self->{templates};
   unless ($templates) {
     $templates = $self->{templates} =
-      Mojo::Home->new->parse($self->root)->list_files;
+      [map { @{Mojo::Home->new($_)->list_files} } @{$self->paths}];
   }
 
   # DATA templates
   my $class  = $self->_detect_template_class($options);
   my $inline = $self->{data_templates}->{$class}
-    ||= $self->_list_data_templates($class);
+    ||= [keys %{Mojo::Command->new->get_all_data($class) || {}}];
 
   # Detect
   return unless my $file = $self->template_name($options);
@@ -202,14 +225,9 @@ sub _detect_handler {
   return;
 }
 
-# "You are hereby conquered.
-#  Please line up in order of how much beryllium it takes to kill you."
 sub _detect_template_class {
   my ($self, $options) = @_;
-       $options->{template_class}
-    || $ENV{MOJO_TEMPLATE_CLASS}
-    || $self->default_template_class
-    || 'main';
+  return $options->{template_class} || $self->default_template_class;
 }
 
 sub _extends {
@@ -221,12 +239,10 @@ sub _extends {
   return delete $stash->{extends};
 }
 
-sub _list_data_templates {
-  my ($self, $class) = @_;
-  my $all = Mojo::Command->new->get_all_data($class);
-  return [keys %$all];
-}
-
+# "I want to see the edge of the universe.
+#  Ooh, that sounds cool.
+#  It's funny, you live in the universe, but you never get to do this things
+#  until someone comes to visit."
 sub _render_template {
   my ($self, $c, $output, $options) = @_;
 
@@ -261,8 +277,8 @@ Mojolicious::Renderer - MIME type based renderer
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Renderer> is the standard L<Mojolicious> renderer.
-See L<Mojolicious::Guides::Rendering> for more.
+L<Mojolicious::Renderer> is the standard L<Mojolicious> renderer. See
+L<Mojolicious::Guides::Rendering> for more.
 
 =head1 ATTRIBUTES
 
@@ -273,17 +289,16 @@ L<Mojolicious::Renderer> implements the following attributes.
   my $cache = $renderer->cache;
   $renderer = $renderer->cache(Mojo::Cache->new);
 
-Renderer cache, defaults to a L<Mojo::Cache> object.
-Note that this attribute is EXPERIMENTAL and might change without warning!
+Renderer cache, defaults to a L<Mojo::Cache> object. Note that this attribute
+is EXPERIMENTAL and might change without warning!
 
 =head2 C<default_format>
 
   my $default = $renderer->default_format;
   $renderer   = $renderer->default_format('html');
 
-The default format to render if C<format> is not set in the stash.
-The renderer will use L<Mojolicious/"types"> to look up the content MIME
-type.
+The default format to render if C<format> is not set in the stash. The
+renderer will use L<Mojolicious/"types"> to look up the content MIME type.
 
 =head2 C<default_handler>
 
@@ -295,11 +310,11 @@ detection doesn't work, like for C<inline> templates.
 
 =over 2
 
-=item epl
+=item B<epl>
 
 C<Embedded Perl Lite> handled by L<Mojolicious::Plugin::EPLRenderer>.
 
-=item ep
+=item B<ep>
 
 C<Embedded Perl> handled by L<Mojolicious::Plugin::EPRenderer>.
 
@@ -310,8 +325,7 @@ C<Embedded Perl> handled by L<Mojolicious::Plugin::EPRenderer>.
   my $default = $renderer->default_template_class;
   $renderer   = $renderer->default_template_class('main');
 
-The renderer will use this class to look for templates in the C<DATA>
-section.
+Class to use for finding templates in C<DATA> section, defaults to C<main>.
 
 =head2 C<detect_templates>
 
@@ -349,17 +363,20 @@ Registered helpers.
 
 Directory to look for layouts in, defaults to C<layouts>.
 
-=head2 C<root>
+=head2 C<paths>
 
-  my $root  = $renderer->root;
-  $renderer = $renderer->root('/foo/bar/templates');
+  my $paths = $renderer->paths;
+  $renderer = $renderer->paths(['/foo/bar/templates']);
 
-Directory to look for templates in.
+Directories to look for templates in.
+
+  # Add another "templates" directory
+  push @{$renderer->paths}, '/foo/bar/templates';
 
 =head1 METHODS
 
-L<Mojolicious::Renderer> inherits all methods from L<Mojo::Base> and implements the
-following ones.
+L<Mojolicious::Renderer> inherits all methods from L<Mojo::Base> and
+implements the following ones.
 
 =head2 C<new>
 
@@ -371,15 +388,15 @@ Construct a new renderer.
 
   $renderer = $renderer->add_handler(epl => sub {...});
 
-Add a new handler to the renderer.
-See L<Mojolicious::Plugin::EPRenderer> for a sample renderer.
+Add a new handler to the renderer. See L<Mojolicious::Plugin::EPRenderer> for
+a sample renderer.
 
 =head2 C<add_helper>
 
   $renderer = $renderer->add_helper(url_for => sub {...});
 
-Add a new helper to the renderer.
-See L<Mojolicious::Plugin::EPRenderer> for sample helpers.
+Add a new helper to the renderer. See L<Mojolicious::Plugin::EPRenderer> for
+sample helpers.
 
 =head2 C<get_data_template>
 
@@ -390,18 +407,17 @@ See L<Mojolicious::Plugin::EPRenderer> for sample helpers.
     template_class => 'main'
   }, 'foo.html.ep');
 
-Get an DATA template by name, usually used by handlers.
+Get a DATA template by name, usually used by handlers.
 
 =head2 C<render>
 
   my ($output, $type) = $renderer->render($c);
   my ($output, $type) = $renderer->render($c, $args);
 
-Render output through one of the Mojo renderers.
-This renderer requires some configuration, at the very least you will need to
-have a default C<format> and a default C<handler> as well as a C<template> or
-C<text>/C<json>.
-See L<Mojolicious::Controller/"render"> for a more user friendly interface.
+Render output through one of the Mojo renderers. This renderer requires some
+configuration, at the very least you will need to have a default C<format>
+and a default C<handler> as well as a C<template> or C<text>/C<json>. See
+L<Mojolicious::Controller/"render"> for a more user-friendly interface.
 
 =head2 C<template_name>
 

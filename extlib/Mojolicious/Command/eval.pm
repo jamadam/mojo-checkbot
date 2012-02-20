@@ -1,19 +1,17 @@
 package Mojolicious::Command::eval;
 use Mojo::Base 'Mojo::Command';
 
-use Getopt::Long 'GetOptions';
+use Getopt::Long qw/GetOptions :config no_auto_abbrev no_ignore_case/;
 
-has description => <<'EOF';
-Run code against application.
-EOF
-has usage => <<"EOF";
+has description => "Run code against application.\n";
+has usage       => <<"EOF";
 usage: $0 eval [OPTIONS] CODE
 
   mojo eval 'say app->ua->get("/")->res->body'
   mojo eval -v 'app->home'
 
 These options are available:
-  --verbose   Print return value to STDOUT.
+  -v, --verbose   Print return value to STDOUT.
 EOF
 
 # "It worked!
@@ -26,7 +24,7 @@ sub run {
   # Options
   local @ARGV = @_;
   my $verbose;
-  GetOptions(verbose => sub { $verbose = 1 });
+  GetOptions('v|verbose' => sub { $verbose = 1 });
   my $code = shift @ARGV || '';
 
   # Run code against application

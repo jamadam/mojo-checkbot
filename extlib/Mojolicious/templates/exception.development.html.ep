@@ -1,8 +1,7 @@
-% my $e = delete $self->stash->{'exception'};
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Server Error</title>
+    <title>Server error</title>
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="-1">
     %= javascript '/js/jquery.js'
@@ -13,12 +12,13 @@
       body {
         background-color: #f5f6f8;
         color: #445555;
-        font: 0.9em 'Helvetica Neue', 'Helvetica', sans-serif;
-        margin-left: 3em;
-        margin-right: 3em;
-        margin-top: 0;
+        font: 0.9em 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: normal;
+        line-height: 1.5;
+        margin: 0;
       }
       pre {
+        font: 0.8em Consolas, Menlo, Monaco, Courier, monospace;
         margin: 0;
         white-space: pre-wrap;
       }
@@ -28,7 +28,7 @@
         margin-bottom: 1em;
         width: 100%;
       }
-      td { padding: 0.3em }
+      td { padding: 0.5em }
       .box {
         background-color: #fff;
         -moz-box-shadow: 0px 0px 2px #ccc;
@@ -41,17 +41,14 @@
         background-color: #1a1a1a;
         background: url(<%= url_for '/mojolicious-pinstripe.gif' %>);
         color: #eee;
-        font-family: 'Menlo', 'Monaco', Courier, monospace !important;
         text-shadow: #333 0 1px 0;
       }
       .important { background-color: rgba(47, 48, 50, .75) }
       .infobox { color: #333 }
       .infobox tr:nth-child(odd) .value { background-color: #ddeeff }
       .infobox tr:nth-child(even) .value { background-color: #eef9ff }
-      .key {
-        text-align: right;
-        text-weight: bold;
-      }
+      .key { text-align: right }
+      .striped { border-top: solid #cce4ff 1px }
       .tap {
         font: 0.5em Verdana, sans-serif;
         text-align: center;
@@ -66,14 +63,15 @@
         width: 100%;
       }
       #showcase {
-        margin-top: 1em;
         -moz-border-radius-topleft: 5px;
         border-top-left-radius: 5px;
         -moz-border-radius-topright: 5px;
         border-top-right-radius: 5px;
+        margin-left: 5em;
+        margin-right: 5em;
       }
       #showcase > pre {
-        font: 1.5em 'Helvetica Neue', 'Helvetica', sans-serif;
+        font: 1.5em 'Helvetica Neue', Helvetica, sans-serif;
         font-weight: 300;
         margin: 0;
         text-shadow: #333 0 1px 0;
@@ -83,6 +81,8 @@
         border-bottom-left-radius: 5px;
         -moz-border-radius-bottomright: 5px;
         border-bottom-right-radius: 5px;
+        margin-left: 5em;
+        margin-right: 5em;
       }
       #more .tap, #trace .tap { text-shadow: #ddd 0 1px 0 }
       #request {
@@ -90,129 +90,135 @@
         border-top-left-radius: 5px;
         -moz-border-radius-topright: 5px;
         border-top-right-radius: 5px;
+        margin-left: 5em;
+        margin-right: 5em;
         margin-top: 1em;
+      }
+      #wrapperlicious {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding-top: 90px;
       }
     % end
   </head>
   <body onload="prettyPrint()">
-    % my $cv = begin
-      % my ($key, $value, $i) = @_;
-      %= tag 'tr', $i ? (class => 'important') : undef, begin
-        <td class="key"><%= $key %>.</td>
-        <td class="value">
-          <pre class="prettyprint"><%= $value %></pre>
-        </td>
+    %= include inline => $Mojolicious::Controller::MOJOBAR
+    <div id="wrapperlicious">
+      % my $cv = begin
+        % my ($key, $value, $i) = @_;
+        %= tag 'tr', $i ? (class => 'important') : undef, begin
+          <td class="key"><%= $key %>.</td>
+          <td class="value"><pre class="prettyprint"><%= $value %></pre></td>
+        % end
       % end
-    % end
-    % my $kv = begin
-      % my ($key, $value) = @_;
-      <tr>
-        <td class="key"><%= $key %>:</td>
-        <td class="value">
-          <pre><%= $value %></pre>
-        </td>
-      </tr>
-    % end
-    <div id="showcase" class="code box">
-      <pre><%= $e->message %></pre>
-      <div id="context">
-        <table>
-          % for my $line (@{$e->lines_before}) {
-            %= $cv->($line->[0], $line->[1])
-          % }
-          % if (defined $e->line->[1]) {
-            %= $cv->($e->line->[0], $e->line->[1], 1)
-          % }
-          % for my $line (@{$e->lines_after}) {
-            %= $cv->($line->[0], $line->[1])
-          % }
-        </table>
-      </div>
-      % if (defined $e->line->[2]) {
-        <div id="insight">
+      % my $kv = begin
+        % my ($key, $value) = @_;
+        <tr>
+          <td class="key"><%= $key %>:</td>
+          <td class="striped value"><pre><%= $value %></pre></td>
+        </tr>
+      % end
+      <div id="showcase" class="code box">
+        <pre><%= $exception->message %></pre>
+        <div id="context">
           <table>
-            % for my $line (@{$e->lines_before}) {
-              %= $cv->($line->[0], $line->[2])
+            % for my $line (@{$exception->lines_before}) {
+              %= $cv->($line->[0], $line->[1])
             % }
-            %= $cv->($e->line->[0], $e->line->[2], 1)
-            % for my $line (@{$e->lines_after}) {
-              %= $cv->($line->[0], $line->[2])
+            % if (defined $exception->line->[1]) {
+              %= $cv->($exception->line->[0], $exception->line->[1], 1)
+            % }
+            % for my $line (@{$exception->lines_after}) {
+              %= $cv->($line->[0], $line->[1])
             % }
           </table>
         </div>
-        <div class="tap">tap for more</div>
-        %= javascript begin
-          var current = '#context';
-          $('#showcase').click(function() {
-            $(current).slideToggle('slow', function() {
-              if (current == '#context') {
-                current = '#insight';
-              }
-              else {
-                current = '#context';
-              }
-              $(current).slideToggle('slow');
+        % if (defined $exception->line->[2]) {
+          <div id="insight">
+            <table>
+              % for my $line (@{$exception->lines_before}) {
+                %= $cv->($line->[0], $line->[2])
+              % }
+              %= $cv->($exception->line->[0], $exception->line->[2], 1)
+              % for my $line (@{$exception->lines_after}) {
+                %= $cv->($line->[0], $line->[2])
+              % }
+            </table>
+          </div>
+          <div class="tap">tap for more</div>
+          %= javascript begin
+            var current = '#context';
+            $('#showcase').click(function() {
+              $(current).slideToggle('slow', function() {
+                if (current == '#context') {
+                  current = '#insight';
+                }
+                else {
+                  current = '#context';
+                }
+                $(current).slideToggle('slow');
+              });
             });
-          });
-          $('#insight').toggle();
-        % end
-      % }
-    </div>
-    <div class="box" id="trace">
-      % if (@{$e->frames}) {
-        <div class="infobox" id="frames">
+            $('#insight').toggle();
+          % end
+        % }
+      </div>
+      <div class="box" id="trace">
+        % if (@{$exception->frames}) {
+          <div class="infobox" id="frames">
+            <table>
+              % for my $frame (@{$exception->frames}) {
+                <tr>
+                  <td class="striped value">
+                    <pre><%= $frame->[1] . ':' . $frame->[2] %></pre>
+                  </td>
+                </tr>
+              % }
+            </table>
+          </div>
+          <div class="tap">tap for more</div>
+          %= javascript begin
+            $('#trace').click(function() {
+              $('#frames').slideToggle('slow');
+            });
+            $('#frames').toggle();
+          % end
+        % }
+      </div>
+      <div class="box infobox" id="request">
+        <table>
+          % my $req = $self->req;
+          %= $kv->(Method => $req->method)
+          % my $url = $req->url;
+          %= $kv->(URL => $url->to_string)
+          %= $kv->('Base URL' => $url->base->to_string)
+          %= $kv->(Parameters => dumper $req->params->to_hash)
+          %= $kv->(Stash => dumper $snapshot)
+          %= $kv->(Session => dumper session)
+          %= $kv->(Version => $req->version)
+          % for my $name (@{$self->req->headers->names}) {
+            % my $value = $self->req->headers->header($name);
+            %= $kv->($name, $value)
+          % }
+        </table>
+      </div>
+      <div class="box infobox" id="more">
+        <div id="infos">
           <table>
-            % for my $frame (@{$e->frames}) {
-              <tr>
-                <td class="value">
-                  <pre><%= $frame->[1] . ':' . $frame->[2] %></pre>
-                </td>
-              </tr>
-            % }
+            %= $kv->(Perl => "$^V ($^O)")
+            % my $version  = $Mojolicious::VERSION;
+            % my $codename = $Mojolicious::CODENAME;
+            %= $kv->(Mojolicious => "$version ($codename)")
+            %= $kv->(Home => app->home)
+            %= $kv->(Include => dumper \@INC)
+            %= $kv->(PID => $$)
+            %= $kv->(Name => $0)
+            %= $kv->(Executable => $^X)
+            %= $kv->(Time => scalar localtime(time))
           </table>
         </div>
         <div class="tap">tap for more</div>
-        %= javascript begin
-          $('#trace').click(function() {
-            $('#frames').slideToggle('slow');
-          });
-          $('#frames').toggle();
-        % end
-      % }
-    </div>
-    <div class="box infobox" id="request">
-      <table>
-        % my $req = $self->req;
-        %= $kv->(Method => $req->method)
-        % my $url = $req->url;
-        %= $kv->(Path => $url->to_string)
-        %= $kv->(Base => $url->base->to_string)
-        %= $kv->(Parameters => dumper $req->params->to_hash)
-        %= $kv->(Stash => dumper $snapshot)
-        %= $kv->(Session => dumper session)
-        %= $kv->(Version => $req->version)
-        % for my $name (@{$self->req->headers->names}) {
-          % my $value = $self->req->headers->header($name);
-          %= $kv->($name, $value)
-        % }
-      </table>
-    </div>
-    <div class="box infobox" id="more">
-      <div id="infos">
-        <table>
-          %= $kv->(Perl => "$] ($^O)")
-          % my $version  = $Mojolicious::VERSION;
-          % my $codename = $Mojolicious::CODENAME;
-          %= $kv->(Mojolicious => "$version ($codename)")
-          %= $kv->(Home => app->home)
-          %= $kv->(Include => dumper \@INC)
-          %= $kv->(PID => $$)
-          %= $kv->(Name => $0)
-          %= $kv->(Executable => $^X)
-          %= $kv->(Time => scalar localtime(time))
-        </table>
       </div>
-      <div class="tap">tap for more</div>
     </div>
     <div id="footer">
       %= link_to 'http://mojolicio.us' => begin

@@ -225,7 +225,7 @@ sub tx {
   $req->method(shift);
   my $url = shift;
   $url = "http://$url" unless $url =~ m#^/|\://#;
-  $req->url->parse($url);
+  ref $url ? $req->url($url) : $req->url->parse($url);
 
   # Callback
   my $cb = pop @_ if ref $_[-1] && ref $_[-1] eq 'CODE';
@@ -280,8 +280,8 @@ Mojo::UserAgent::Transactor - User agent transactor
 =head1 DESCRIPTION
 
 L<Mojo::UserAgent::Transactor> is the transaction building and manipulation
-framework used by L<Mojo::UserAgent>.
-Note that this module is EXPERIMENTAL and might change without warning!
+framework used by L<Mojo::UserAgent>. Note that this module is EXPERIMENTAL
+and might change without warning!
 
 =head1 METHODS
 
@@ -373,7 +373,7 @@ Versatile general purpose L<Mojo::Transaction::HTTP> builder for requests.
 
   # Custom socket
   my $tx = $t->tx(GET => 'http://mojolicio.us');
-  $tx->connection($socket);
+  $tx->connection($sock);
   $ua->start($tx);
 
 =head2 C<websocket>

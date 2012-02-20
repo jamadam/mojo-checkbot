@@ -116,7 +116,7 @@ Mojo::Path - Path
 
   use Mojo::Path;
 
-  my $path = Mojo::Path->new('/foo/bar%3B/baz.html');
+  my $path = Mojo::Path->new('/foo%2Fbar%3B/baz.html');
   shift @{$path->parts};
   say $path;
 
@@ -142,6 +142,9 @@ Path has a leading slash.
 
 The path parts.
 
+  # Part with slash
+  push @{$path->parts}, 'foo/bar';
+
 =head2 C<trailing_slash>
 
   my $trailing_slash = $path->trailing_slash;
@@ -157,7 +160,7 @@ following new ones.
 =head2 C<new>
 
   my $path = Mojo::Path->new;
-  my $path = Mojo::Path->new('/foo/bar%3B/baz.html');
+  my $path = Mojo::Path->new('/foo%2Fbar%3B/baz.html');
 
 Construct a new L<Mojo::Path> object.
 
@@ -168,7 +171,7 @@ Construct a new L<Mojo::Path> object.
 Canonicalize path.
 
   # "/foo/baz"
-  say Mojo::Path->new('/foo/bar/../baz')->canonicalize;
+  Mojo::Path->new('/foo/bar/../baz')->canonicalize;
 
 =head2 C<clone>
 
@@ -181,7 +184,6 @@ Clone path.
   my $success = $path->contains('/foo');
 
 Check if path contains given prefix.
-Note that this method is EXPERIMENTAL and might change without warning!
 
   # True
   Mojo::Path->new('/foo/bar')->contains('/');
@@ -195,9 +197,9 @@ Note that this method is EXPERIMENTAL and might change without warning!
 
 =head2 C<parse>
 
-  $path = $path->parse('/foo/bar%3B/baz.html');
+  $path = $path->parse('/foo%2Fbar%3B/baz.html');
 
-Parse path.
+Parse path. Note that C<%2F> will be treated as C</> for security reasons.
 
 =head2 C<to_abs_string>
 

@@ -1,7 +1,6 @@
 package Mojolicious::Plugin::EPRenderer;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use Mojo::Loader;
 use Mojo::Template;
 use Mojo::Util qw/encode md5_sum/;
 
@@ -29,7 +28,7 @@ sub register {
       my ($r, $c, $output, $options) = @_;
 
       # Generate name
-      my $path = $r->template_path($options) || $options->{inline};
+      my $path = $options->{inline} || $r->template_path($options);
       return unless defined $path;
       my $id = encode 'UTF-8', join(', ', $path, sort keys %{$c->stash});
       my $key = $options->{cache} = md5_sum $id;
@@ -103,13 +102,11 @@ L<Mojolicious::Plugin::EPRenderer> is a renderer for C<ep> templates.
 =head1 TEMPLATES
 
 C<ep> or C<Embedded Perl> is a simple template format where you embed perl
-code into documents.
-It is based on L<Mojo::Template>, but extends it with some convenient syntax
-sugar designed specifically for L<Mojolicious>.
-It supports L<Mojolicious> template helpers and exposes the stash directly as
-perl variables.
-This is a core plugin, that means it is always enabled and its code a good
-example for learning to build new plugins.
+code into documents. It is based on L<Mojo::Template>, but extends it with
+some convenient syntax sugar designed specifically for L<Mojolicious>. It
+supports L<Mojolicious> template helpers and exposes the stash directly as
+Perl variables. This is a core plugin, that means it is always enabled and
+its code a good example for learning to build new plugins.
 
 =head1 OPTIONS
 

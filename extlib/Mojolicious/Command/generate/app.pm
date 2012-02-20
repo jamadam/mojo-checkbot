@@ -1,12 +1,8 @@
 package Mojolicious::Command::generate::app;
 use Mojo::Base 'Mojo::Command';
 
-has description => <<'EOF';
-Generate Mojolicious application directory structure.
-EOF
-has usage => <<"EOF";
-usage: $0 generate app [CLASS]
-EOF
+has description => "Generate Mojolicious application directory structure.\n";
+has usage       => "usage: $0 generate app [CLASS]\n";
 
 # "I say, you've damaged our servants quarters... and our servants."
 sub run {
@@ -58,10 +54,12 @@ __DATA__
 use Mojo::Base -strict;
 
 use File::Basename 'dirname';
-use File::Spec;
+use File::Spec::Functions qw/catdir splitdir/;
 
-use lib join '/', File::Spec->splitdir(dirname(__FILE__)), 'lib';
-use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '..', 'lib';
+# Source directory has precedence
+my @base = (splitdir(dirname(__FILE__)), '..');
+my $lib = join('/', @base, 'lib');
+-e catdir(@base, 't') ? unshift(@INC, $lib) : push(@INC, $lib);
 
 # Check if Mojolicious is installed;
 die <<EOF unless eval 'use Mojolicious::Commands; 1';
@@ -92,7 +90,7 @@ sub startup {
   my $r = $self->routes;
 
   # Normal route to controller
-  $r->route('/welcome')->to('example#welcome');
+  $r->route('/')->to('example#welcome');
 }
 
 1;
@@ -122,13 +120,12 @@ sub welcome {
   <body>
     <h2>Welcome to the Mojolicious real-time web framework!</h2>
     This is the static document "public/index.html",
-    <a href="/welcome">click here</a> to get back to the start.
+    <a href="/">click here</a> to get back to the start.
   </body>
 </html>
 
 @@ test
 % my $class = shift;
-#!/usr/bin/env perl
 use Mojo::Base -strict;
 
 use Test::More tests => 4;
@@ -137,7 +134,7 @@ use Test::Mojo;
 use_ok '<%= $class %>';
 
 my $t = Test::Mojo->new('<%= $class %>');
-$t->get_ok('/welcome')->status_is(200)->content_like(qr/Mojolicious/i);
+$t->get_ok('/')->status_is(200)->content_like(qr/Mojolicious/i);
 
 @@ layout
 <!DOCTYPE html>
