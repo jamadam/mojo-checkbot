@@ -558,8 +558,7 @@ our $VERSION = '0.37';
         my $res     = shift;
         my $type    = $res->headers->content_type;
         my $charset = ($type =~ qr{; ?charset=([^;\$]+)})[0];
-        if (! $charset) {
-            my $head = ($res->body =~ qr{<head>(.+)</head>}is)[0];
+        if (! $charset && (my $head = ($res->body =~ qr{<head>(.+)</head>}is)[0])) {
             my $dom = Mojo::DOM->new($head);
             $dom->find('meta[http\-equiv=Content-Type]')->each(sub{
                 my $meta_dom = shift;

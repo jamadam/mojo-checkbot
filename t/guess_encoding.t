@@ -53,7 +53,7 @@ EOF
 		my $tx = $ua->get("http://localhost:$port/");
 		is MojoCheckbot::guess_encoding($tx->res), undef, 'right encoding';
 	}
-	
+	exit;
 	$port = Mojo::IOLoop->generate_port;
 	Mojo::IOLoop->server(port => $port, sub {
 		my ($loop, $stream) = @_;

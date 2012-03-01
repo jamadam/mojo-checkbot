@@ -15,7 +15,7 @@ use Test::Mojo;
     my $port;
     my $port2;
     my $port3;
-    
+
     {
         $port = Mojo::IOLoop->generate_port;
 		Mojo::IOLoop->server(port => $port, sub {
@@ -26,8 +26,8 @@ use Test::Mojo;
 				$stream->write(
                     "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-					sub {shift->close }
 				);
+				$stream->close
 			});
 		});
         
@@ -43,8 +43,8 @@ use Test::Mojo;
 				$stream->write(
                     "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-					sub {shift->close }
 				);
+				$stream->close;
 			});
 		});
         $ua->get("http://localhost:$port2/file2");
@@ -59,8 +59,8 @@ use Test::Mojo;
 				$stream->write(
                     "HTTP/1.1 200 OK\x0d\x0a"
                         . "Content-Type: text/html\x0d\x0a\x0d\x0a",
-					sub {shift->close }
 				);
+				$stream->close;
 			});
 		});
         my $url = Mojo::URL->new("http://localhost:$port3/file2")->userinfo('a:b');
