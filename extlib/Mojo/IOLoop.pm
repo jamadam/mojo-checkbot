@@ -166,15 +166,14 @@ sub singleton { state $loop ||= shift->SUPER::new }
 sub start {
   my $self = shift;
   $self = $self->singleton unless ref $self;
-  croak 'Mojo::IOLoop already running' if $self->{running}++;
+  croak 'Mojo::IOLoop already running' if $self->is_running;
   $self->iowatcher->start;
   return $self;
 }
 
 sub stop {
   my $self = shift;
-  $self = $self->singleton unless ref $self;
-  $self->iowatcher->stop if delete $self->{running};
+  (ref $self ? $self : $self->singleton)->iowatcher->stop;
 }
 
 sub stream {
@@ -345,7 +344,9 @@ absolute minimal feature set required to build solid and scalable
 non-blocking TCP clients and servers.
 
 Optional modules L<EV>, L<IO::Socket::IP> and L<IO::Socket::SSL> are
-supported transparently and used if installed.
+supported transparently and used if installed. Individual features can also
+be disabled with the C<MOJO_NO_IPV6> and C<MOJO_NO_TLS> environment
+variables.
 
 A TLS certificate and key are also built right in to make writing test
 servers as easy as possible. Also note that for convenience the C<PIPE>

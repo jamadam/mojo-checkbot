@@ -117,8 +117,8 @@ our $VERSION = '0.37';
         $self->plugin(Config => {file => $self->home->rel_file('myapp.conf')});
         
         $self->home->parse(File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot'));
-        $self->static->root($self->home->rel_dir('public'));
-        $self->renderer->root($self->home->rel_dir('templates'));
+        $self->static->paths([$self->home->rel_dir('public')]);
+        $self->renderer->paths([$self->home->rel_dir('templates')]);
         
         GetOptionsFromArray(\@ARGV, \%options,
             'match=s@',
@@ -181,7 +181,7 @@ our $VERSION = '0.37';
         };
         
         my $ua = MojoCheckbot::UserAgent->new->name($options{ua});
-        $ua->keep_alive_timeout($options{timeout});
+        $ua->inactivity_timeout($options{timeout});
         
         if ($options{cookie}) {
             my $cookies = Mojo::Cookie::Response->parse($options{cookie});

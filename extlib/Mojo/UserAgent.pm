@@ -13,25 +13,24 @@ use Scalar::Util 'weaken';
 use constant DEBUG => $ENV{MOJO_USERAGENT_DEBUG} || 0;
 
 # "You can't let a single bad experience scare you away from drugs."
-has ca   => sub { $ENV{MOJO_CA_FILE} };
-has cert => sub { $ENV{MOJO_CERT_FILE} };
-has connect_timeout => 3;
-has cookie_jar => sub { Mojo::CookieJar->new };
+has ca              => sub { $ENV{MOJO_CA_FILE} };
+has cert            => sub { $ENV{MOJO_CERT_FILE} };
+has connect_timeout => sub { $ENV{MOJO_CONNECT_TIMEOUT} || 10 };
+has cookie_jar      => sub { Mojo::CookieJar->new };
 has [qw/http_proxy https_proxy local_address no_proxy/];
-has inactivity_timeout => 20;
+has inactivity_timeout => sub { $ENV{MOJO_INACTIVITY_TIMEOUT} // 20 };
 has ioloop             => sub { Mojo::IOLoop->new };
 has key                => sub { $ENV{MOJO_KEY_FILE} };
 has max_connections    => 5;
-has max_redirects      => sub { $ENV{MOJO_MAX_REDIRECTS} || 0 };
-has name               => 'Mojolicious (Perl)';
-has request_timeout    => 0;
+has max_redirects => sub { $ENV{MOJO_MAX_REDIRECTS} || 0 };
+has name => 'Mojolicious (Perl)';
+has request_timeout => sub { $ENV{MOJO_REQUEST_TIMEOUT} // 0 };
 has transactor => sub { Mojo::UserAgent::Transactor->new };
-has websocket_timeout => 300;
 
 # Common HTTP methods
 {
   no strict 'refs';
-  for my $name (qw/DELETE GET HEAD POST PUT/) {
+  for my $name (qw/DELETE GET HEAD PATCH POST PUT/) {
     *{__PACKAGE__ . '::' . lc($name)} = sub {
       my $self = shift;
       $self->start($self->build_tx($name, @_));
@@ -261,6 +260,7 @@ sub _connect_proxy {
         return $loop->client(
           handle   => $handle,
           id       => $id,
+          timeout  => $self->connect_timeout,
           tls      => 1,
           tls_ca   => $self->ca,
           tls_cert => $self->cert,
@@ -523,7 +523,6 @@ sub _upgrade {
   $res->error('WebSocket challenge failed.') and return
     unless $new->client_challenge;
   $c->{tx} = $new;
-  $self->_loop->stream($id)->timeout($self->websocket_timeout);
   weaken $self;
   $new->on(resume => sub { $self->_write($id) });
 
@@ -621,7 +620,7 @@ Mojo::UserAgent - Non-blocking I/O HTTP 1.1 and WebSocket user agent
       say $message;
       $tx->finish;
     });
-    $tx->send_message('hi there!');
+    $tx->send('hi there!');
   });
   Mojo::IOLoop->start;
 
@@ -631,7 +630,9 @@ L<Mojo::UserAgent> is a full featured non-blocking I/O HTTP 1.1 and WebSocket
 user agent with C<IPv6>, C<TLS> and C<libev> support.
 
 Optional modules L<EV>, L<IO::Socket::IP> and L<IO::Socket::SSL> are
-supported transparently and used if installed.
+supported transparently and used if installed. Individual features can also
+be disabled with the C<MOJO_NO_IPV6> and C<MOJO_NO_TLS> environment
+variables.
 
 =head1 EVENTS
 
@@ -697,7 +698,8 @@ environment variable.
   $ua         = $ua->connect_timeout(5);
 
 Maximum amount of time in seconds establishing a connection may take before
-getting canceled, defaults to C<3>.
+getting canceled, defaults to the value of the C<MOJO_CONNECT_TIMEOUT>
+environment variable or C<10>.
 
 =head2 C<cookie_jar>
 
@@ -727,8 +729,9 @@ Proxy server to use for HTTPS and WebSocket requests.
   $ua         = $ua->inactivity_timeout(15);
 
 Maximum amount of time in seconds a connection can be inactive before getting
-dropped, defaults to C<20>. Setting the value to C<0> will allow connections
-to be inactive indefinitely.
+dropped, defaults to the value of the C<MOJO_INACTIVITY_TIMEOUT> environment
+variable or C<20>. Setting the value to C<0> will allow connections to be
+inactive indefinitely.
 
 =head2 C<ioloop>
 
@@ -792,7 +795,8 @@ Domains that don't require a proxy server to be used.
 
 Maximum amount of time in seconds establishing a connection, sending the
 request and receiving a whole response may take before getting canceled,
-defaults to C<0>. Setting the value to C<0> will allow the user agent to wait
+defaults to the value of the C<MOJO_REQUEST_TIMEOUT> environment variable or
+C<0>. Setting the value to C<0> will allow the user agent to wait
 indefinitely. The timeout will reset for every followed redirect. Note that
 this attribute is EXPERIMENTAL and might change without warning!
 
@@ -806,15 +810,6 @@ this attribute is EXPERIMENTAL and might change without warning!
 
 Transaction builder, defaults to a L<Mojo::UserAgent::Transactor> object.
 Note that this attribute is EXPERIMENTAL and might change without warning!
-
-=head2 C<websocket_timeout>
-
-  my $timeout = $ua->websocket_timeout;
-  $ua         = $ua->websocket_timeout(300);
-
-Maximum amount of time in seconds a WebSocket connection can be inactive
-before getting dropped, defaults to C<300>. Setting the value to C<0> will
-allow WebSocket connections to be inactive indefinitely.
 
 =head1 METHODS
 
@@ -885,7 +880,8 @@ append a callback to perform requests non-blocking.
   $ua = $ua->detect_proxy;
 
 Check environment variables C<HTTP_PROXY>, C<http_proxy>, C<HTTPS_PROXY>,
-C<https_proxy>, C<NO_PROXY> and C<no_proxy> for proxy information.
+C<https_proxy>, C<NO_PROXY> and C<no_proxy> for proxy information. Automatic
+proxy detection can be enabled with the C<MOJO_PROXY> environment variable.
 
 =head2 C<get>
 
@@ -924,6 +920,23 @@ append a callback to perform requests non-blocking.
   my $success = $ua->need_proxy('intranet.mojolicio.us');
 
 Check if request for domain would use a proxy server.
+
+=head2 C<patch>
+
+  my $tx = $ua->patch('http://kraih.com');
+
+Perform blocking HTTP C<PATCH> request and return resulting
+L<Mojo::Transaction::HTTP> object, takes the exact same arguments as
+L<Mojo::UserAgent::Transactor/"tx"> (except for the method). You can also
+append a callback to perform requests non-blocking. Note that this method is
+EXPERIMENTAL and might change without warning!
+
+  $ua->patch('http://kraih.com' => sub {
+    my ($ua, $tx) = @_;
+    say $tx->res->body;
+    Mojo::IOLoop->stop;
+  });
+  Mojo::IOLoop->start;
 
 =head2 C<post>
 
@@ -1002,7 +1015,7 @@ that this method is EXPERIMENTAL and might change without warning!
       my ($tx, $message) = @_;
       say "$message\n";
     });
-    $tx->send_message('Hi!');
+    $tx->send('Hi!');
   });
   Mojo::IOLoop->start;
 

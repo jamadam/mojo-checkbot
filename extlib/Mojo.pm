@@ -156,8 +156,7 @@ object.
   $app       = $app->config({foo => 'bar'});
   $app       = $app->config(foo => 'bar');
 
-Application configuration. Note that this method is EXPERIMENTAL and might
-change without warning!
+Application configuration.
 
   $app->config->{foo} = 'bar';
   my $foo = $app->config->{foo};
@@ -165,7 +164,7 @@ change without warning!
 
 =head2 C<handler>
 
-  $tx = $app->handler($tx);
+  $app->handler($tx);
 
 The handler is the main entry point to your application or framework and
 will be called for each new transaction, which will usually be a

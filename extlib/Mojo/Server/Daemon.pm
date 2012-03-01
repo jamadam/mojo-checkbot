@@ -15,11 +15,10 @@ use constant BONJOUR => $ENV{MOJO_NO_BONJOUR}
 use constant DEBUG => $ENV{MOJO_DAEMON_DEBUG} || 0;
 
 has [qw/backlog group listen silent user/];
-has inactivity_timeout => 15;
+has inactivity_timeout => sub { $ENV{MOJO_INACTIVITY_TIMEOUT} // 15 };
 has ioloop             => sub { Mojo::IOLoop->singleton };
 has max_clients        => 1000;
 has max_requests       => 25;
-has websocket_timeout  => 300;
 
 my $LISTEN_RE = qr|
   ^
@@ -168,11 +167,6 @@ sub _finish {
 
     # Successful upgrade
     if ($ws->res->code eq '101') {
-
-      # Upgrade inactivity timeout
-      $self->ioloop->stream($id)->timeout($self->websocket_timeout);
-
-      # Resume
       weaken $self;
       $ws->on(resume => sub { $self->_write($id) });
     }
@@ -265,7 +259,7 @@ sub _listen {
 
   # Friendly message
   return if $self->silent;
-  $self->app->log->info("Server listening ($listen)");
+  $self->app->log->info(qq/Listening at "$listen"./);
   $listen =~ s|^(https?\://)\*|${1}127.0.0.1|i;
   say "Server available at $listen.";
 }
@@ -369,7 +363,8 @@ WebSocket server with C<IPv6>, C<TLS>, C<Bonjour> and C<libev> support.
 
 Optional modules L<EV>, L<IO::Socket::IP>, L<IO::Socket::SSL> and
 L<Net::Rendezvous::Publish> are supported transparently and used if
-installed.
+installed. Individual features can also be disabled with the
+C<MOJO_NO_BONJOUR>, C<MOJO_NO_IPV6> and C<MOJO_NO_TLS> environment variables.
 
 See L<Mojolicious::Guides::Cookbook> for deployment recipes.
 
@@ -402,8 +397,9 @@ Group for server process.
   $daemon     = $daemon->inactivity_timeout(5);
 
 Maximum amount of time in seconds a connection can be inactive before getting
-dropped, defaults to C<15>. Setting the value to C<0> will allow connections
-to be inactive indefinitely.
+dropped, defaults to the value of the C<MOJO_INACTIVITY_TIMEOUT> environment
+variable or C<15>. Setting the value to C<0> will allow connections to be
+inactive indefinitely.
 
 =head2 C<ioloop>
 
@@ -456,15 +452,6 @@ Disable console messages.
   $daemon  = $daemon->user('web');
 
 User for the server process.
-
-=head2 C<websocket_timeout>
-
-  my $timeout = $server->websocket_timeout;
-  $server     = $server->websocket_timeout(300);
-
-Maximum amount of time in seconds a WebSocket connection can be inactive
-before getting dropped, defaults to C<300>. Setting the value to C<0> will
-allow WebSocket connections to be inactive indefinitely.
 
 =head1 METHODS
 

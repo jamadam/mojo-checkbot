@@ -39,6 +39,7 @@ sub handle { shift->{handle} }
 
 sub is_readable {
   my $self = shift;
+  $self->{active} = time;
   return $self->{handle} && $self->iowatcher->is_readable($self->{handle});
 }
 
@@ -113,7 +114,7 @@ sub _read {
     return if $! ~~ [EAGAIN, EINTR, EWOULDBLOCK];
 
     # Closed
-    return $self->close if $! == ECONNRESET;
+    return $self->close if $! ~~ [ECONNRESET, EPIPE];
 
     # Read error
     return $self->emit_safe(error => $!)->close;

@@ -85,7 +85,7 @@ sub auto_render {
 
 sub bridge { shift->route(@_)->inline(1) }
 
-sub delete { shift->_generate_route('delete', @_) }
+sub delete { shift->_generate_route(delete => @_) }
 
 sub detour {
   my $self = shift;
@@ -144,7 +144,7 @@ sub dispatch {
   $self->auto_render($c);
 }
 
-sub get { shift->_generate_route('get', @_) }
+sub get { shift->_generate_route(get => @_) }
 
 sub has_conditions {
   my $self = shift;
@@ -217,9 +217,9 @@ sub parse {
   return $self;
 }
 
-sub post { shift->_generate_route('post', @_) }
-
-sub put { shift->_generate_route('put', @_) }
+sub patch { shift->_generate_route(patch => @_) }
+sub post  { shift->_generate_route(post  => @_) }
+sub put   { shift->_generate_route(put   => @_) }
 
 sub render {
   my ($self, $path, $values) = @_;
@@ -312,7 +312,7 @@ sub to_string {
   return $pattern;
 }
 
-sub under { shift->_generate_route('under', @_) }
+sub under { shift->_generate_route(under => @_) }
 
 sub via {
   my $self = shift;
@@ -367,10 +367,8 @@ sub _dispatch_controller {
     if (my $e = Mojo::Loader->load($app)) {
 
       # Doesn't exist
-      unless (ref $e) {
-        $c->app->log->debug("$app does not exist, maybe a typo?");
-        return;
-      }
+      $c->app->log->debug("$app does not exist, maybe a typo?") and return
+        unless ref $e;
 
       # Error
       return $e;
@@ -442,10 +440,10 @@ sub _dispatch_controller {
 sub _generate_class {
   my ($self, $field, $c) = @_;
 
-  # Class
-  my $class = $field->{class};
-  my $controller = $field->{controller} || '';
-  $class = camelize $controller unless $class;
+  # DEPRECATED in Leaf Fluttering In Wind!
+  warn "The class stash value is DEPRECATED in favor of controller!\n"
+    if $field->{class};
+  my $class = camelize $field->{class} || $field->{controller} || '';
 
   # Namespace
   my $namespace = $field->{namespace};
@@ -464,23 +462,20 @@ sub _generate_method {
   my ($self, $field, $c) = @_;
 
   # Prepare hidden
-  unless ($self->{hiding}) {
-    $self->{hiding} = {};
-    $self->{hiding}->{$_}++ for @{$self->hidden};
-  }
+  unless ($self->{hiding}) { $self->{hiding}->{$_}++ for @{$self->hidden} }
+
+  # DEPRECATED in Leaf Fluttering In Wind!
+  warn "The method stash value is DEPRECATED in favor of action!\n"
+    if $field->{method};
+  return unless my $method = $field->{method} || $field->{action};
 
   # Hidden
-  return unless my $method = $field->{method} || $field->{action};
-  if ($self->{hiding}->{$method} || index($method, '_') == 0) {
-    $c->app->log->debug(qq/Action "$method" is not allowed./);
-    return;
-  }
+  $c->app->log->debug(qq/Action "$method" is not allowed./) and return
+    if $self->{hiding}->{$method} || index($method, '_') == 0;
 
   # Invalid
-  unless ($method =~ /^[a-zA-Z0-9_:]+$/) {
-    $c->app->log->debug(qq/Action "$method" is invalid./);
-    return;
-  }
+  $c->app->log->debug(qq/Action "$method" is invalid./) and return
+    unless $method =~ /^[a-zA-Z0-9_:]+$/;
 
   return $method;
 }
@@ -497,9 +492,7 @@ sub _generate_route {
     if (!ref $arg && !$pattern) { $pattern = $arg }
 
     # Scalar
-    elsif (!ref $arg && @args) {
-      push @$conditions, $arg, shift @args;
-    }
+    elsif (!ref $arg && @args) { push @$conditions, $arg, shift @args }
 
     # Last scalar is the route name
     elsif (!ref $arg) { $name = $arg }
@@ -753,8 +746,8 @@ Add a new shortcut for this route.
 
 =head2 C<any>
 
-  my $any = $route->any('/:foo' => sub {...});
-  my $any = $route->any([qw/get post/] => '/:foo' => sub {...});
+  my $route = $route->any('/:foo' => sub {...});
+  my $route = $route->any([qw/get post/] => '/:foo' => sub {...});
 
 Generate route matching any of the listed HTTP request methods or all. See
 also the L<Mojolicious::Lite> tutorial for more argument variations.
@@ -774,7 +767,7 @@ Add a new bridge to this route as a nested child.
 
 =head2 C<delete>
 
-  my $del = $route->delete('/:foo' => sub {...});
+  my $route = $route->delete('/:foo' => sub {...});
 
 Generate route matching only C<DELETE> requests. See also the
 L<Mojolicious::Lite> tutorial for more argument variations.
@@ -804,7 +797,7 @@ Match routes and dispatch.
 
 =head2 C<get>
 
-  my $get = $route->get('/:foo' => sub {...});
+  my $route = $route->get('/:foo' => sub {...});
 
 Generate route matching only C<GET> requests. See also the
 L<Mojolicious::Lite> tutorial for more argument variations.
@@ -870,16 +863,24 @@ Apply condition parameters to this route and disable routing cache.
 
 Parse a pattern.
 
+=head2 C<patch>
+
+  my $route = $route->patch('/:foo' => sub {...});
+
+Generate route matching only C<PATCH> requests. See also the
+L<Mojolicious::Lite> tutorial for more argument variations. Note that this
+method is EXPERIMENTAL and might change without warning!
+
 =head2 C<post>
 
-  my $post = $route->post('/:foo' => sub {...});
+  my $route = $route->post('/:foo' => sub {...});
 
 Generate route matching only C<POST> requests. See also the
 L<Mojolicious::Lite> tutorial for more argument variations.
 
 =head2 C<put>
 
-  my $put = $route->put('/:foo' => sub {...});
+  my $route = $route->put('/:foo' => sub {...});
 
 Generate route matching only C<PUT> requests. See also the
 L<Mojolicious::Lite> tutorial for more argument variations.
@@ -922,8 +923,8 @@ Stringifies the whole route.
 
 =head2 C<under>
 
-  my $under = $r->under(sub {...});
-  my $under = $r->under('/:foo');
+  my $route = $r->under(sub {...});
+  my $route = $r->under('/:foo');
 
 Generate bridges. See also the L<Mojolicious::Lite> tutorial for more
 argument variations.

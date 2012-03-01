@@ -32,7 +32,7 @@ has static   => sub { Mojolicious::Static->new };
 has types    => sub { Mojolicious::Types->new };
 
 our $CODENAME = 'Leaf Fluttering In Wind';
-our $VERSION  = '2.51';
+our $VERSION  = '2.55';
 
 # "These old doomsday devices are dangerously unstable.
 #  I'll rest easier not knowing where they are."
@@ -73,7 +73,7 @@ sub new {
   $r->hide(qw/param redirect_to render render_content render_data/);
   $r->hide(qw/render_exception render_json render_not_found render_partial/);
   $r->hide(qw/render_static render_text rendered req res respond_to/);
-  $r->hide(qw/send_message session signed_cookie stash tx ua url_for write/);
+  $r->hide(qw/send session signed_cookie stash tx ua url_for write/);
   $r->hide('write_chunk');
 
   # Prepare log
@@ -388,7 +388,8 @@ object.
   $app         = $app->defaults({foo => 'bar'});
   $app         = $app->defaults(foo => 'bar');
 
-Default values for the stash, assigned for every new request.
+Default values for L<Mojolicious::Controller/"stash">, assigned for every new
+request.
 
   $app->defaults->{foo} = 'bar';
   my $foo = $app->defaults->{foo};
@@ -398,13 +399,14 @@ Default values for the stash, assigned for every new request.
 
   $app->dispatch($c);
 
-The heart of every Mojolicious application, calls the static and routes
+The heart of every Mojolicious application, calls the C<static> and C<routes>
 dispatchers for every request and passes them a L<Mojolicious::Controller>
 object.
 
 =head2 C<handler>
 
-  $tx = $app->handler($tx);
+  $app->handler($tx);
+  $app->handler($c);
 
 Sets up the default controller and calls process for every request.
 
@@ -602,6 +604,7 @@ startup.
 
   sub startup {
     my $self = shift;
+    ...
   }
 
 =head1 HELPERS
@@ -681,7 +684,7 @@ that have been used in the past.
 
 0.999920, C<Snowman> (u2603)
 
-=head1 AUTHOR
+=head1 PROJECT FOUNDER
 
 Sebastian Riedel, C<sri@cpan.org>
 

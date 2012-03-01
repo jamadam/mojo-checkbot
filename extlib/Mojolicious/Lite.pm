@@ -49,6 +49,7 @@ sub import {
   *{"${caller}::hook"}   = sub { $app->hook(@_) };
   *{"${caller}::under"}  = *{"${caller}::ladder"} =
     sub { $routes = $root->under(@_) };
+  *{"${caller}::patch"}     = sub { $routes->patch(@_) };
   *{"${caller}::plugin"}    = sub { $app->plugin(@_) };
   *{"${caller}::post"}      = sub { $routes->post(@_) };
   *{"${caller}::put"}       = sub { $routes->put(@_) };
@@ -382,29 +383,30 @@ C</> and C<.>.
 
 Routes can be restricted to specific request methods.
 
-  # GET /bye
-  get '/bye' => sub {
+  # GET /hello
+  get '/hello' => sub {
     my $self = shift;
-    $self->render(text => 'Bye.');
+    $self->render(text => 'Hello World!');
   };
 
-  # POST /bye
-  post '/bye' => sub {
+  # PUT /hello
+  put '/hello' => sub {
     my $self = shift;
-    $self->render(text => 'Bye.');
+    my $size = length $self->req->body;
+    $self->render(text => "You uploaded $size bytes to /hello.");
   };
 
   # GET|POST|DELETE /bye
   any ['get', 'post', 'delete'] => '/bye' => sub {
     my $self = shift;
-    $self->render(text => 'Bye.');
+    $self->render(text => 'Bye World!');
   };
 
-  # * /baz
-  any '/baz' => sub {
+  # * /whatever
+  any '/whatever' => sub {
     my $self   = shift;
     my $method = $self->req->method;
-    $self->render(text => "You called /baz with $method");
+    $self->render(text => "You called /whatever with $method.");
   };
 
 =head2 Optional placeholders
@@ -712,7 +714,7 @@ WebSocket applications have never been this easy before.
     my $self = shift;
     $self->on(message => sub {
       my ($self, $message) = @_;
-      $self->send_message("echo: $message");
+      $self->send("echo: $message");
     });
   };
 
@@ -880,6 +882,14 @@ Alias for L<Mojolicious/"helper">.
   hook after_dispatch => sub {...};
 
 Alias for L<Mojolicious/"hook">.
+
+=head2 C<patch>
+
+  my $route = patch '/:foo' => sub {...};
+
+Generate route matching only C<PATCH> requests. See also the tutorial above
+for more argument variations. Note that this function is EXPERIMENTAL and
+might change without warning!
 
 =head2 C<plugin>
 

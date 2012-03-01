@@ -17,8 +17,6 @@ use Time::HiRes 'ualarm';
 # Preload
 use Mojo::UserAgent;
 
-use constant DEBUG => $ENV{HYPNOTOAD_DEBUG} || 0;
-
 sub DESTROY {
   my $self = shift;
 
@@ -45,13 +43,13 @@ sub DESTROY {
 #  Uhhh, dad, Lisa's the one you're not talking to.
 #  Bart, go to your room."
 sub run {
-  my ($self, $app, $config) = @_;
+  my ($self, $path, $config) = @_;
 
   # No windows support
   _exit('Hypnotoad not available for Windows.') if $^O eq 'MSWin32';
 
   # Application
-  $ENV{HYPNOTOAD_APP} ||= abs_path $app;
+  $ENV{HYPNOTOAD_APP} ||= abs_path $path;
 
   # DEPRECATED in Leaf Fluttering In Wind!
   $ENV{HYPNOTOAD_CONFIG} ||= abs_path $config;
@@ -68,8 +66,7 @@ sub run {
 
   # Preload application and configure server
   my $daemon = $self->{daemon} = Mojo::Server::Daemon->new;
-  warn "APPLICATION $ENV{HYPNOTOAD_APP}\n" if DEBUG;
-  $self->_config($daemon->load_app($ENV{HYPNOTOAD_APP}));
+  $self->_config(my $app = $daemon->load_app($ENV{HYPNOTOAD_APP}));
 
   # Testing
   _exit('Everything looks good!') if $ENV{HYPNOTOAD_TEST};
@@ -80,8 +77,8 @@ sub run {
   # Initiate hot deployment
   $self->_hot_deploy unless $ENV{HYPNOTOAD_PID};
 
-  # Daemonize as early as possible
-  if (!DEBUG && !$ENV{HYPNOTOAD_FOREGROUND}) {
+  # Daemonize as early as possible (but not for restarts)
+  if (!$ENV{HYPNOTOAD_FOREGROUND} && $ENV{HYPNOTOAD_REV} < 3) {
 
     # Fork and kill parent
     die "Can't fork: $!" unless defined(my $pid = fork);
@@ -95,6 +92,8 @@ sub run {
   }
 
   # Start accepting connections
+  ($self->{log} = $app->log)
+    ->info(qq/Hypnotoad server $$ started for "$ENV{HYPNOTOAD_APP}"./);
   $daemon->start;
 
   # Pipe for worker communication
@@ -119,7 +118,6 @@ sub run {
   };
 
   # Mainloop
-  warn "MANAGER STARTED $$\n" if DEBUG;
   $self->_manage while 1;
 }
 
@@ -130,9 +128,7 @@ sub _config {
   my $c = $app->config('hypnotoad') || {};
 
   # DEPRECATED in Leaf Fluttering In Wind!
-  my $file = $ENV{HYPNOTOAD_CONFIG};
-  warn "CONFIG $file\n" if DEBUG;
-  if (-r $file) {
+  if (-r (my $file = $ENV{HYPNOTOAD_CONFIG})) {
     warn "Hypnotoad config files are DEPRECATED!\n";
     unless ($c = do $file) {
       die qq/Can't load config file "$file": $@/ if $@;
@@ -163,7 +159,6 @@ sub _config {
   $daemon->max_requests($c->{keep_alive_requests}      || 25);
   $daemon->inactivity_timeout($c->{inactivity_timeout} || 15);
   $daemon->user($c->{user}) if $c->{user};
-  $daemon->websocket_timeout($c->{websocket_timeout} || 300);
   $daemon->ioloop->max_accepts($c->{accepts} || 1000);
   my $listen = $c->{listen} || ['http://*:8080'];
   $listen = [$listen] unless ref $listen;
@@ -223,7 +218,7 @@ sub _manage {
 
   # Upgraded
   if ($ENV{HYPNOTOAD_PID} && $ENV{HYPNOTOAD_PID} ne $$) {
-    warn "STOPPING MANAGER $ENV{HYPNOTOAD_PID}\n" if DEBUG;
+    $self->{log}->info("Upgrade successful, stopping $ENV{HYPNOTOAD_PID}.");
     kill 'QUIT', $ENV{HYPNOTOAD_PID};
   }
   $ENV{HYPNOTOAD_PID} = $$;
@@ -236,10 +231,9 @@ sub _manage {
 
     # Fresh start
     unless ($self->{new}) {
-      warn "UPGRADING\n" if DEBUG;
+      $self->{log}->info('Starting zero downtime software upgrade.');
       croak "Can't fork: $!" unless defined(my $pid = fork);
-      $self->{new} = $pid if $pid;
-      exec $ENV{HYPNOTOAD_EXE} unless $pid;
+      $self->{new} = $pid ? $pid : exec($ENV{HYPNOTOAD_EXE});
     }
 
     # Timeout
@@ -250,32 +244,25 @@ sub _manage {
   # Workers
   while (my ($pid, $w) = each %{$self->{workers}}) {
 
-    # No heartbeat
+    # No heartbeat (graceful stop)
     my $interval = $c->{heartbeat_interval};
     my $timeout  = $c->{heartbeat_timeout};
     if ($w->{time} + $interval + $timeout <= time) {
-
-      # Try graceful
-      warn "STOPPING WORKER $pid\n" if DEBUG;
+      $self->{log}->info("Worker $pid has no heartbeat, restarting.");
       $w->{graceful} ||= time;
     }
 
-    # Graceful stop
+    # Graceful stop with timeout
     $w->{graceful} ||= time if $self->{graceful};
     if ($w->{graceful}) {
-      warn "QUIT $pid\n" if DEBUG;
+      $self->{log}->debug("Trying to stop worker $pid gracefully.");
       kill 'QUIT', $pid;
-
-      # Timeout
-      $w->{force} = 1
-        if $w->{graceful} + $c->{graceful_timeout} <= time;
+      $w->{force} = 1 if $w->{graceful} + $c->{graceful_timeout} <= time;
     }
 
     # Normal stop
     if (($self->{finished} && !$self->{graceful}) || $w->{force}) {
-
-      # Kill
-      warn "KILL $pid\n" if DEBUG;
+      $self->{log}->debug("Stopping worker $pid.");
       kill 'KILL', $pid;
     }
   }
@@ -296,11 +283,10 @@ sub _pid_file {
   return if $self->{finished};
 
   # Check if PID file already exists
-  my $file = $self->{config}->{pid_file};
-  return if -e $file;
+  return if -e (my $file = $self->{config}->{pid_file});
 
   # Create PID file
-  warn "PID $file\n" if DEBUG;
+  $self->{log}->info(qq/Creating PID file "$file"./);
   croak qq/Can't create PID file "$file": $!/
     unless my $pid = IO::File->new($file, '>', 0644);
   print $pid $$;
@@ -314,14 +300,14 @@ sub _reap {
 
   # Clean up failed upgrade
   if (($self->{new} || '') eq $pid) {
-    warn "UPGRADE FAILED\n" if DEBUG;
+    $self->{log}->info('Zero downtime software upgrade failed.');
     delete $self->{upgrade};
     delete $self->{new};
   }
 
   # Clean up worker
   else {
-    warn "WORKER DIED $pid\n" if DEBUG;
+    $self->{log}->debug("Worker $pid stopped.");
     delete $self->{workers}->{$pid};
   }
 }
@@ -330,10 +316,8 @@ sub _reap {
 sub _spawn {
   my $self = shift;
 
-  # Fork
-  croak "Can't fork: $!" unless defined(my $pid = fork);
-
   # Manager
+  croak "Can't fork: $!" unless defined(my $pid = fork);
   return $self->{workers}->{$pid} = {time => time} if $pid;
 
   # Worker
@@ -391,7 +375,7 @@ sub _spawn {
   $daemon->setuidgid;
 
   # Start
-  warn "WORKER STARTED $$\n" if DEBUG;
+  $self->{log}->debug("Worker $$ started.");
   $loop->start;
   exit 0;
 }
@@ -438,7 +422,8 @@ C<production> mode.
 
 Optional modules L<EV>, L<IO::Socket::IP>, L<IO::Socket::SSL> and
 L<Net::Rendezvous::Publish> are supported transparently and used if
-installed.
+installed. Individual features can also be disabled with the
+C<MOJO_NO_BONJOUR>, C<MOJO_NO_IPV6> and C<MOJO_NO_TLS> environment variables.
 
 See L<Mojolicious::Guides::Cookbook> for deployment recipes.
 
@@ -593,7 +578,8 @@ accept mutex, defaults to C<0.5>.
   pid_file => '/var/run/hypnotoad.pid'
 
 Full path to PID file, defaults to C<hypnotoad.pid> in the same directory as
-the application.
+the application. Note that this value can only be changed after the server
+has been stopped.
 
 =head2 C<proxy>
 
@@ -615,14 +601,6 @@ before getting canceled, defaults to C<60>.
 
 Username for worker processes.
 
-=head2 C<websocket_timeout>
-
-  websocket_timeout => 150
-
-Maximum amount of time in seconds a WebSocket connection can be inactive
-before getting dropped, defaults to C<300>. Setting the value to C<0> will
-allow WebSocket connections to be inactive indefinitely.
-
 =head2 C<workers>
 
   workers => 10
@@ -639,14 +617,7 @@ implements the following new ones.
 
   $toad->run('script/myapp');
 
-Run server.
-
-=head1 DEBUGGING
-
-You can set the C<HYPNOTOAD_DEBUG> environment variable to get some advanced
-diagnostics information printed to C<STDERR>.
-
-  HYPNOTOAD_DEBUG=1
+Run server for application.
 
 =head1 SEE ALSO
 

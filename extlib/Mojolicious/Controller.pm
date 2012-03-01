@@ -32,8 +32,8 @@ our $DEV_NOT_FOUND = $H->slurp_rel_file('not_found.development.html.ep');
 
 # Reserved stash values
 my @RESERVED = (
-  qw/action app cb class controller data exception extends format handler/,
-  qw/json layout method namespace partial path status template text/
+  qw/action app cb controller data extends format handler json layout/,
+  qw/namespace partial path status template text/
 );
 my %RESERVED;
 $RESERVED{$_}++ for @RESERVED;
@@ -149,8 +149,8 @@ sub on {
 sub param {
   my ($self, $name) = (shift, shift);
 
-  # List
-  my $p = $self->stash->{'mojo.captures'} || {};
+  # List names
+  my $p = $self->stash->{'mojo.captures'} ||= {};
   my $req = $self->req;
   unless (defined $name) {
     my %seen;
@@ -160,20 +160,22 @@ sub param {
     return sort @keys;
   }
 
-  # Override value
+  # Override values
   if (@_) {
-    $p->{$name} = $_[0];
+    $p->{$name} = @_ > 1 ? [@_] : $_[0];
     return $self;
   }
 
-  # Captured unreserved value
-  return $p->{$name} if !$RESERVED{$name} && exists $p->{$name};
+  # Captured unreserved values
+  if (!$RESERVED{$name} && defined(my $v = $p->{$name})) {
+    return ref $v && ref $v eq 'ARRAY' ? wantarray ? @$v : $$v[0] : $v;
+  }
 
   # Upload
   my $upload = $req->upload($name);
   return $upload if $upload;
 
-  # Param value
+  # Param values
   return $req->param($name);
 }
 
@@ -352,11 +354,10 @@ sub render_static {
   my ($self, $file) = @_;
 
   my $app = $self->app;
-  unless ($app->static->serve($self, $file)) {
-    $app->log->debug(
-      qq/Static file "$file" not found, public directory missing?/);
-    return;
-  }
+  $app->log->debug(
+    qq/Static file "$file" not found, public directory missing?/)
+    and return
+    unless $app->static->serve($self, $file);
   $self->rendered;
 
   return 1;
@@ -426,13 +427,13 @@ sub respond_to {
   ref $target eq 'CODE' ? $target->($self) : $self->render($target);
 }
 
-sub send_message {
+sub send {
   my ($self, $message, $cb) = @_;
 
   my $tx = $self->tx;
   Carp::croak('No WebSocket connection to send message to')
     unless $tx->is_websocket;
-  $tx->send_message($message, sub { shift and $self->$cb(@_) if $cb });
+  $tx->send($message, sub { shift and $self->$cb(@_) if $cb });
   $self->rendered(101);
 
   return $self;
@@ -733,6 +734,7 @@ or L<Mojo::Transaction::WebSocket> object.
   my $foo   = $c->param('foo');
   my @foo   = $c->param('foo');
   $c        = $c->param(foo => 'ba;r');
+  $c        = $c->param(foo => qw/ba;r ba;z/);
 
 Access GET/POST parameters, file uploads and route captures that are not
 reserved stash values.
@@ -909,19 +911,23 @@ defaults to rendering an empty C<204> response.
     any  => {data => '', status => 204}
   );
 
-=head2 C<send_message>
+=head2 C<send>
 
-  $c = $c->send_message([binary => $bytes]);
-  $c = $c->send_message([text   => $bytes]);
-  $c = $c->send_message('Hi there!');
-  $c = $c->send_message('Hi there!', sub {...});
+  $c = $c->send({binary => $bytes});
+  $c = $c->send({text   => $bytes});
+  $c = $c->send([$fin, $rsv1, $rsv2, $rsv3, $op, $payload]);
+  $c = $c->send('Hi there!');
+  $c = $c->send('Hi there!', sub {...});
 
-Send a message non-blocking via WebSocket, the optional drain callback will
-be invoked once all data has been written. Note that this method is
+Send message or frame non-blocking via WebSocket, the optional drain callback
+will be invoked once all data has been written. Note that this method is
 EXPERIMENTAL and might change without warning!
 
   # Send JSON object as text frame
-  $c->send_message([text => Mojo::JSON->new->encode({hello => 'world'})]);
+  $c->send({text => Mojo::JSON->new->encode({hello => 'world'})});
+
+  # Send "Ping" frame
+  $c->send([1, 0, 0, 0, 9, 'Hello World!']);
 
 =head2 C<session>
 
@@ -955,7 +961,11 @@ Cookies failing signature verification will be automatically discarded.
   $c        = $c->stash(foo => 'bar');
 
 Non persistent data storage and exchange, application wide default values can
-be set with L<Mojolicious/"defaults">.
+be set with L<Mojolicious/"defaults">. Many stash value have a special
+meaning and are reserved, the full list is currently C<action>, C<app>,
+C<cb>, C<controller>, C<data>, C<extends>, C<format>, C<handler>, C<json>,
+C<layout>, C<namespace>, C<partial>, C<path>, C<status>, C<template> and
+C<text>.
 
   $c->stash->{foo} = 'bar';
   my $foo = $c->stash->{foo};

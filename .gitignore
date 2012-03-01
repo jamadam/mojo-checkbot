@@ -10,4 +10,5 @@ MANIFEST*
 !MANIFEST.SKIP
 pm_to_blib
 .DS_Store
+*.log
 *.pid
