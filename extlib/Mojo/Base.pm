@@ -4,10 +4,10 @@ use strict;
 use warnings;
 
 # Mojo modules are modern!
-require feature;
+use feature ();
 
 # No imports because we get subclassed, a lot!
-require Carp;
+use Carp ();
 
 # "Kids, you tried your best and you failed miserably.
 #  The lesson is, never try."
@@ -190,16 +190,16 @@ L<Mojo::Base> implements the following methods.
 
 =head2 C<new>
 
-  my $instance = BaseSubClass->new;
-  my $instance = BaseSubClass->new(name => 'value');
-  my $instance = BaseSubClass->new({name => 'value'});
+  my $object = BaseSubClass->new;
+  my $object = BaseSubClass->new(name => 'value');
+  my $object = BaseSubClass->new({name => 'value'});
 
 This base class provides a basic object constructor. You can pass it either a
 hash or a hash reference with attribute values.
 
 =head2 C<attr>
 
-  $instance->attr('name');
+  $object->attr('name');
   BaseSubClass->attr('name');
   BaseSubClass->attr([qw/name1 name2 name3/]);
   BaseSubClass->attr(name => 'foo');
@@ -207,10 +207,10 @@ hash or a hash reference with attribute values.
   BaseSubClass->attr([qw/name1 name2 name3/] => 'foo');
   BaseSubClass->attr([qw/name1 name2 name3/] => sub {...});
 
-Create attributes. An arrayref can be used to create more than one attribute.
-Pass an optional second argument to set a default value, it should be a
-constant or a sub reference. The sub reference will be excuted at accessor
-read time if there's no set value.
+Create attributes. An array reference can be used to create more than one
+attribute. Pass an optional second argument to set a default value, it should
+be a constant or a sub reference. The sub reference will be excuted at
+accessor read time if there's no set value.
 
 =head1 DEBUGGING
 

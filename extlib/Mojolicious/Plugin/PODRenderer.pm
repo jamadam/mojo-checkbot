@@ -10,10 +10,10 @@ use Pod::Simple::HTML;
 use Pod::Simple::Search;
 
 # Paths
-our @PATHS = map { $_, "$_/pods" } @INC;
+my @PATHS = map { $_, "$_/pods" } @INC;
 
 # Bundled files
-our $PERLDOC = $Mojolicious::Controller::H->slurp_rel_file('perldoc.html.ep');
+my $PERLDOC = $Mojolicious::Controller::H->slurp_rel_file('perldoc.html.ep');
 
 # "This is my first visit to the Galaxy of Terror and I'd like it to be a
 #  pleasant one."
@@ -72,7 +72,8 @@ sub register {
       # Rewrite code sections for syntax highlighting
       $dom->find('pre')->each(
         sub {
-          return if (my $e = shift)->all_text =~ /^\s*\$\s+/m;
+          my $e = shift;
+          return if $e->all_text =~ /^\s*\$\s+/m;
           my $attrs = $e->attrs;
           my $class = $attrs->{class};
           $attrs->{class} =
@@ -190,8 +191,7 @@ Handler name.
   # Mojolicious::Lite
   plugin PODRenderer => {no_perldoc => 1};
 
-Disable perldoc browser. Note that this option is EXPERIMENTAL and might
-change without warning!
+Disable perldoc browser.
 
 =head2 C<preprocess>
 

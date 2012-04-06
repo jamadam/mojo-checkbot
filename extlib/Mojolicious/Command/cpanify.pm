@@ -22,24 +22,21 @@ sub run {
 
   # Options
   local @ARGV = @_;
-  my $password = my $user = '';
+  my ($password, $user) = '';
   GetOptions(
     'p|password=s' => sub { $password = $_[1] },
     'u|user=s'     => sub { $user     = $_[1] }
   );
-  my $file = shift @ARGV;
-  die $self->usage unless $file;
+  die $self->usage unless my $file = shift @ARGV;
 
   # Upload
-  my $ua = Mojo::UserAgent->new;
-  $ua->detect_proxy;
-  my $tx = $ua->post_form(
+  my $tx = Mojo::UserAgent->new->detect_proxy->post_form(
     "https://$user:$password\@pause.perl.org/pause/authenquery" => {
       HIDDENNAME                        => $user,
       CAN_MULTIPART                     => 1,
       pause99_add_uri_upload            => basename($file),
-      SUBMIT_pause99_add_uri_httpupload => " Upload this file from my disk ",
-      pause99_add_uri_uri               => "",
+      SUBMIT_pause99_add_uri_httpupload => ' Upload this file from my disk ',
+      pause99_add_uri_uri               => '',
       pause99_add_uri_httpupload        => {file => $file},
     }
   );
@@ -71,8 +68,7 @@ Mojolicious::Command::cpanify - Cpanify command
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Command::cpanify> is a CPAN uploader. Note that this module is
-EXPERIMENTAL and might change without warning!
+L<Mojolicious::Command::cpanify> uploads files to CPAN.
 
 =head1 ATTRIBUTES
 

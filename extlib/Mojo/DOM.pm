@@ -33,8 +33,7 @@ sub DESTROY { }
 sub new {
   my $class = shift;
   my $self = bless [Mojo::DOM::HTML->new], ref $class || $class;
-  $self->parse(@_) if @_;
-  return $self;
+  return @_ ? $self->parse(@_) : $self;
 }
 
 sub all_text {
@@ -76,7 +75,7 @@ sub attrs {
 
 sub charset {
   my $self = shift;
-  return $self->[0]->charset if @_ == 0;
+  return $self->[0]->charset unless @_;
   $self->[0]->charset(shift);
   return $self;
 }
@@ -289,7 +288,7 @@ sub to_xml { shift->[0]->render }
 
 sub tree {
   my $self = shift;
-  return $self->[0]->tree if @_ == 0;
+  return $self->[0]->tree unless @_;
   $self->[0]->tree(shift);
   return $self;
 }
@@ -312,7 +311,7 @@ sub type {
 # "I want to set the record straight, I thought the cop was a prostitute."
 sub xml {
   my $self = shift;
-  return $self->[0]->xml if @_ == 0;
+  return $self->[0]->xml unless @_;
   $self->[0]->xml(shift);
   return $self;
 }
@@ -502,8 +501,7 @@ Construct a new L<Mojo::DOM> object.
   my $untrimmed = $dom->all_text(0);
 
 Extract all text content from DOM structure, smart whitespace trimming is
-disabled by default. Note that the trim argument of this method is
-EXPERIMENTAL and might change without warning!
+enabled by default.
 
   # "foo bar baz"
   $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->all_text;
@@ -597,6 +595,9 @@ Parent of element.
 
 Alias for L<Mojo::DOM::HTML/"parse">.
 
+  # Parse UTF-8 encoded XML
+  my $dom = Mojo::DOM->new->charset('UTF-8')->xml(1)->parse($xml);
+
 =head2 C<prepend>
 
   $dom = $dom->prepend('<p>Hi!</p>');
@@ -645,8 +646,7 @@ Find root node.
   my $untrimmed = $dom->text(0);
 
 Extract text content from element only (not including child elements), smart
-whitespace trimming is disabled by default. Note that the trim argument of
-this method is EXPERIMENTAL and might change without warning!
+whitespace trimming is enabled by default.
 
   # "foo baz"
   $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->text;
@@ -660,8 +660,7 @@ this method is EXPERIMENTAL and might change without warning!
   my $untrimmed = $dom->text_after(0);
 
 Extract text content immediately following element, smart whitespace trimming
-is disabled by default. Note that this method is EXPERIMENTAL and might
-change without warning!
+is enabled by default.
 
   # "baz"
   $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->p->text_after;
@@ -675,8 +674,7 @@ change without warning!
   my $untrimmed = $dom->text_before(0);
 
 Extract text content immediately preceding element, smart whitespace trimming
-is disabled by default. Note that this method is EXPERIMENTAL and might
-change without warning!
+is enabled by default.
 
   # "foo"
   $dom->parse("<div>foo\n<p>bar</p>baz\n</div>")->div->p->text_before;
@@ -711,8 +709,7 @@ Element type.
   my $xml = $dom->xml;
   $dom    = $dom->xml(1);
 
-Alias for L<Mojo::DOM::HTML/"xml">. Note that this method is EXPERIMENTAL and
-might change without warning!
+Alias for L<Mojo::DOM::HTML/"xml">.
 
 =head1 CHILD ELEMENTS
 
@@ -726,7 +723,7 @@ L<Mojo::Collection> object, depending on number of children.
 
 =head1 ELEMENT ATTRIBUTES
 
-Direct hash access to element attributes is also possible.
+Direct hash reference access to element attributes is also possible.
 
   say $dom->{foo};
   say $dom->div->{id};

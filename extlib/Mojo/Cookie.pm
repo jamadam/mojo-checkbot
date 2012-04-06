@@ -10,32 +10,11 @@ use Mojo::Util 'unquote';
 
 has [qw/name value/];
 
-my $COOKIE_SEPARATOR_RE = qr/^\s*\,\s*/;
-my $NAME_RE             = qr/
-  ^\s*
-  ([^\=\;\,]+)   # Relaxed Netscape token, allowing whitespace
-  \s*
-  \=?            # '=' (optional)
-  \s*
-/x;
-my $SEPARATOR_RE = qr/^\s*\;\s*/;
-my $VALUE_RE     = qr/
-  ^
-  (
-    "(?:\\\\|\\"|[^"])+"   # Quoted
-  |
-    [^\;\,]+               # Unquoted
-  )
-  \s*
-/x;
-
 # "My Homer is not a communist.
 #  He may be a liar, a pig, an idiot, a communist,
 #  but he is not a porn star."
+sub parse     { croak 'Method "parse" not implemented by subclass' }
 sub to_string { croak 'Method "to_string" not implemented by subclass' }
-
-# DEPRECATED in Leaf Fluttering In Wind!
-sub version { warn "Mojo::Cookie->version is DEPRECATED!\n" }
 
 sub _tokenize {
   my ($self, $string) = @_;
@@ -45,7 +24,7 @@ sub _tokenize {
   while ($string) {
 
     # Name
-    if ($string =~ s/$NAME_RE//) {
+    if ($string =~ s/^\s*([^\=\;\,]+)\s*\=?\s*//) {
       my $name = $1;
 
       # "expires" is a special case, thank you Netscape...
@@ -53,14 +32,15 @@ sub _tokenize {
 
       # Value
       my $value;
-      $value = unquote $1 if $string =~ s/$VALUE_RE//;
+      $value = unquote $1
+        if $string =~ s/^("(?:\\\\|\\"|[^"])+"|[^\;\,]+)\s*//;
 
       # Token
       push @token, [$name, $value];
 
       # Separator
-      $string =~ s/$SEPARATOR_RE//;
-      if ($string =~ s/$COOKIE_SEPARATOR_RE//) {
+      $string =~ s/^\s*\;\s*//;
+      if ($string =~ s/^\s*\,\s*//) {
         push @tree, [@token];
         @token = ();
       }
@@ -115,11 +95,17 @@ Cookie value.
 L<Mojo::Cookie> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
+=head2 C<parse>
+
+  my $cookies = $cookie->parse($string);
+
+Parse cookies. Meant to be overloaded in a subclass.
+
 =head2 C<to_string>
 
   my $string = $cookie->to_string;
 
-Render cookie.
+Render cookie. Meant to be overloaded in a subclass.
 
 =head1 SEE ALSO
 

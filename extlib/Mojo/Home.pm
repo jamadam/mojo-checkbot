@@ -19,7 +19,7 @@ has app_class => 'Mojo::HelloWorld';
 
 # "I'm normally not a praying man, but if you're up there,
 #  please save me Superman."
-sub new { shift->SUPER::new()->parse(@_) }
+sub new { shift->SUPER::new->parse(@_) }
 
 sub detect {
   my ($self, $class) = @_;
@@ -69,14 +69,8 @@ sub detect {
 
 sub lib_dir {
   my $self = shift;
-
-  # Directory found
-  my $parts = $self->{parts} || [];
-  my $path = catdir @$parts, 'lib';
-  return $path if -d $path;
-
-  # No lib directory
-  return;
+  my $path = catdir @{$self->{parts} || []}, 'lib';
+  return -d $path ? $path : undef;
 }
 
 sub list_files {
@@ -183,6 +177,8 @@ Path to C<lib> directory of application.
 
 Portably list all files in directory and subdirectories recursively.
 
+  $home->rel_file($home->list_files('templates/layouts')->[1]);
+
 =head2 C<mojo_lib_dir>
 
   my $path = $home->mojo_lib_dir;
@@ -212,6 +208,8 @@ Portably generate an absolute path from a relative UNIX style path.
   my $string = $home->slurp_rel_file('foo/bar.html');
 
 Portably read all file data at once.
+
+  my $content = $home->slurp_rel_file($home->list_files('public')->[1]);
 
 =head2 C<to_string>
 

@@ -38,8 +38,7 @@ sub run {
 
     # List test files
     my $home = Mojo::Home->new($path);
-    $_ =~ /\.t$/ and push(@tests, $home->rel_file($_))
-      for @{$home->list_files};
+    /\.t$/ and push(@tests, $home->rel_file($_)) for @{$home->list_files};
 
     $path = realpath $path;
     say "Running tests from '$path'.";
@@ -67,7 +66,7 @@ Mojolicious::Command::test - Test command
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Command::test> is a test script.
+L<Mojolicious::Command::test> runs application tests from the C<t> directory.
 
 =head1 ATTRIBUTES
 

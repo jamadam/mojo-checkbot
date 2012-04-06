@@ -1,11 +1,11 @@
 package Mojo::Util;
 use Mojo::Base 'Exporter';
 
-require Digest::MD5;
-require Digest::SHA;
-require Encode;
-require MIME::Base64;
-require MIME::QuotedPrint;
+use Digest::MD5 qw/md5 md5_hex/;
+use Digest::SHA qw/sha1 sha1_hex/;
+use Encode 'find_encoding';
+use MIME::Base64 qw/decode_base64 encode_base64/;
+use MIME::QuotedPrint qw/decode_qp encode_qp/;
 
 # Punycode bootstring parameters
 use constant {
@@ -284,20 +284,24 @@ my %REVERSE_ENTITIES = reverse %ENTITIES;
 # "apos"
 $ENTITIES{apos} = 39;
 
+# Entities regex for html_unescape
+my $ENTITIES_RE = qr/&(?:\#((?:\d{1,7}|x[0-9A-Fa-f]{1,6}))|([A-Za-z]{1,8}));/;
+
 # Encode cache
 my %ENCODE;
 
 # "Bart, stop pestering Satan!"
-our @EXPORT_OK = qw/b64_decode b64_encode camelize decamelize decode encode/;
-push @EXPORT_OK, qw/get_line hmac_md5_sum hmac_sha1_sum html_escape/;
-push @EXPORT_OK, qw/html_unescape md5_bytes md5_sum punycode_decode/;
-push @EXPORT_OK, qw/punycode_encode qp_decode qp_encode quote/;
-push @EXPORT_OK, qw/secure_compare sha1_bytes sha1_sum trim unquote/;
-push @EXPORT_OK, qw/url_escape url_unescape xml_escape/;
+our @EXPORT_OK = (
+  qw/b64_decode b64_encode camelize decamelize decode encode get_line/,
+  qw/hmac_md5_sum hmac_sha1_sum html_escape html_unescape md5_bytes md5_sum/,
+  qw/punycode_decode punycode_encode qp_decode qp_encode quote/,
+  qw/secure_compare sha1_bytes sha1_sum trim unquote url_escape/,
+  qw/url_unescape xml_escape/
+);
 
-sub b64_decode { MIME::Base64::decode_base64(shift) }
+sub b64_decode { decode_base64(shift) }
 
-sub b64_encode { MIME::Base64::encode_base64(shift, shift) }
+sub b64_encode { encode_base64(shift, shift) }
 
 sub camelize {
   my $string = shift;
@@ -345,8 +349,7 @@ sub decode {
     # Everything else
     else {
       $bytes =
-        ($ENCODE{$encoding} ||= Encode::find_encoding($encoding))
-        ->decode($bytes, 1);
+        ($ENCODE{$encoding} ||= find_encoding($encoding))->decode($bytes, 1);
     }
 
     1;
@@ -365,8 +368,7 @@ sub encode {
   }
 
   # Everything else
-  return ($ENCODE{$encoding} ||= Encode::find_encoding($encoding))
-    ->encode($chars);
+  return ($ENCODE{$encoding} ||= find_encoding($encoding))->encode($chars);
 }
 
 sub get_line {
@@ -404,27 +406,12 @@ sub html_escape {
 #  Just relax and it'll come, son."
 sub html_unescape {
   my $string = shift;
-  $string =~ s/
-    &
-    (?:
-      \#
-      (
-        (?:
-          \d{1,7}             # Number
-          |
-          x[0-9A-Fa-f]{1,6}   # Hex
-        )
-      )
-      |
-      ([A-Za-z]{1,8})         # Name
-    )
-    ;
-  /_unescape($1, $2)/gex;
+  $string =~ s/$ENTITIES_RE/_unescape($1, $2)/ge;
   return $string;
 }
 
-sub md5_bytes { Digest::MD5::md5(@_) }
-sub md5_sum   { Digest::MD5::md5_hex(@_) }
+sub md5_bytes { md5(@_) }
+sub md5_sum   { md5_hex(@_) }
 
 sub punycode_decode {
   my $input = shift;
@@ -545,9 +532,9 @@ sub punycode_encode {
   return $output;
 }
 
-sub qp_decode { MIME::QuotedPrint::decode_qp(shift) }
+sub qp_decode { decode_qp(shift) }
 
-sub qp_encode { MIME::QuotedPrint::encode_qp(shift) }
+sub qp_encode { encode_qp(shift) }
 
 sub quote {
   my $string = shift;
@@ -563,8 +550,8 @@ sub secure_compare {
   return $r == 0 ? 1 : undef;
 }
 
-sub sha1_bytes { Digest::SHA::sha1(@_) }
-sub sha1_sum   { Digest::SHA::sha1_hex(@_) }
+sub sha1_bytes { sha1(@_) }
+sub sha1_sum   { sha1_hex(@_) }
 
 sub trim {
   my $string = shift;
@@ -638,8 +625,7 @@ sub _hmac {
   my ($sha, $string, $secret) = @_;
 
   # Hash function
-  my $hash =
-    $sha ? sub { Digest::SHA::sha1(@_) } : sub { Digest::MD5::md5(@_) };
+  my $hash = $sha ? sub { sha1(@_) } : sub { md5(@_) };
 
   # Secret
   $secret ||= 'Very unsecure!';

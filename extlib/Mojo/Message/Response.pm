@@ -7,8 +7,6 @@ use Mojo::Util 'get_line';
 
 has [qw/code message/];
 
-my $START_LINE_RE = qr|^\s*HTTP/(\d\.\d)\s+(\d\d\d)\s*(.+)?$|x;
-
 # Umarked codes are from RFC 2616
 my %MESSAGES = (
   100 => 'Continue',
@@ -73,28 +71,25 @@ my %MESSAGES = (
 sub cookies {
   my $self = shift;
 
-  # Add cookies
+  # Parse cookies
   my $headers = $self->headers;
-  if (@_) {
-    for my $cookie (@_) {
-      $cookie = Mojo::Cookie::Response->new($cookie) if ref $cookie eq 'HASH';
-      $headers->add('Set-Cookie', "$cookie");
-    }
-    return $self;
+  return [map { @{Mojo::Cookie::Response->parse($_)} } $headers->set_cookie]
+    unless @_;
+
+  # Add cookies
+  for my $cookie (@_) {
+    $cookie = Mojo::Cookie::Response->new($cookie) if ref $cookie eq 'HASH';
+    $headers->add('Set-Cookie', "$cookie");
   }
 
-  # Parse cookies
-  my @cookies;
-  push @cookies, @{Mojo::Cookie::Response->parse($_)}
-    for $headers->set_cookie;
-  return \@cookies;
+  return $self;
 }
 
 sub default_message { $MESSAGES{$_[1] || $_[0]->code || 404} || '' }
 
 sub fix_headers {
   my $self = shift;
-  $self->SUPER::fix_headers(@_);
+  $self->{fix} ? return $self : $self->SUPER::fix_headers(@_);
 
   # Date header is required in responses
   my $headers = $self->headers;
@@ -137,7 +132,7 @@ sub _parse_start_line {
   # We have a full HTTP 1.0+ response line
   return unless defined(my $line = get_line \$self->{buffer});
   return $self->error('Bad response start line.')
-    unless $line =~ $START_LINE_RE;
+    unless $line =~ qr|^\s*HTTP/(\d\.\d)\s+(\d\d\d)\s*(.+)?$|;
   $self->version($1)->code($2)->message($3);
   $self->content->auto_relax(1);
   $self->{state} = 'content';
@@ -206,7 +201,7 @@ implements the following new ones.
 
   my $cookies = $res->cookies;
   $res        = $res->cookies(Mojo::Cookie::Response->new);
-  $req        = $req->cookies({name => 'foo', value => 'bar'});
+  $res        = $res->cookies({name => 'foo', value => 'bar'});
 
 Access response cookies, usually L<Mojo::Cookie::Response> objects.
 

@@ -12,36 +12,29 @@ sub run {
 
   # Environment
   my $tx  = $self->build_tx;
-  my $req = $tx->req;
-  $req->parse($env);
+  my $req = $tx->req->parse($env);
 
   # Store connection information
-  $tx->remote_address($env->{REMOTE_ADDR});
-  $tx->local_port($env->{SERVER_PORT});
+  $tx->local_port($env->{SERVER_PORT})->remote_address($env->{REMOTE_ADDR});
 
   # Request body
   my $len = $env->{CONTENT_LENGTH};
-  while (!$req->is_finished) {
+  until ($req->is_finished) {
     my $chunk = ($len && $len < CHUNK_SIZE) ? $len : CHUNK_SIZE;
-    my $read = $env->{'psgi.input'}->read(my $buffer, $chunk, 0);
-    last unless $read;
+    last unless my $read = $env->{'psgi.input'}->read(my $buffer, $chunk, 0);
     $req->parse($buffer);
-    $len -= $read;
-    last if $len <= 0;
+    last if ($len -= $read) <= 0;
   }
 
   # Handle
   $self->emit(request => $tx);
 
   # Response headers
-  my $res = $tx->res;
-  $res->fix_headers;
+  my $res     = $tx->res->fix_headers;
   my $headers = $res->content->headers;
   my @headers;
   for my $name (@{$headers->names}) {
-    for my $values ($headers->header($name)) {
-      push @headers, $name => $_ for @$values;
-    }
+    push @headers, $name => $_ for map {@$_} $headers->header($name);
   }
 
   # PSGI response
@@ -50,7 +43,10 @@ sub run {
 }
 
 sub to_psgi_app {
-  (my $self = shift)->app;
+  my $self = shift;
+
+  # Preload application and wrap it
+  $self->app;
   return sub { $self->run(@_) }
 }
 
@@ -65,21 +61,16 @@ sub close { shift->{tx}->server_close }
 sub getline {
   my $self = shift;
 
-  # Blocking read
-  my $res = $self->{tx}->res;
-  while (1) {
-    my $chunk = $res->get_body_chunk($self->{offset} //= 0);
+  # No content yet, try again later
+  my $chunk = $self->{tx}->res->get_body_chunk($self->{offset} //= 0);
+  return '' unless defined $chunk;
 
-    # No content yet, try again
-    sleep 1 and next unless defined $chunk;
+  # End of content
+  return unless length $chunk;
 
-    # End of content
-    return unless length $chunk;
-
-    # Content
-    $self->{offset} += length $chunk;
-    return $chunk;
-  }
+  # Content
+  $self->{offset} += length $chunk;
+  return $chunk;
 }
 
 1;
@@ -138,8 +129,7 @@ Run L<PSGI>.
 
   my $app = $psgi->to_psgi_app;
 
-Turn L<Mojo> application into L<PSGI> application. Note that this method is
-EXPERIMENTAL and might change without warning!
+Turn L<Mojo> application into L<PSGI> application.
 
 =head1 SEE ALSO
 

@@ -1,20 +1,18 @@
 package Mojolicious::Routes::Pattern;
 use Mojo::Base -base;
 
-has defaults => sub { {} };
-has format   => sub {qr#\.([^/]+)$#};
+has [qw/defaults reqs/] => sub { {} };
+has format => sub {qr#\.([^/]+)$#};
 has [qw/pattern regex/];
-has quote_end      => ')';
-has quote_start    => '(';
-has relaxed_start  => '.';
-has reqs           => sub { {} };
-has symbol_start   => ':';
-has symbols        => sub { [] };
-has tree           => sub { [] };
+has quote_end     => ')';
+has quote_start   => '(';
+has relaxed_start => '.';
+has symbol_start  => ':';
+has [qw/symbols tree/] => sub { [] };
 has wildcard_start => '*';
 
 # "This is the worst kind of discrimination. The kind against me!"
-sub new { shift->SUPER::new()->parse(@_) }
+sub new { shift->SUPER::new->parse(@_) }
 
 sub match {
   my ($self, $path) = @_;
@@ -39,10 +37,7 @@ sub parse {
     if $pattern =~ m#\.([^/\)]+)$#;
 
   # Tokenize
-  $self->pattern($pattern);
-  $self->_tokenize;
-
-  return $self;
+  return $self->pattern($pattern)->_tokenize;
 }
 
 sub render {
@@ -116,7 +111,7 @@ sub shape_match {
 sub _compile {
   my $self = shift;
 
-  # Compile format regular expression
+  # Compile format regex
   my $reqs = $self->reqs;
   if (!exists $reqs->{format} || $reqs->{format}) {
     my $format =
@@ -124,7 +119,7 @@ sub _compile {
     $self->format(qr#\.$format$#);
   }
 
-  # Compile tree to regular expression
+  # Compile tree to regex
   my $block    = '';
   my $regex    = '';
   my $optional = 1;
@@ -180,7 +175,7 @@ sub _compile {
   $regex = "$block$regex" if $block;
 
   # Compile
-  $regex = qr/^$regex/;
+  $regex = qr/^$regex/s;
   $self->regex($regex);
 
   return $regex;
@@ -189,7 +184,7 @@ sub _compile {
 # "Interesting... Oh no wait, the other thing, tedious."
 sub _compile_req {
   my $req = shift;
-  return "($req)" if !ref $req || ref $req ne 'ARRAY';
+  return "($req)" if ref $req ne 'ARRAY';
   return '(' . join('|', map {quotemeta} reverse sort @$req) . ')';
 }
 
@@ -207,61 +202,52 @@ sub _tokenize {
   my $pattern = $self->pattern;
   my $tree    = [];
   my $state   = 'text';
-  my $quoted  = 0;
+  my $quoted;
   while (length(my $char = substr $pattern, 0, 1, '')) {
 
     # Inside a symbol
-    my $symbol = $state ~~ [qw/relaxed symbol wildcard/] ? 1 : 0;
+    my $symbol = $state ~~ [qw/relaxed symbol wildcard/];
 
     # Quote start
     if ($char eq $quote_start) {
       $quoted = 1;
       $state  = 'symbol';
       push @$tree, ['symbol', ''];
-      next;
     }
 
     # Symbol start
-    if ($char eq $symbol_start) {
+    elsif ($char eq $symbol_start) {
       push @$tree, ['symbol', ''] if $state ne 'symbol';
       $state = 'symbol';
-      next;
     }
 
     # Relaxed start (needs to be quoted)
-    if ($quoted && $char eq $relaxed_start && $state eq 'symbol') {
+    elsif ($quoted && $char eq $relaxed_start && $state eq 'symbol') {
       $state = 'relaxed';
       $tree->[-1]->[0] = 'relaxed';
-      next;
     }
 
     # Wildcard start (upgrade when quoted)
-    if ($char eq $wildcard_start) {
+    elsif ($char eq $wildcard_start) {
       push @$tree, ['symbol', ''] unless $quoted;
       $state = 'wildcard';
       $tree->[-1]->[0] = 'wildcard';
-      next;
     }
 
     # Quote end
-    if ($char eq $quote_end) {
+    elsif ($char eq $quote_end) {
       $quoted = 0;
       $state  = 'text';
-      next;
     }
 
     # Slash
-    if ($char eq '/') {
+    elsif ($char eq '/') {
       push @$tree, ['slash'];
       $state = 'text';
-      next;
     }
 
     # Relaxed, symbol or wildcard
-    elsif ($symbol && $char =~ /\w/) {
-      $tree->[-1]->[-1] .= $char;
-      next;
-    }
+    elsif ($symbol && $char =~ /\w/) { $tree->[-1]->[-1] .= $char }
 
     # Text
     else {
@@ -277,9 +263,8 @@ sub _tokenize {
       $tree->[-1]->[-1] .= $char;
     }
   }
-  $self->tree($tree);
 
-  return $self;
+  return $self->tree($tree);
 }
 
 1;
@@ -320,8 +305,7 @@ Default parameters.
   my $regex = $pattern->format;
   $pattern  = $pattern->format($regex);
 
-Compiled regex for format matching, defaults to C<\.([^/]+)$>. Note that this
-attribute is EXPERIMENTAL and might change without warning!
+Compiled regex for format matching, defaults to C<\.([^/]+)$>.
 
 =head2 C<pattern>
 

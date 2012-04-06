@@ -11,22 +11,18 @@ use constant CHUNK_SIZE => $ENV{MOJO_CHUNK_SIZE} || 131072;
 
 # "If for any reason you're not completely satisfied, I hate you."
 has [qw/auto_escape compiled/];
-has [qw/append code prepend/] => '';
-has capture_end     => 'end';
-has capture_start   => 'begin';
-has comment_mark    => '#';
-has encoding        => 'UTF-8';
-has escape_mark     => '=';
-has expression_mark => '=';
-has line_start      => '%';
-has name            => 'template';
-has namespace       => 'Mojo::Template::SandBox';
-has replace_mark    => '%';
-has tag_start       => '<%';
-has tag_end         => '%>';
-has template        => '';
-has tree            => sub { [] };
-has trim_mark       => '=';
+has [qw/append code prepend template/] => '';
+has capture_end   => 'end';
+has capture_start => 'begin';
+has comment_mark  => '#';
+has encoding      => 'UTF-8';
+has [qw/escape_mark expression_mark trim_mark/] => '=';
+has [qw/line_start replace_mark/] => '%';
+has name      => 'template';
+has namespace => 'Mojo::Template::SandBox';
+has tag_start => '<%';
+has tag_end   => '%>';
+has tree      => sub { [] };
 
 # Helpers
 my $HELPERS = <<'EOF';
@@ -38,7 +34,7 @@ sub capture;
 *capture = sub { shift->(@_) };
 sub escape;
 *escape = sub {
-  return $_[0] if ref $_[0] && ref $_[0] eq 'Mojo::ByteStream';
+  return $_[0] if ref $_[0] eq 'Mojo::ByteStream';
   no warnings 'uninitialized';
   Mojo::Util::xml_escape "$_[0]";
 };
@@ -49,7 +45,7 @@ $HELPERS =~ s/\n//g;
 sub build {
   my $self = shift;
 
-  # Compile
+  # Lines
   my (@lines, $cpst);
   my $multi = 0;
   for my $line (@{$self->tree}) {
@@ -109,32 +105,22 @@ sub build {
         $lines[-1] .= ';' if !$multi && !$cpst;
       }
 
-      # Capture started
+      # Capture start
       if ($cpst) {
         $lines[-1] .= $cpst;
         $cpst = undef;
       }
-
-      # Capture start
-      if ($type eq 'cpst') { $cpst = " sub { my \$_M = ''; " }
+      $cpst = " sub { my \$_M = ''; " if $type eq 'cpst';
     }
   }
 
-  # Wrap
-  my $prepend   = $self->prepend;
-  my $append    = $self->append;
-  my $namespace = $self->namespace;
-  $lines[0] ||= '';
-  $lines[0] =
-    "package $namespace; $HELPERS sub { my \$_M = ''; $prepend; do {"
-    . $lines[0];
-  $lines[-1] .= "$append; \$_M; } };";
+  # Closure
+  my $first = $lines[0] ||= '';
+  $lines[0] = 'package ' . $self->namespace . "; $HELPERS ";
+  $lines[0]  .= "sub { my \$_M = ''; " . $self->prepend . "; do { $first";
+  $lines[-1] .= $self->append . "; \$_M; } };";
 
-  # Final code
-  $self->code(join "\n", @lines);
-  $self->tree([]);
-
-  return $self;
+  return $self->code(join "\n", @lines)->tree([]);
 }
 
 sub compile {
@@ -156,14 +142,6 @@ sub compile {
 sub interpret {
   my $self = shift;
 
-  # Compile
-  unless ($self->compiled) {
-    my $e = $self->compile;
-    return $e if ref $e;
-  }
-  my $compiled = $self->compiled;
-  return unless $compiled;
-
   # Stacktrace
   local $SIG{__DIE__} = sub {
     CORE::die($_[0]) if ref $_[0];
@@ -172,6 +150,7 @@ sub interpret {
   };
 
   # Interpret
+  return unless my $compiled = $self->compiled;
   my $output = eval { $compiled->(@_) };
   $output =
     Mojo::Exception->new($@, [$self->template], $self->name)->verbose(1)
@@ -185,57 +164,52 @@ sub parse {
   my ($self, $tmpl) = @_;
 
   # Clean start
-  $self->template($tmpl);
-  delete $self->{tree};
+  delete $self->template($tmpl)->{tree};
 
   # Token
-  my $raw_start     = $self->line_start;
-  my $raw_tag_start = $self->tag_start;
-  my $raw_tag_end   = $self->tag_end;
-  my $raw_expr      = $self->expression_mark;
-  my $raw_trim      = $self->trim_mark;
-  my $raw_replace   = $self->replace_mark;
-  my $start         = quotemeta $raw_start;
-  my $tag_start     = quotemeta $raw_tag_start;
-  my $tag_end       = quotemeta $raw_tag_end;
-  my $cmnt          = quotemeta $self->comment_mark;
-  my $escp          = quotemeta $self->escape_mark;
-  my $expr          = quotemeta $raw_expr;
-  my $trim          = quotemeta $raw_trim;
-  my $cpst          = quotemeta $self->capture_start;
-  my $cpen          = quotemeta $self->capture_end;
-  my $replace       = quotemeta $raw_replace;
+  my $tag     = $self->tag_start;
+  my $replace = $self->replace_mark;
+  my $expr    = $self->expression_mark;
+  my $escp    = $self->escape_mark;
+  my $cpen    = $self->capture_end;
+  my $cmnt    = $self->comment_mark;
+  my $cpst    = $self->capture_start;
+  my $trim    = $self->trim_mark;
+  my $end     = $self->tag_end;
+  my $start   = $self->line_start;
 
-  # Token regex
+  # Precompile
   my $token_re = qr/
     (
-    $tag_start$replace             # Replace
+      \Q$tag$replace\E                 # Replace
     |
-    $tag_start$expr$escp\s*$cpen   # Escaped expression (end)
+      \Q$tag$expr$escp\E\s*\Q$cpen\E   # Escaped expression (end)
     |
-    $tag_start$expr$escp           # Escaped expression
+      \Q$tag$expr$escp\E               # Escaped expression
     |
-    $tag_start$expr\s*$cpen        # Expression (end)
+      \Q$tag$expr\E\s*\Q$cpen\E        # Expression (end)
     |
-    $tag_start$expr                # Expression
+      \Q$tag$expr\E                    # Expression
     |
-    $tag_start$cmnt\s*$cpen        # Comment (end)
+      \Q$tag$cmnt\E\s*\Q$cpen\E        # Comment (end)
     |
-    $tag_start$cmnt                # Comment
+      \Q$tag$cmnt\E                    # Comment
     |
-    $tag_start\s*$cpen             # Code (end)
+      \Q$tag\E\s*\Q$cpen\E             # Code (end)
     |
-    $tag_start                     # Code
+      \Q$tag\E                         # Code
     |
-    $cpst\s*$trim$tag_end          # Trim end (start)
+      \Q$cpst\E\s*\Q$trim$end\E        # Trim end (start)
     |
-    $trim$tag_end                  # Trim end
+      \Q$trim$end\E                    # Trim end
     |
-    $cpst\s*$tag_end               # End (start)
+      \Q$cpst\E\s*\Q$end\E             # End (start)
     |
-    $tag_end                       # End
+      \Q$end\E                         # End
     )
   /x;
+  my $cpen_re = qr/^(\Q$tag\E)(?:\Q$expr\E)?(?:\Q$escp\E)?\s*\Q$cpen\E/;
+  my $end_re  = qr/^(?:(\Q$cpst\E)\s*)?(\Q$trim\E)?\Q$end\E$/;
 
   # Split lines
   my $state = 'text';
@@ -245,11 +219,9 @@ sub parse {
     $trimming = 0 if $state eq 'text';
 
     # Perl line
-    if ($state eq 'text' && $line !~ s/^(\s*)$start$replace/$1$raw_start/) {
-      $line =~ s/^(\s*)$start($expr)?// and $line =
-        $2
-        ? "$1$raw_tag_start$2$line $raw_tag_end"
-        : "$raw_tag_start$line $raw_trim$raw_tag_end";
+    if ($state eq 'text' && $line !~ s/^(\s*)\Q$start$replace\E/$1$start/) {
+      $line =~ s/^(\s*)\Q$start\E(\Q$expr\E)?//
+        and $line = $2 ? "$1$tag$2$line $end" : "$tag$line $trim$end";
     }
 
     # Escaped line ending
@@ -260,10 +232,7 @@ sub parse {
       if ($len == 1) { $line =~ s/\\$// }
 
       # Backslash
-      if ($len >= 2) {
-        $line =~ s/\\\\$/\\/;
-        $line .= "\n";
-      }
+      elsif ($len > 1) { $line =~ s/\\\\$/\\\n/ }
     }
 
     # Normal line ending
@@ -274,11 +243,10 @@ sub parse {
     for my $token (split $token_re, $line) {
 
       # Capture end
-      @capture_token = ('cpen', undef)
-        if $token =~ s/^($tag_start)(?:$expr)?(?:$escp)?\s*$cpen/$1/;
+      @capture_token = ('cpen', undef) if $token =~ s/$cpen_re/$1/;
 
       # End
-      if ($state ne 'text' && $token =~ /^(?:($cpst)\s*)?($trim)?$tag_end$/) {
+      if ($state ne 'text' && $token =~ $end_re) {
         $state = 'text';
 
         # Capture start
@@ -295,22 +263,22 @@ sub parse {
       }
 
       # Code
-      elsif ($token =~ /^$tag_start$/) { $state = 'code' }
+      elsif ($token =~ /^\Q$tag\E$/) { $state = 'code' }
 
       # Expression
-      elsif ($token =~ /^$tag_start$expr$/) { $state = 'expr' }
+      elsif ($token =~ /^\Q$tag$expr\E$/) { $state = 'expr' }
 
       # Expression that needs to be escaped
-      elsif ($token =~ /^$tag_start$expr$escp$/) { $state = 'escp' }
+      elsif ($token =~ /^\Q$tag$expr$escp\E$/) { $state = 'escp' }
 
       # Comment
-      elsif ($token =~ /^$tag_start$cmnt$/) { $state = 'cmnt' }
+      elsif ($token =~ /^\Q$tag$cmnt\E$/) { $state = 'cmnt' }
 
       # Value
       else {
 
         # Replace
-        $token = $raw_tag_start if $token eq "$raw_tag_start$raw_replace";
+        $token = $tag if $token eq "$tag$replace";
 
         # Convert whitespace text to line noise
         if ($trimming && $token =~ s/^(\s+)//) {
@@ -332,19 +300,8 @@ sub parse {
 
 sub render {
   my $self = shift;
-
-  # Parse
-  $self->parse(shift);
-
-  # Build
-  $self->build;
-
-  # Compile
-  my $e = $self->compile;
-  return $e if $e;
-
-  # Interpret
-  return $self->interpret(@_);
+  my $e    = $self->parse(shift)->build->compile;
+  return $e ? $e : $self->interpret(@_);
 }
 
 sub render_file {
@@ -355,9 +312,7 @@ sub render_file {
   croak qq/Can't open template "$path": $!/
     unless my $file = IO::File->new("< $path");
   my $tmpl = '';
-  while ($file->sysread(my $buffer, CHUNK_SIZE, 0)) {
-    $tmpl .= $buffer;
-  }
+  while ($file->sysread(my $buffer, CHUNK_SIZE, 0)) { $tmpl .= $buffer }
 
   # Decode and render
   $tmpl = decode $self->encoding, $tmpl if $self->encoding;

@@ -9,8 +9,20 @@ use Mojo::Content::Single;
 use Mojo::Home;
 use Mojo::Path;
 
-has default_static_class => 'main';
-has paths => sub { [] };
+has classes => sub { ['main'] };
+has paths   => sub { [] };
+
+# DEPRECATED in Leaf Fluttering In Wind!
+sub default_static_class {
+  warn <<EOF;
+Mojolicious::Static->default_static_class is DEPRECATED in favor of
+Mojolicious::Static->classes!
+EOF
+  my $self = shift;
+  return $self->classes->[0] unless @_;
+  $self->classes->[0] = shift;
+  return $self;
+}
 
 # "Valentine's Day's coming? Aw crap! I forgot to get a girlfriend again!"
 sub dispatch {
@@ -34,9 +46,7 @@ sub dispatch {
   # Serve static file
   return unless $self->serve($c, join('/', @parts));
   $stash->{'mojo.static'}++;
-  $c->rendered;
-
-  return 1;
+  return $c->rendered;
 }
 
 # DEPRECATED in Leaf Fluttering In Wind!
@@ -60,17 +70,14 @@ sub serve {
   my $modified = $self->{modified} ||= time;
   my $res      = $c->res;
   for my $path (@{$self->paths}) {
-    my $file = catfile($path, split('/', $rel));
-    next unless my $data = $self->_get_file($file);
-
-    # Forbidded
-    unless (@$data) {
-      $c->app->log->debug(qq/File "$rel" is forbidden./);
-      $res->code(403) and return;
-    }
+    next unless my $data = $self->_get_file(catfile $path, split('/', $rel));
 
     # Exists
-    ($asset, $size, $modified) = @$data;
+    last if ($asset, $size, $modified) = @$data;
+
+    # Forbidded
+    $c->app->log->debug(qq/File "$rel" is forbidden./);
+    $res->code(403) and return;
   }
 
   # Search DATA
@@ -98,10 +105,9 @@ sub serve {
     # Not modified
     my $since = Mojo::Date->new($date)->epoch;
     if (defined $since && $since == $modified) {
-      $res_headers->remove('Content-Type');
-      $res_headers->remove('Content-Length');
-      $res_headers->remove('Content-Disposition');
-      $res->code(304) and return 1;
+      $res_headers->remove('Content-Type')->remove('Content-Length')
+        ->remove('Content-Disposition');
+      return $res->code(304);
     }
   }
 
@@ -118,20 +124,16 @@ sub serve {
     }
 
     # Not satisfiable
-    else { $res->code(416) and return 1 }
+    else { return $res->code(416) }
   }
-  $asset->start_range($start);
-  $asset->end_range($end);
+  $asset->start_range($start)->end_range($end);
 
   # Serve file
   $res->code(200) unless $res->code;
   $res->content->asset($asset);
   $rel =~ /\.(\w+)$/;
-  $res_headers->content_type($c->app->types->type($1) || 'text/plain');
-  $res_headers->accept_ranges('bytes');
-  $res_headers->last_modified(Mojo::Date->new($modified));
-
-  return 1;
+  return $res_headers->content_type($c->app->types->type($1) || 'text/plain')
+    ->accept_ranges('bytes')->last_modified(Mojo::Date->new($modified));
 }
 
 # "I like being a women.
@@ -142,21 +144,21 @@ sub _get_data_file {
   # Protect templates
   return if $rel =~ /\.\w+\.\w+$/;
 
-  # Detect DATA class
-  my $class = $c->stash->{static_class} || $self->default_static_class;
-
-  # Find DATA file
-  my $data = $self->{data_files}->{$class}
-    ||= [keys %{Mojo::Command->new->get_all_data($class) || {}}];
-  for my $path (@$data) {
-    return Mojo::Command->new->get_data($path, $class) if $path eq $rel;
+  # Index DATA files
+  unless ($self->{index}) {
+    my $index = $self->{index} = {};
+    for my $class (reverse @{$self->classes}) {
+      $index->{$_} = $class for keys %{Mojo::Command->get_all_data($class)};
+    }
   }
 
-  return;
+  # Find file
+  return Mojo::Command->get_data($rel, $self->{index}->{$rel});
 }
 
 sub _get_file {
   my ($self, $path, $rel) = @_;
+  no warnings 'newline';
   return unless -f $path;
   return [] unless -r $path;
   return [Mojo::Asset::File->new(path => $path), (stat $path)[7, 9]];
@@ -184,19 +186,23 @@ C<If-Modified-Since> support.
 
 L<Mojolicious::Static> implements the following attributes.
 
-=head2 C<default_static_class>
+=head2 C<classes>
 
-  my $class = $static->default_static_class;
-  $static   = $static->default_static_class('main');
+  my $classes = $static->classes;
+  $static     = $static->classes(['main']);
 
-Class to use for finding files in C<DATA> section, defaults to C<main>.
+Classes to use for finding files in C<DATA> section, first one has the
+highest precedence, defaults to C<main>.
+
+  # Add another class with static files in DATA section
+  push @{$static->classes}, 'Mojolicious::Plugin::Fun';
 
 =head2 C<paths>
 
   my $paths = $static->paths;
   $static   = $static->paths(['/foo/bar/public']);
 
-Directories to serve static files from.
+Directories to serve static files from, first one has the highest precedence.
 
   # Add another "public" directory
   push @{$static->paths}, '/foo/bar/public';
@@ -208,15 +214,15 @@ and implements the following ones.
 
 =head2 C<dispatch>
 
-  my $success = $static->dispatch($c);
+  my $success = $static->dispatch(Mojolicious::Controller->new);
 
 Dispatch a L<Mojolicious::Controller> object.
 
 =head2 C<serve>
 
-  my $success = $static->serve($c, 'foo/bar.html');
+  my $success = $static->serve(Mojolicious::Controller->new, 'foo/bar.html');
 
-Serve a specific file, relative to C<paths>.
+Serve a specific file, relative to C<paths> or from C<classes>.
 
 =head1 SEE ALSO
 

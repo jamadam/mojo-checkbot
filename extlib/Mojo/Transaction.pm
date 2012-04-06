@@ -25,8 +25,7 @@ sub error {
   my $req  = $self->req;
   return $req->error if $req->error;
   my $res = $self->res;
-  return $res->error if $res->error;
-  return;
+  return $res->error ? $res->error : undef;
 }
 
 sub is_finished { (shift->{state} || '') eq 'finished' }
@@ -39,11 +38,11 @@ sub is_writing {
 }
 
 sub remote_address {
-  my ($self, $address) = @_;
+  my $self = shift;
 
   # New address
-  if ($address) {
-    $self->{remote_address} = $address;
+  if (@_) {
+    $self->{remote_address} = shift;
     return $self;
   }
 
@@ -70,8 +69,7 @@ sub server_write { croak 'Method "server_write" not implemented by subclass' }
 
 sub success {
   my $self = shift;
-  return $self->res unless $self->error;
-  return;
+  return $self->error ? undef : $self->res;
 }
 
 1;
@@ -152,6 +150,7 @@ Local interface port.
 
 Previous transaction that triggered this followup transaction.
 
+  # Path of previous request
   say $tx->previous->req->url->path;
 
 =head2 C<remote_address>
@@ -197,13 +196,13 @@ Transaction closed.
 
   $tx->client_read($chunk);
 
-Read and process client data.
+Read and process client data. Meant to be overloaded in a subclass.
 
 =head2 C<client_write>
 
   my $chunk = $tx->client_write;
 
-Write client data.
+Write client data. Meant to be overloaded in a subclass.
 
 =head2 C<connection>
 
@@ -253,13 +252,13 @@ Transaction closed.
 
   $tx->server_read($chunk);
 
-Read and process server data.
+Read and process server data. Meant to be overloaded in a subclass.
 
 =head2 C<server_write>
 
   my $chunk = $tx->server_write;
 
-Write server data.
+Write server data. Meant to be overloaded in a subclass.
 
 =head2 C<success>
 
@@ -269,6 +268,7 @@ Returns the L<Mojo::Message::Response> object (C<res>) if transaction was
 successful or C<undef> otherwise. Connection and parser errors have only a
 message in C<error>, 400 and 500 responses also a code.
 
+  # Sensible exception handling
   if (my $res = $tx->success) {
     say $res->body;
   }

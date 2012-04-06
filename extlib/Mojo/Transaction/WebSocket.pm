@@ -81,19 +81,13 @@ sub build_frame {
     warn "OPCODE: $op\n";
   }
 
-  # Payload
-  $frame .= $payload;
-
-  return $frame;
+  return $frame . $payload;
 }
 
 sub client_challenge {
   my $self = shift;
-
-  # Solve WebSocket challenge
-  my $solution = $self->_challenge($self->req->headers->sec_websocket_key);
-  return unless $solution eq $self->res->headers->sec_websocket_accept;
-  return 1;
+  return $self->_challenge($self->req->headers->sec_websocket_key) eq
+    $self->res->headers->sec_websocket_accept ? 1 : undef;
 }
 
 sub client_handshake {
@@ -110,8 +104,6 @@ sub client_handshake {
   # Generate WebSocket challenge
   $headers->sec_websocket_key(b64_encode(pack('N*', int(rand 9999999)), ''))
     unless $headers->sec_websocket_key;
-
-  return $self;
 }
 
 sub client_read  { shift->server_read(@_) }
@@ -127,6 +119,7 @@ sub finish {
 
 sub is_websocket {1}
 
+sub kept_alive    { shift->handshake->kept_alive }
 sub local_address { shift->handshake->local_address }
 sub local_port    { shift->handshake->local_port }
 
@@ -227,7 +220,7 @@ sub send {
   my ($self, $frame, $cb) = @_;
 
   # Binary or raw text
-  if (ref $frame && ref $frame eq 'HASH') {
+  if (ref $frame eq 'HASH') {
     $frame =
       exists $frame->{text}
       ? [1, 0, 0, 0, TEXT, $frame->{text}]
@@ -262,8 +255,6 @@ sub server_handshake {
   $res_headers->sec_websocket_protocol($1) if $1;
   $res_headers->sec_websocket_accept(
     $self->_challenge($req_headers->sec_websocket_key));
-
-  return $self;
 }
 
 sub server_read {
@@ -303,7 +294,7 @@ sub server_read {
   }
 
   # Resume
-  return $self->emit('resume');
+  $self->emit('resume');
 }
 
 sub server_write {
@@ -332,9 +323,7 @@ sub _xor_mask {
   $mask = $mask x 128;
   my $output = '';
   $output .= $_ ^ $mask while length($_ = substr($input, 0, 512, '')) == 512;
-  $output .= $_ ^ substr($mask, 0, length, '');
-
-  return $output;
+  return $output .= $_ ^ substr($mask, 0, length, '');
 }
 
 1;
@@ -353,8 +342,7 @@ Mojo::Transaction::WebSocket - WebSocket transaction container
 =head1 DESCRIPTION
 
 L<Mojo::Transaction::WebSocket> is a container for WebSocket transactions as
-described in RFC 6455. Note that this module is EXPERIMENTAL and might change
-without warning!
+described in RFC 6455.
 
 =head1 EVENTS
 
@@ -447,6 +435,9 @@ L<Mojo::Transaction> and implements the following new ones.
 
 Build WebSocket frame.
 
+  # Build single "Binary" frame
+  say $ws->build_frame(1, 0, 0, 0, 2, 'Hello World!');
+
 =head2 C<client_challenge>
 
   my $success = $ws->client_challenge;
@@ -489,6 +480,12 @@ Finish the WebSocket connection gracefully.
 
 True.
 
+=head2 C<kept_alive>
+
+  my $kept_alive = $ws->kept_alive;
+
+Alias for L<Mojo::Transaction/"kept_alive">.
+
 =head2 C<local_address>
 
   my $local_address = $ws->local_address;
@@ -506,6 +503,15 @@ Alias for L<Mojo::Transaction/"local_port">.
   my $frame = $ws->parse_frame(\$bytes);
 
 Parse WebSocket frame.
+
+  # Parse single frame and remove it from buffer
+  my $frame = $ws->parse_frame(\$buffer);
+  say "Fin: $frame->[0]";
+  say "Rsv1: $frame->[1]";
+  say "Rsv2: $frame->[2]";
+  say "Rsv3: $frame->[3]";
+  say "Op: $frame->[4]";
+  say "Payload: $frame->[5]";
 
 =head2 C<remote_address>
 
@@ -525,15 +531,11 @@ Alias for L<Mojo::Transaction/"remote_port">.
 
 Alias for L<Mojo::Transaction/"req">.
 
-  $ws->req->headers->header('X-Bender' => 'Bite my shiny metal ass!');
-
 =head2 C<res>
 
   my $res = $ws->res;
 
 Alias for L<Mojo::Transaction/"res">.
-
-  $ws->res->headers->header('X-Bender' => 'Bite my shiny metal ass!');
 
 =head2 C<resume>
 

@@ -4,11 +4,10 @@ use Mojo::Base -base;
 use Mojo::JSON;
 use Mojo::Util qw/b64_decode b64_encode/;
 
-has 'cookie_domain';
+has [qw/cookie_domain secure/];
 has cookie_name        => 'mojolicious';
 has cookie_path        => '/';
 has default_expiration => 3600;
-has secure             => 0;
 
 # JSON serializer
 my $JSON = Mojo::JSON->new;
@@ -152,13 +151,13 @@ implements the following ones.
 
 =head2 C<load>
 
-  $session->load($c);
+  $session->load(Mojolicious::Controller->new);
 
 Load session data from signed cookie.
 
 =head2 C<store>
 
-  $session->store($c);
+  $session->store(Mojolicious::Controller->new);
 
 Store session data in signed cookie.
 

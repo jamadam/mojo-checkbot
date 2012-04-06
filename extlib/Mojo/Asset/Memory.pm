@@ -11,31 +11,27 @@ has max_memory_size => sub { $ENV{MOJO_MAX_MEMORY_SIZE} || 262144 };
 # "There's your giraffe, little girl.
 #  I'm a boy.
 #  That's the spirit. Never give up."
-sub new {
-  my $self = shift->SUPER::new(@_);
-  $self->{content} = '';
-  return $self;
-}
+sub new { shift->SUPER::new(@_, content => '') }
 
 sub add_chunk {
   my ($self, $chunk) = @_;
+
   $self->{content} .= $chunk if defined $chunk;
   return $self
     if !$self->auto_upgrade || $self->size <= $self->max_memory_size;
-  $self->emit(upgrade => my $file = Mojo::Asset::File->new);
+  my $file = Mojo::Asset::File->new;
+  $self->emit(upgrade => $file);
+
   return $file->add_chunk($self->slurp);
 }
 
 sub contains {
-  my $self = shift;
-
+  my $self  = shift;
   my $start = $self->start_range;
-  my $pos = index $self->{content}, shift, $start;
+  my $pos   = index $self->{content}, shift, $start;
   $pos -= $start if $start && $pos >= 0;
   my $end = $self->end_range;
-
-  return -1 if $end && $pos >= $end;
-  return $pos;
+  return $end && $pos >= $end ? -1 : $pos;
 }
 
 sub get_chunk {
@@ -90,6 +86,7 @@ L<Mojo::Asset::Memory> can emit the following events.
 
   $mem->on(upgrade => sub {
     my ($mem, $file) = @_;
+    ...
   });
 
 Emitted when asset gets upgraded to a L<Mojo::Asset::File> object.
@@ -117,8 +114,8 @@ automatically upgrade to a L<Mojo::Asset::File> object.
   my $size = $mem->max_memory_size;
   $mem     = $mem->max_memory_size(1024);
 
-Maximum asset size in bytes, only attempt upgrading to a L<Mojo::Asset::File>
-object after reaching this limit, defaults to the value of the
+Maximum size in bytes of data to keep in memory before automatically
+upgrading to a L<Mojo::Asset::File> object, defaults to the value of the
 C<MOJO_MAX_MEMORY_SIZE> environment variable or C<262144>.
 
 =head1 METHODS

@@ -33,8 +33,6 @@ sub client_read {
 
   # Check for errors
   $self->{state} = 'finished' if $self->error;
-
-  return $self;
 }
 
 sub client_write {
@@ -133,8 +131,6 @@ sub server_read {
       $self->{continued} = 0;
     }
   }
-
-  return $self;
 }
 
 sub server_write {
@@ -308,8 +304,7 @@ Emitted when a request is ready and needs to be handled.
   });
 
 Emitted when transaction gets upgraded to a L<Mojo::Transaction::WebSocket>
-object. Note that this event is EXPERIMENTAL and might change without
-warning!
+object.
 
   $tx->on(upgrade => sub {
     my ($tx, $ws) = @_;

@@ -15,7 +15,7 @@ has verbose => sub { $ENV{MOJO_EXCEPTION_VERBOSE} || 0 };
 # "Attempted murder? Now honestly, what is that?
 #  Do they give a Nobel Prize for attempted chemistry?"
 sub new {
-  my $self = shift->SUPER::new();
+  my $self = shift->SUPER::new;
   return @_ ? $self->_detect(@_) : $self;
 }
 
@@ -69,7 +69,7 @@ sub _detect {
   }
 
   # Search for context
-  foreach my $frame (reverse @trace) {
+  for my $frame (reverse @trace) {
     next unless -r $frame->[0];
     my $handle = IO::File->new($frame->[0], '<:utf8');
     $self->_parse_context($frame->[1], [[<$handle>]]);
@@ -95,9 +95,8 @@ sub _detect {
   }
 
   # Search for better context
-  $name = quotemeta $name;
   my $line;
-  if ($self->message =~ /at\s+$name\s+line\s+(\d+)/) { $line = $1 }
+  if ($self->message =~ /at\s+\Q$name\E\s+line\s+(\d+)/) { $line = $1 }
   else {
     for my $frame (@{$self->frames}) {
       next unless $frame->[1] =~ /^\(eval\ \d+\)$/;
@@ -149,8 +148,6 @@ sub _parse_context {
       }
     }
   }
-
-  return $self;
 }
 
 1;

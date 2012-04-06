@@ -1,4 +1,3 @@
-#!/usr/bin/env perl
 use Mojo::Base -strict;
 use File::Basename 'dirname';
 use File::Spec;
@@ -8,16 +7,15 @@ use lib join '/', File::Spec->splitdir(dirname(__FILE__)), '../lib';
 # Disable Bonjour, IPv6 and libev
 BEGIN {
   $ENV{MOJO_NO_BONJOUR} = $ENV{MOJO_NO_IPV6} = 1;
-  $ENV{MOJO_IOWATCHER} = 'Mojo::IOWatcher';
+  $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
 }
 
-use Test::More tests => 73;
+use Test::More tests => 81;
 
 # "The strong must protect the sweet."
 use Mojo::IOLoop;
+use MojoCheckbot::UserAgent;
 use Mojolicious::Lite;
-
-use_ok 'MojoCheckbot::UserAgent';
 
 # Silence
 app->log->level('fatal');
@@ -85,6 +83,25 @@ get '/echo' => sub {
 {
   local $ENV{MOJO_MAX_REDIRECTS} = 25;
   is(MojoCheckbot::UserAgent->new->max_redirects, 25, 'right value');
+  $ENV{MOJO_MAX_REDIRECTS} = 0;
+  is(MojoCheckbot::UserAgent->new->max_redirects, 0, 'right value');
+}
+
+# Timeouts
+{
+  is(MojoCheckbot::UserAgent->new->connect_timeout, 10, 'right value');
+  local $ENV{MOJO_CONNECT_TIMEOUT} = 25;
+  is(MojoCheckbot::UserAgent->new->connect_timeout,    25, 'right value');
+  is(MojoCheckbot::UserAgent->new->inactivity_timeout, 20, 'right value');
+  local $ENV{MOJO_INACTIVITY_TIMEOUT} = 25;
+  is(MojoCheckbot::UserAgent->new->inactivity_timeout, 25, 'right value');
+  $ENV{MOJO_INACTIVITY_TIMEOUT} = 0;
+  is(MojoCheckbot::UserAgent->new->inactivity_timeout, 0, 'right value');
+  is(MojoCheckbot::UserAgent->new->request_timeout,    0, 'right value');
+  local $ENV{MOJO_REQUEST_TIMEOUT} = 25;
+  is(MojoCheckbot::UserAgent->new->request_timeout, 25, 'right value');
+  $ENV{MOJO_REQUEST_TIMEOUT} = 0;
+  is(MojoCheckbot::UserAgent->new->request_timeout, 0, 'right value');
 }
 
 # GET / (non-blocking)
@@ -189,7 +206,7 @@ $ua->once(
     $tx->on(
       connection => sub {
         my ($tx, $connection) = @_;
-        Mojo::IOLoop->stream($connection)->timeout('0.5');
+        Mojo::IOLoop->stream($connection)->timeout(0.5);
       }
     );
   }
@@ -250,7 +267,7 @@ my $drain;
 $drain = sub {
   my $req = shift;
   return $ua->ioloop->timer(
-    '0.5' => sub {
+    0.5 => sub {
       $req->write_chunk('');
       $tx->resume;
       $stream
@@ -306,12 +323,12 @@ $ua->get(
   sub {
     push @kept_alive, pop->kept_alive;
     Mojo::IOLoop->timer(
-      '0.25' => sub {
+      0.25 => sub {
         $ua->get(
           '/',
           sub {
             push @kept_alive, pop->kept_alive;
-            Mojo::IOLoop->timer('0.25' => sub { Mojo::IOLoop->stop });
+            Mojo::IOLoop->timer(0.25 => sub { Mojo::IOLoop->stop });
           }
         );
       }
@@ -323,8 +340,9 @@ is_deeply \@kept_alive, [1, 1], 'connections kept alive';
 
 # Premature connection close
 my $port = Mojo::IOLoop->generate_port;
-my $id =
-  Mojo::IOLoop->server({port => $port} => sub { Mojo::IOLoop->drop(pop) });
+my $id   = Mojo::IOLoop->server(
+  {address => '127.0.0.1', port => $port} => sub { Mojo::IOLoop->remove(pop) }
+);
 $tx = $ua->get("http://localhost:$port/");
 ok !$tx->success, 'not successful';
 is $tx->error, 'Premature connection close.', 'right error';

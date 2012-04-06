@@ -25,8 +25,7 @@ sub _check {
   my ($value, $pattern) = @_;
   return 1
     if $value && $pattern && ref $pattern eq 'Regexp' && $value =~ $pattern;
-  return 1 if $value && defined $pattern && $pattern eq $value;
-  return;
+  return $value && defined $pattern && $pattern eq $value ? 1 : undef;
 }
 
 sub _headers {
@@ -69,7 +68,6 @@ Mojolicious::Plugin::HeaderCondition - Header condition plugin
   get '/' => (agent => qr/Firefox/) => sub {...};
 
   # The "host" condition is a shortcut for the detected host
-  # (usually the "Host" or "X-Forwarded-Host" header)
   get '/' => (host => qr/mojolicio\.us/) => sub {...};
 
 =head1 DESCRIPTION

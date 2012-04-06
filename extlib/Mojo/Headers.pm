@@ -26,24 +26,18 @@ my @HEADERS = (
 }
 
 # Lower case headers
-my %NORMALCASE_HEADERS;
-for my $name (@HEADERS) {
-  my $lowercase = lc $name;
-  $NORMALCASE_HEADERS{$lowercase} = $name;
-}
+my %NORMALCASE = map { lc($_) => $_ } @HEADERS;
 
 sub add {
   my ($self, $name) = (shift, shift);
 
   # Make sure we have a normal case entry for name
   my $lcname = lc $name;
-  $NORMALCASE_HEADERS{$lcname} = $name
-    unless exists $NORMALCASE_HEADERS{$lcname};
-  $name = $lcname;
+  $NORMALCASE{$lcname} //= $name;
 
   # Add lines
-  push @{$self->{headers}->{$name}}, (ref $_ || '') eq 'ARRAY' ? $_ : [$_]
-    for @_;
+  push @{$self->{headers}->{$lcname}},
+    map { ref $_ eq 'ARRAY' ? $_ : [$_] } @_;
 
   return $self;
 }
@@ -95,9 +89,7 @@ sub is_limit_exceeded { shift->{limit} }
 sub leftovers { delete shift->{buffer} }
 
 sub names {
-  my @headers;
-  push @headers, $NORMALCASE_HEADERS{$_} || $_ for keys %{shift->{headers}};
-  return \@headers;
+  [map { $NORMALCASE{$_} || $_ } keys %{shift->{headers}}];
 }
 
 sub parse {
@@ -113,8 +105,7 @@ sub parse {
 
     # Check line size limit
     if (length $line > $max) {
-      $self->{state} = 'finished';
-      $self->{limit} = 1;
+      $self->{limit} = $self->{state} = 'finished';
       return $self;
     }
 
@@ -133,10 +124,8 @@ sub parse {
   }
 
   # Check line size limit
-  if (length $self->{buffer} > $max) {
-    $self->{state} = 'finished';
-    $self->{limit} = 1;
-  }
+  $self->{limit} = $self->{state} = 'finished'
+    if length $self->{buffer} > $max;
 
   return $self;
 }
@@ -150,22 +139,21 @@ sub remove {
 }
 
 sub to_hash {
-  my $self   = shift;
-  my %params = @_;
+  my ($self, $multi) = @_;
 
   # Build
   my $hash = {};
-  foreach my $header (@{$self->names}) {
+  for my $header (@{$self->names}) {
     my @headers = $self->header($header);
 
-    # Nested arrayrefs
-    if ($params{arrayref}) { $hash->{$header} = [@headers] }
+    # Multi line
+    if ($multi) { $hash->{$header} = [@headers] }
 
-    # Flat arrayref
+    # Flat
     else {
 
-      # Turn single value arrayrefs into strings
-      foreach my $h (@headers) { $h = $h->[0] if @$h == 1 }
+      # Turn single value arrays into strings
+      @$_ == 1 and $_ = $_->[0] for @headers;
       $hash->{$header} = @headers > 1 ? [@headers] : $headers[0];
     }
   }
@@ -222,8 +210,7 @@ L<Mojo::Headers> implements the following attributes.
   $headers = $headers->max_line_size(1024);
 
 Maximum line size in bytes, defaults to the value of the
-C<MOJO_MAX_LINE_SIZE> environment variable or C<10240>. Note that this
-attribute is EXPERIMENTAL and might change without warning!
+C<MOJO_MAX_LINE_SIZE> environment variable or C<10240>.
 
 =head1 METHODS
 
@@ -275,8 +262,7 @@ Shortcut for the C<Cache-Control> header.
 
   my $clone = $headers->clone;
 
-Clone headers. Note that this method is EXPERIMENTAL and might change without
-warning!
+Clone headers.
 
 =head2 C<connection>
 
@@ -366,7 +352,7 @@ Shortcut for the C<Expires> header.
 
   $headers = $headers->from_hash({'Content-Type' => 'text/html'});
 
-Parse headers from a hash.
+Parse headers from a hash reference.
 
 =head2 C<header>
 
@@ -410,8 +396,7 @@ Check if header parser is finished.
 
   my $success = $headers->is_limit_exceeded;
 
-Check if a header has exceeded C<max_line_size>. Note that this method is
-EXPERIMENTAL and might change without warning!
+Check if a header has exceeded C<max_line_size>.
 
 =head2 C<last_modified>
 
@@ -538,17 +523,17 @@ Shortcut for the C<Status> header.
 
 =head2 C<to_hash>
 
-  my $hash = $headers->to_hash;
-  my $hash = $headers->to_hash(arrayref => 1);
+  my $single = $headers->to_hash;
+  my $multi  = $headers->to_hash(1);
 
-Format headers as a hash. Nested arrayrefs to represent multi line values are
-optional.
+Turn headers into hash reference, nested array references to represent multi
+line values are disabled by default.
 
 =head2 C<to_string>
 
   my $string = $headers->to_string;
 
-Format headers suitable for HTTP 1.1 messages.
+Turn headers into a string, suitable for HTTP 1.1 messages.
 
 =head2 C<trailer>
 

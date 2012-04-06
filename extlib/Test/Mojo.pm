@@ -17,8 +17,7 @@ $ENV{MOJO_LOG_LEVEL} ||= $ENV{HARNESS_IS_VERBOSE} ? 'debug' : 'fatal';
 #  How come you guys can go to the moon but can't make my shoes smell good?"
 sub new {
   my $self = shift->SUPER::new;
-  $self->app(shift) if @_;
-  return $self;
+  return @_ ? $self->app(shift) : $self;
 }
 
 sub app {
@@ -199,15 +198,6 @@ sub json_hasnt {
   return $self;
 }
 
-# DEPRECATED in Leaf Fluttering In Wind!
-sub max_redirects {
-  warn "Test::Mojo->max_redirects is DEPRECATED!\n";
-  my $self = shift;
-  return $self->ua->max_redirects unless @_;
-  $self->ua->max_redirects(@_);
-  return $self;
-}
-
 sub message_is {
   my ($self, $value, $desc) = @_;
   local $Test::Builder::Level = $Test::Builder::Level + 1;
@@ -238,8 +228,9 @@ sub message_unlike {
 }
 
 # "God bless those pagans."
-sub patch_ok { shift->_request_ok(patch => @_) }
-sub post_ok  { shift->_request_ok(post  => @_) }
+sub options_ok { shift->_request_ok(options => @_) }
+sub patch_ok   { shift->_request_ok(patch   => @_) }
+sub post_ok    { shift->_request_ok(post    => @_) }
 
 sub post_form_ok {
   my ($self, $url) = (shift, shift);
@@ -423,6 +414,7 @@ Current transaction, usually a L<Mojo::Transaction::HTTP> object.
 
   # More specific tests
   is $t->tx->res->json->{foo}, 'bar', 'right value';
+  ok $t->tx->res->is_multipart, 'multipart content';
 
 =head2 C<ua>
 
@@ -431,6 +423,10 @@ Current transaction, usually a L<Mojo::Transaction::HTTP> object.
 
 User agent used for testing, defaults to a L<Mojo::UserAgent> object.
 
+  # Allow redirects
+  $t->ua->max_redirects(10);
+
+  # Request with Basic authentication
   $t->get_ok($t->ua->app_url->userinfo('sri:secr3t')->path('/secrets'));
 
 =head1 METHODS
@@ -456,14 +452,9 @@ Alias for L<Mojo::UserAgent/"app">.
   # Change log level
   $t->app->log->level('fatal');
 
-  # Disable inactivity timeout for all connections
-  $t->app->hook(after_build_tx => sub {
-    my ($tx, $app) = @_;
-    $tx->on(connection => sub {
-      my ($tx, $id) = @_;
-      Mojo::IOLoop->stream($id)->timeout(0);
-    });
-  });
+  # Test application directly
+  is $t->app->defaults->{foo}, 'bar', 'right value';
+  ok $t->app->routes->find('echo')->is_websocket, 'WebSocket route';
 
 =head2 C<content_is>
 
@@ -522,6 +513,7 @@ Opposite of C<content_type_like>.
 =head2 C<delete_ok>
 
   $t = $t->delete_ok('/foo');
+  $t = $t->delete_ok('/foo' => {DNT => 1} => 'Hi!');
 
 Perform a C<DELETE> request and check for transport errors, takes the exact
 same arguments as L<Mojo::UserAgent/"delete">.
@@ -546,12 +538,12 @@ Opposite of C<element_exists>.
   $t = $t->finish_ok;
   $t = $t->finish_ok('finished successfully');
 
-Finish C<WebSocket> connection. Note that this method is EXPERIMENTAL and
-might change without warning!
+Finish C<WebSocket> connection.
 
 =head2 C<get_ok>
 
   $t = $t->get_ok('/foo');
+  $t = $t->get_ok('/foo' => {DNT => 1} => 'Hi!');
 
 Perform a C<GET> request and check for transport errors, takes the exact same
 arguments as L<Mojo::UserAgent/"get">.
@@ -559,6 +551,7 @@ arguments as L<Mojo::UserAgent/"get">.
 =head2 C<head_ok>
 
   $t = $t->head_ok('/foo');
+  $t = $t->head_ok('/foo' => {DNT => 1} => 'Hi!');
 
 Perform a C<HEAD> request and check for transport errors, takes the exact
 same arguments as L<Mojo::UserAgent/"head">.
@@ -626,51 +619,57 @@ Opposite of C<json_has>.
   $t = $t->message_is('working!');
   $t = $t->message_is('working!', 'right message');
 
-Check WebSocket message for exact match. Note that this method is
-EXPERIMENTAL and might change without warning!
+Check WebSocket message for exact match.
 
 =head2 C<message_isnt>
 
   $t = $t->message_isnt('working!');
   $t = $t->message_isnt('working!', 'different message');
 
-Opposite of C<message_is>. Note that this method is EXPERIMENTAL and might
-change without warning!
+Opposite of C<message_is>.
 
 =head2 C<message_like>
 
   $t = $t->message_like(qr/working!/);
   $t = $t->message_like(qr/working!/, 'right message');
 
-Check WebSocket message for similar match. Note that this method is
-EXPERIMENTAL and might change without warning!
+Check WebSocket message for similar match.
 
 =head2 C<message_unlike>
 
   $t = $t->message_unlike(qr/working!/);
   $t = $t->message_unlike(qr/working!/, 'different message');
 
-Opposite of C<message_like>. Note that this method is EXPERIMENTAL and might
-change without warning!
+Opposite of C<message_like>.
+
+=head2 C<options_ok>
+
+  $t = $t->options_ok('/foo');
+  $t = $t->options_ok('/foo' => {DNT => 1} => 'Hi!');
+
+Perform a C<OPTIONS> request and check for transport errors, takes the exact
+same arguments as L<Mojo::UserAgent/"options">.
 
 =head2 C<patch_ok>
 
   $t = $t->patch_ok('/foo');
+  $t = $t->patch_ok('/foo' => {DNT => 1} => 'Hi!');
 
 Perform a C<PATCH> request and check for transport errors, takes the exact
-same arguments as L<Mojo::UserAgent/"patch">. Note that this method is
-EXPERIMENTAL and might change without warning!
+same arguments as L<Mojo::UserAgent/"patch">.
 
 =head2 C<post_ok>
 
   $t = $t->post_ok('/foo');
+  $t = $t->post_ok('/foo' => {DNT => 1} => 'Hi!');
 
 Perform a C<POST> request and check for transport errors, takes the exact
 same arguments as L<Mojo::UserAgent/"post">.
 
 =head2 C<post_form_ok>
 
-  $t = $t->post_form_ok('/foo' => {test => 123});
+  $t = $t->post_form_ok('/foo' => {a => 'b'});
+  $t = $t->post_form_ok('/foo' => 'UTF-8' => {a => 'b'} => {DNT => 1});
 
 Submit a C<POST> form and check for transport errors, takes the exact same
 arguments as L<Mojo::UserAgent/"post_form">.
@@ -678,6 +677,7 @@ arguments as L<Mojo::UserAgent/"post_form">.
 =head2 C<put_ok>
 
   $t = $t->put_ok('/foo');
+  $t = $t->put_ok('/foo' => {DNT => 1} => 'Hi!');
 
 Perform a C<PUT> request and check for transport errors, takes the exact same
 arguments as L<Mojo::UserAgent/"put">.
@@ -696,8 +696,7 @@ Reset user agent session.
   $t = $t->send_ok('hello');
   $t = $t->send_ok('hello', 'sent successfully');
 
-Send message or frame via WebSocket. Note that this method is EXPERIMENTAL
-and might change without warning!
+Send message or frame via WebSocket.
 
 =head2 C<status_is>
 
@@ -744,10 +743,10 @@ Opposite of C<text_like>.
 =head2 C<websocket_ok>
 
   $t = $t->websocket_ok('/echo');
+  $t = $t->websocket_ok('/echo' => {DNT => 1});
 
 Open a C<WebSocket> connection with transparent handshake, takes the exact
-same arguments as L<Mojo::UserAgent/"websocket">. Note that this method is
-EXPERIMENTAL and might change without warning!
+same arguments as L<Mojo::UserAgent/"websocket">.
 
 =head1 SEE ALSO
 

@@ -14,7 +14,7 @@ sub run {
   my $self = shift;
 
   # EV
-  my $ev = eval 'use Mojo::IOWatcher::EV; 1' ? $EV::VERSION : 'not installed';
+  my $ev = eval 'use Mojo::Reactor::EV; 1' ? $EV::VERSION : 'not installed';
 
   # IPv6
   my $ipv6 =
@@ -44,20 +44,18 @@ OPTIONAL
 EOF
 
   # Latest version
-  my ($current) = $Mojolicious::VERSION =~ /^([^_]+)/;
-  my $latest = $current;
-  eval {
-    Mojo::UserAgent->new->max_redirects(3)
-      ->get('search.cpan.org/dist/Mojolicious')->res->dom('.version')
-      ->each(sub { $latest = $_->text if $_->text =~ /^[\d\.]+$/ });
+  my $latest = eval {
+    my $ua = Mojo::UserAgent->new(max_redirects => 10)->detect_proxy;
+    $ua->get('api.metacpan.org/v0/release/Mojolicious')->res->json->{version};
   };
 
   # Message
+  return unless $latest;
   my $message = 'This version is up to date, have fun!';
   $message = 'Thanks for testing a development release, you are awesome!'
-    if $latest < $current;
+    if $latest < $Mojolicious::VERSION;
   $message = "You might want to update your Mojolicious to $latest."
-    if $latest > $current;
+    if $latest > $Mojolicious::VERSION;
   say $message;
 }
 
@@ -77,7 +75,8 @@ Mojolicious::Command::version - Version command
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Command::version> shows versions of installed modules.
+L<Mojolicious::Command::version> shows version information for installed core
+and optional modules.
 
 =head1 ATTRIBUTES
 

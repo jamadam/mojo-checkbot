@@ -24,51 +24,8 @@ sub boundary {
 }
 
 # "Operator! Give me the number for 911!"
-sub build_body {
-  my $self = shift;
-
-  # Concatenate all chunks in memory
-  my $body   = '';
-  my $offset = 0;
-  while (1) {
-    my $chunk = $self->get_body_chunk($offset);
-
-    # No content yet, try again
-    next unless defined $chunk;
-
-    # End of content
-    last unless length $chunk;
-
-    # Content
-    $offset += length $chunk;
-    $body .= $chunk;
-  }
-
-  return $body;
-}
-
-sub build_headers {
-  my $self = shift;
-
-  # Concatenate all chunks in memory
-  my $headers = '';
-  my $offset  = 0;
-  while (1) {
-    my $chunk = $self->get_header_chunk($offset);
-
-    # No headers yet, try again
-    next unless defined $chunk;
-
-    # End of headers
-    last unless length $chunk;
-
-    # Headers
-    $offset += length $chunk;
-    $headers .= $chunk;
-  }
-
-  return $headers;
-}
+sub build_body    { shift->_build('body') }
+sub build_headers { shift->_build('header') }
 
 sub charset {
   (shift->headers->content_type || '') =~ /charset="?([^"\s;]+)"?/i
@@ -198,7 +155,7 @@ sub parse {
 sub parse_body {
   my $self = shift;
   $self->{state} = 'body';
-  $self->parse(@_);
+  return $self->parse(@_);
 }
 
 sub parse_body_once {
@@ -282,6 +239,30 @@ sub write_chunk {
 sub _body {
   my $self = shift;
   $self->emit('body') unless $self->{body}++;
+}
+
+sub _build {
+  my ($self, $part) = @_;
+
+  # Build part from chunks
+  my $method = "get_${part}_chunk";
+  my $buffer = '';
+  my $offset = 0;
+  while (1) {
+    my $chunk = $self->$method($offset);
+
+    # No chunk yet, try again
+    next unless defined $chunk;
+
+    # End of part
+    last unless length $chunk;
+
+    # Part
+    $offset += length $chunk;
+    $buffer .= $chunk;
+  }
+
+  return $buffer;
 }
 
 sub _build_chunk {
@@ -476,7 +457,6 @@ Content headers, defaults to a L<Mojo::Headers> object.
 
 Maximum size in bytes of buffer for pipelined HTTP requests, defaults to the
 value of the C<MOJO_MAX_LEFTOVER_SIZE> environment variable or C<262144>.
-Note that this attribute is EXPERIMENTAL and might change without warning!
 
 =head2 C<relaxed>
 
@@ -495,20 +475,20 @@ implements the following new ones.
 
   my $success = $content->body_contains('foo bar baz');
 
-Check if content contains a specific string.
+Check if content contains a specific string. Meant to be overloaded in a
+subclass.
 
 =head2 C<body_size>
 
   my $size = $content->body_size;
 
-Content size in bytes.
+Content size in bytes. Meant to be overloaded in a subclass.
 
 =head2 C<boundary>
 
   my $boundary = $content->boundary;
 
-Extract multipart boundary from C<Content-Type> header. Note that this method
-is EXPERIMENTAL and might change without warning!
+Extract multipart boundary from C<Content-Type> header.
 
 =head2 C<build_body>
 
@@ -526,15 +506,13 @@ Render all headers.
 
   my $charset = $content->charset;
 
-Extract charset from C<Content-Type> header. Note that this method is
-EXPERIMENTAL and might change without warning!
+Extract charset from C<Content-Type> header.
 
 =head2 C<clone>
 
   my $clone = $content->clone;
 
-Clone content if possible, otherwise return C<undef>. Note that this method
-is EXPERIMENTAL and might change without warning!
+Clone content if possible, otherwise return C<undef>.
 
 =head2 C<generate_body_chunk>
 
@@ -546,7 +524,8 @@ Generate dynamic content.
 
   my $chunk = $content->get_body_chunk(0);
 
-Get a chunk of content starting from a specfic position.
+Get a chunk of content starting from a specfic position. Meant to be
+overloaded in a subclass.
 
 =head2 C<get_header_chunk>
 
@@ -577,8 +556,7 @@ Check if content is chunked.
   my $success = $content->is_dynamic;
 
 Check if content will be dynamically generated, which prevents C<clone> from
-working. Note that this method is EXPERIMENTAL and might change without
-warning!
+working.
 
 =head2 C<is_finished>
 
@@ -634,8 +612,7 @@ Parse chunk and stop after headers.
 
   my $size = $content->progress;
 
-Size of content already received from message in bytes. Note that this method
-is EXPERIMENTAL and might change without warning!
+Size of content already received from message in bytes.
 
 =head2 C<write>
 
