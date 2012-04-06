@@ -219,7 +219,7 @@ our $VERSION = '0.37';
                     dialog => $dialog,
                 });
                 if (! scalar @$queues) {
-                    MojoCheckbot::IOLoop->drop($loop_id2);
+                    MojoCheckbot::IOLoop->remove($loop_id2);
                 }
             });
         }

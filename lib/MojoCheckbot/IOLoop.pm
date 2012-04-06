@@ -14,22 +14,22 @@ use Mojo::Base 'Mojo::IOLoop';
         $wrap = sub {
             $self->$cb(pop);
             if (exists $ids{$id}) {
-                $ids{$id} = $self->iowatcher->timer($after => $wrap);
+                $ids{$id} = $self->timer($after => $wrap);
             }
         };
-        $id = $self->iowatcher->timer($after => $wrap);
+        $id = $self->timer($after => $wrap);
         $ids{$id} = $id;
         return $id;
     }
     
-    sub drop {
+    sub remove {
         my ($self, $id) = @_;
         if ($ids{$id}) {
             my $map_to = $ids{$id};
             delete $ids{$id};
             $id = $map_to;
         }
-        return $self->SUPER::drop($id);
+        return $self->SUPER::remove($id);
     }
 
 1;
