@@ -1,33 +1,33 @@
 package Mojo::Reactor::Poll;
 use Mojo::Base 'Mojo::Reactor';
 
-use IO::Poll qw/POLLERR POLLHUP POLLIN POLLOUT/;
+use IO::Poll qw(POLLERR POLLHUP POLLIN POLLOUT);
 use List::Util 'min';
-use Mojo::Util 'md5_sum';
-use Time::HiRes qw/time usleep/;
+use Mojo::Util qw(md5_sum steady_time);
+use Time::HiRes 'usleep';
 
-# "I don't know.
-#  Can I really betray my country?
-#  I say the Pledge of Allegiance every day.
-#  You pledge allegiance to the flag.
-#  And the flag is made in China."
+sub again {
+  my $timer = shift->{timers}{shift()};
+  $timer->{time} = steady_time + $timer->{after};
+}
+
 sub io {
   my ($self, $handle, $cb) = @_;
-  $self->{io}->{fileno $handle} = {cb => $cb};
+  $self->{io}{fileno $handle} = {cb => $cb};
   return $self->watch($handle, 1, 1);
 }
 
-sub is_running { shift->{running} }
+sub is_running { !!shift->{running} }
 
 sub one_tick {
   my $self = shift;
 
-  # Remember state
+  # Remember state for later
   my $running = $self->{running};
   $self->{running} = 1;
 
   # Wait for one event
-  my $i    = 0;
+  my $i;
   my $poll = $self->_poll;
   until ($i) {
 
@@ -36,32 +36,33 @@ sub one_tick {
 
     # Calculate ideal timeout based on timers
     my $min = min map { $_->{time} } values %{$self->{timers}};
-    my $timeout = defined $min ? ($min - time) : 0.025;
+    my $timeout = defined $min ? ($min - steady_time) : 0.5;
     $timeout = 0 if $timeout < 0;
 
     # I/O
     if (keys %{$self->{io}}) {
       $poll->poll($timeout);
-      ++$i and $self->_sandbox('Read', $self->{io}->{fileno $_}->{cb}, 0)
+      ++$i and $self->_sandbox('Read', $self->{io}{fileno $_}{cb}, 0)
         for $poll->handles(POLLIN | POLLHUP | POLLERR);
-      ++$i and $self->_sandbox('Write', $self->{io}->{fileno $_}->{cb}, 1)
+      ++$i and $self->_sandbox('Write', $self->{io}{fileno $_}{cb}, 1)
         for $poll->handles(POLLOUT);
     }
 
     # Wait for timeout if poll can't be used
     elsif ($timeout) { usleep $timeout * 1000000 }
 
-    # Timers
-    while (my ($id, $t) = each %{$self->{timers} || {}}) {
-      next unless $t->{time} <= time;
+    # Timers (time should not change in between timers)
+    my $now = steady_time;
+    for my $id (keys %{$self->{timers}}) {
+      next unless my $t = $self->{timers}{$id};
+      next unless $t->{time} <= $now;
 
       # Recurring timer
-      if (exists $t->{recurring}) { $t->{time} = time + $t->{recurring} }
+      if (exists $t->{recurring}) { $t->{time} = $now + $t->{recurring} }
 
       # Normal timer
       else { $self->remove($id) }
 
-      # Handle timer
       ++$i and $self->_sandbox("Timer $id", $t->{cb}) if $t->{cb};
     }
   }
@@ -74,9 +75,9 @@ sub recurring { shift->_timer(1, @_) }
 
 sub remove {
   my ($self, $remove) = @_;
-  return delete shift->{timers}->{shift()} unless ref $remove;
+  return !!delete $self->{timers}{$remove} unless ref $remove;
   $self->_poll->remove($remove);
-  return delete $self->{io}->{fileno $remove};
+  return !!delete $self->{io}{fileno $remove};
 }
 
 sub start {
@@ -87,8 +88,6 @@ sub start {
 
 sub stop { delete shift->{running} }
 
-# "Bart, how did you get a cellphone?
-#  The same way you got me, by accident on a golf course."
 sub timer { shift->_timer(0, @_) }
 
 sub watch {
@@ -107,23 +106,25 @@ sub _poll { shift->{poll} ||= IO::Poll->new }
 
 sub _sandbox {
   my ($self, $desc, $cb) = (shift, shift, shift);
-  return if eval { $self->$cb(@_); 1 };
-  $self->once(error => sub { warn $_[1] })
-    unless $self->has_subscribers('error');
-  $self->emit_safe(error => "$desc failed: $@");
+  eval { $self->$cb(@_); 1 } or $self->emit_safe(error => "$desc failed: $@");
 }
 
 sub _timer {
   my ($self, $recurring, $after, $cb) = @_;
+
+  my $timers = $self->{timers} = defined $self->{timers} ? $self->{timers} : {};
   my $id;
-  do { $id = md5_sum('t' . time . rand 999) } while $self->{timers}->{$id};
-  my $t = $self->{timers}->{$id} = {cb => $cb, time => time + $after};
-  $t->{recurring} = $after if $recurring;
+  do { $id = md5_sum('t' . steady_time . rand 999) } while $timers->{$id};
+  my $timer = $timers->{$id}
+    = {cb => $cb, after => $after, time => steady_time + $after};
+  $timer->{recurring} = $after if $recurring;
+
   return $id;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -139,6 +140,9 @@ Mojo::Reactor::Poll - Low level event reactor with poll support
     my ($reactor, $writable) = @_;
     say $writable ? 'Handle is writable' : 'Handle is readable';
   });
+
+  # Change to watching only if handle becomes writable
+  $reactor->watch($handle, 0, 1);
 
   # Add a timer
   $reactor->timer(15 => sub {
@@ -163,66 +167,72 @@ L<Mojo::Reactor::Poll> inherits all events from L<Mojo::Reactor>.
 L<Mojo::Reactor::Poll> inherits all methods from L<Mojo::Reactor> and
 implements the following new ones.
 
-=head2 C<io>
+=head2 again
+
+  $reactor->again($id);
+
+Restart active timer.
+
+=head2 io
 
   $reactor = $reactor->io($handle => sub {...});
 
 Watch handle for I/O events, invoking the callback whenever handle becomes
 readable or writable.
 
-=head2 C<is_running>
+=head2 is_running
 
   my $success = $reactor->is_running;
 
 Check if reactor is running.
 
-=head2 C<one_tick>
+=head2 one_tick
 
   $reactor->one_tick;
 
-Run reactor until at least one event has been handled or no events are being
-watched anymore. Note that this method can recurse back into the reactor, so
-you need to be careful.
+Run reactor until an event occurs or no events are being watched anymore. Note
+that this method can recurse back into the reactor, so you need to be careful.
 
-=head2 C<recurring>
+=head2 recurring
 
   my $id = $reactor->recurring(0.25 => sub {...});
 
 Create a new recurring timer, invoking the callback repeatedly after a given
 amount of time in seconds.
 
-=head2 C<remove>
+=head2 remove
 
   my $success = $reactor->remove($handle);
   my $success = $reactor->remove($id);
 
 Remove handle or timer.
 
-=head2 C<start>
+=head2 start
 
   $reactor->start;
 
 Start watching for I/O and timer events, this will block until C<stop> is
 called or no events are being watched anymore.
 
-=head2 C<stop>
+=head2 stop
 
   $reactor->stop;
 
 Stop watching for I/O and timer events.
 
-=head2 C<timer>
+=head2 timer
 
   my $id = $reactor->timer(0.5 => sub {...});
 
 Create a new timer, invoking the callback after a given amount of time in
 seconds.
 
-=head2 C<watch>
+=head2 watch
 
   $reactor = $reactor->watch($handle, $readable, $writable);
 
-Change I/O events to watch handle for with C<true> and C<false> values.
+Change I/O events to watch handle for with true and false values. Note that
+this method requires an active I/O watcher.
 
 =head1 SEE ALSO
 

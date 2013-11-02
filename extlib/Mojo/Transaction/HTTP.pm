@@ -3,71 +3,27 @@ use Mojo::Base 'Mojo::Transaction';
 
 use Mojo::Transaction::WebSocket;
 
-# "What's a wedding?  Webster's dictionary describes it as the act of
-#  removing weeds from one's garden."
+has 'previous';
+
 sub client_read {
   my ($self, $chunk) = @_;
 
-  # EOF
-  my $preserved = $self->{state};
-  $self->{state} = 'finished' if length $chunk == 0;
-
-  # HEAD response
+  # Skip body for HEAD request
   my $res = $self->res;
-  if ($self->req->method eq 'HEAD') {
-    $res->parse_until_body($chunk);
-    $self->{state} = 'finished' if $res->content->is_parsing_body;
-  }
+  $res->content->skip_body(1) if uc $self->req->method eq 'HEAD';
+  return unless $res->parse($chunk)->is_finished;
 
-  # Normal response
-  else {
-    $res->parse($chunk);
-    $self->{state} = 'finished' if $res->is_finished;
-  }
-
-  # Unexpected 100 Continue
-  if ($self->{state} eq 'finished' && ($res->code || '') eq '100') {
-    $self->res($res->new);
-    $self->{state} = $preserved;
-  }
-
-  # Check for errors
-  $self->{state} = 'finished' if $self->error;
+  # Unexpected 1xx response
+  return $self->{state} = 'finished'
+    if !$res->is_status_class(100) || $res->headers->upgrade;
+  $self->res($res->new)->emit(unexpected => $res);
+  return unless length(my $leftovers = $res->content->leftovers);
+  $self->client_read($leftovers);
 }
 
-sub client_write {
-  my $self = shift;
+sub client_write { shift->_write(0) }
 
-  # Writing
-  $self->{offset} ||= 0;
-  $self->{write}  ||= 0;
-  my $req = $self->req;
-  unless ($self->{state}) {
-
-    # Connection header
-    my $headers = $req->headers;
-    unless ($headers->connection) {
-      if   ($self->keep_alive) { $headers->connection('keep-alive') }
-      else                     { $headers->connection('close') }
-    }
-
-    # Write start line
-    $self->{state} = 'write_start_line';
-    $self->{write} = $req->start_line_size;
-  }
-
-  # Start line
-  my $chunk = '';
-  $chunk .= $self->_start_line($req) if $self->{state} eq 'write_start_line';
-
-  # Headers
-  $chunk .= $self->_headers($req, 0) if $self->{state} eq 'write_headers';
-
-  # Body
-  $chunk .= $self->_body($req, 0) if $self->{state} eq 'write_body';
-
-  return $chunk;
-}
+sub is_empty { !!(uc $_[0]->req->method eq 'HEAD' || $_[0]->res->is_empty) }
 
 sub keep_alive {
   my $self = shift;
@@ -75,165 +31,84 @@ sub keep_alive {
   # Close
   my $req      = $self->req;
   my $res      = $self->res;
-  my $req_conn = lc($req->headers->connection || '');
-  my $res_conn = lc($res->headers->connection || '');
-  return if $req_conn eq 'close' || $res_conn eq 'close';
+  my $req_conn = lc(defined $req->headers->connection ? $req->headers->connection : '');
+  my $res_conn = lc(defined $res->headers->connection ? $res->headers->connection : '');
+  return undef if $req_conn eq 'close' || $res_conn eq 'close';
 
-  # Keep alive
+  # Keep-alive
   return 1 if $req_conn eq 'keep-alive' || $res_conn eq 'keep-alive';
 
-  # No keep alive for 0.9 and 1.0
-  return if $req->version ~~ [qw/0.9 1.0/];
-  return if $res->version ~~ [qw/0.9 1.0/];
-
-  return 1;
+  # No keep-alive for 1.0
+  return !($req->version eq '1.0' || $res->version eq '1.0');
 }
 
-sub server_leftovers {
-  my $self = shift;
-
-  # Check for leftovers
-  my $req = $self->req;
-  return unless $req->has_leftovers;
-  $req->{state} = 'finished';
-
-  return $req->leftovers;
+sub redirects {
+  my $previous = shift;
+  my @redirects;
+  unshift @redirects, $previous while $previous = $previous->previous;
+  return \@redirects;
 }
 
 sub server_read {
   my ($self, $chunk) = @_;
 
-  # Parse
+  # Parse request
   my $req = $self->req;
   $req->parse($chunk) unless $req->error;
   $self->{state} ||= 'read';
 
-  # Parser error
-  my $res = $self->res;
-  if ($req->error && !$self->{handled}++) {
-    $self->emit('request');
-    $res->headers->connection('close');
-  }
-
-  # EOF
-  elsif ((length $chunk == 0) || ($req->is_finished && !$self->{handled}++)) {
-    $self->emit(
-      upgrade => Mojo::Transaction::WebSocket->new(handshake => $self))
-      if lc($req->headers->upgrade || '') eq 'websocket';
-    $self->emit('request');
-  }
-
-  # Expect 100 Continue
-  elsif ($req->content->is_parsing_body && !defined $self->{continued}) {
-    if (($req->headers->expect || '') =~ /100-continue/i) {
-      $self->{state} = 'write';
-      $res->code(100);
-      $self->{continued} = 0;
-    }
-  }
+  # Generate response
+  return unless $req->is_finished && !$self->{handled}++;
+  $self->emit(upgrade => Mojo::Transaction::WebSocket->new(handshake => $self))
+    if lc(defined $req->headers->upgrade ? $req->headers->upgrade : '') eq 'websocket';
+  $self->emit('request');
 }
 
-sub server_write {
-  my $self = shift;
-
-  # Not writing
-  my $chunk = '';
-  return $chunk unless $self->{state};
-
-  # Writing
-  $self->{offset} ||= 0;
-  $self->{write}  ||= 0;
-  my $res = $self->res;
-  if ($self->{state} eq 'write') {
-
-    # Connection header
-    my $headers = $res->headers;
-    unless ($headers->connection) {
-      if   ($self->keep_alive) { $headers->connection('keep-alive') }
-      else                     { $headers->connection('close') }
-    }
-
-    # Write start line
-    $self->{state} = 'write_start_line';
-    $self->{write} = $res->start_line_size;
-  }
-
-  # Start line
-  $chunk .= $self->_start_line($res) if $self->{state} eq 'write_start_line';
-
-  # Headers
-  $chunk .= $self->_headers($res, 1) if $self->{state} eq 'write_headers';
-
-  # Body
-  if ($self->{state} eq 'write_body') {
-
-    # 100 Continue
-    if ($self->{write} <= 0) {
-
-      # Continued
-      if (defined $self->{continued} && $self->{continued} == 0) {
-        $self->{continued} = 1;
-        $self->{state}     = 'read';
-        $self->res($res->new);
-      }
-
-      # Finished
-      elsif (!defined $self->{continued}) { $self->{state} = 'finished' }
-    }
-
-    # Normal body
-    else { $chunk .= $self->_body($res, 1) }
-  }
-
-  return $chunk;
-}
+sub server_write { shift->_write(1) }
 
 sub _body {
-  my ($self, $message, $finish) = @_;
+  my ($self, $msg, $finish) = @_;
 
-  # Chunk
-  my $buffer = $message->get_body_chunk($self->{offset});
+  # Prepare body chunk
+  my $buffer = $msg->get_body_chunk($self->{offset});
   my $written = defined $buffer ? length $buffer : 0;
-  $self->{write}  = $self->{write} - $written;
+  $self->{write} = $msg->content->is_dynamic ? 1 : ($self->{write} - $written);
   $self->{offset} = $self->{offset} + $written;
-  $self->{write}  = 1 if $message->is_dynamic;
   if (defined $buffer) { delete $self->{delay} }
 
   # Delayed
   else {
-    my $delay = delete $self->{delay};
-    $self->{state} = 'paused' if $delay;
-    $self->{delay} = 1 unless $delay;
+    if   (delete $self->{delay}) { $self->{state} = 'paused' }
+    else                         { $self->{delay} = 1 }
   }
 
   # Finished
-  $self->{state} = $finish ? 'finished' : 'read_response'
+  $self->{state} = $finish ? 'finished' : 'read'
     if $self->{write} <= 0 || (defined $buffer && !length $buffer);
 
   return defined $buffer ? $buffer : '';
 }
 
 sub _headers {
-  my ($self, $message, $head) = @_;
+  my ($self, $msg, $head) = @_;
 
-  # Chunk
-  my $buffer = $message->get_header_chunk($self->{offset});
+  # Prepare header chunk
+  my $buffer = $msg->get_header_chunk($self->{offset});
   my $written = defined $buffer ? length $buffer : 0;
   $self->{write}  = $self->{write} - $written;
   $self->{offset} = $self->{offset} + $written;
 
-  # Write body
+  # Switch to body
   if ($self->{write} <= 0) {
+    $self->{offset} = 0;
 
-    # HEAD request
-    if ($head && $self->req->method eq 'HEAD') { $self->{state} = 'finished' }
+    # Response without body
+    if ($head && $self->is_empty) { $self->{state} = 'finished' }
 
     # Body
     else {
-      $self->{state}  = 'write_body';
-      $self->{offset} = 0;
-      $self->{write}  = $message->body_size;
-      $self->{write}  = 1 if $message->is_dynamic;
+      $self->{http_state} = 'body';
+      $self->{write} = $msg->content->is_dynamic ? 1 : $msg->body_size;
     }
   }
 
@@ -241,48 +116,102 @@ sub _headers {
 }
 
 sub _start_line {
-  my ($self, $message) = @_;
+  my ($self, $msg) = @_;
 
-  # Chunk
-  my $buffer = $message->get_start_line_chunk($self->{offset});
+  # Prepare start line chunk
+  my $buffer = $msg->get_start_line_chunk($self->{offset});
   my $written = defined $buffer ? length $buffer : 0;
   $self->{write}  = $self->{write} - $written;
   $self->{offset} = $self->{offset} + $written;
 
-  # Write headers
+  # Switch to headers
   if ($self->{write} <= 0) {
-    $self->{state}  = 'write_headers';
-    $self->{offset} = 0;
-    $self->{write}  = $message->header_size;
+    $self->{http_state} = 'headers';
+    $self->{write}      = $msg->header_size;
+    $self->{offset}     = 0;
   }
 
   return $buffer;
 }
 
+sub _write {
+  my ($self, $server) = @_;
+
+  # Client starts writing right away
+  $self->{state} ||= 'write' unless $server;
+  return '' unless $self->{state} eq 'write';
+
+  # Nothing written yet
+  $self->{$_} ||= 0 for qw(offset write);
+  my $msg = $server ? $self->res : $self->req;
+  unless ($self->{http_state}) {
+
+    # Connection header
+    my $headers = $msg->headers;
+    $headers->connection($self->keep_alive ? 'keep-alive' : 'close')
+      unless $headers->connection;
+
+    # Switch to start line
+    $self->{http_state} = 'start_line';
+    $self->{write}      = $msg->start_line_size;
+  }
+
+  # Start line
+  my $chunk = '';
+  $chunk .= $self->_start_line($msg) if $self->{http_state} eq 'start_line';
+
+  # Headers
+  $chunk .= $self->_headers($msg, $server) if $self->{http_state} eq 'headers';
+
+  # Body
+  $chunk .= $self->_body($msg, $server) if $self->{http_state} eq 'body';
+
+  return $chunk;
+}
+
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
-Mojo::Transaction::HTTP - HTTP 1.1 transaction container
+Mojo::Transaction::HTTP - HTTP transaction
 
 =head1 SYNOPSIS
 
   use Mojo::Transaction::HTTP;
 
+  # Client
   my $tx = Mojo::Transaction::HTTP->new;
+  $tx->req->method('GET');
+  $tx->req->url->parse('http://example.com');
+  $tx->req->headers->accept('application/json');
+  say $tx->res->code;
+  say $tx->res->headers->content_type;
+  say $tx->res->body;
+  say $tx->remote_address;
+
+  # Server
+  my $tx = Mojo::Transaction::HTTP->new;
+  say $tx->req->method;
+  say $tx->req->url->to_abs;
+  say $tx->req->headers->accept;
+  say $tx->remote_address;
+  $tx->res->code(200);
+  $tx->res->headers->content_type('text/plain');
+  $tx->res->body('Hello World!');
 
 =head1 DESCRIPTION
 
-L<Mojo::Transaction::HTTP> is a container for HTTP 1.1 transactions as
-described in RFC 2616.
+L<Mojo::Transaction::HTTP> is a container for HTTP transactions as described
+in RFC 2616.
 
 =head1 EVENTS
 
 L<Mojo::Transaction::HTTP> inherits all events from L<Mojo::Transaction> and
 can emit the following new ones.
 
-=head2 C<request>
+=head2 request
 
   $tx->on(request => sub {
     my $tx = shift;
@@ -293,10 +222,24 @@ Emitted when a request is ready and needs to be handled.
 
   $tx->on(request => sub {
     my $tx = shift;
-    $tx->res->headers->header('X-Bender', 'Bite my shiny metal ass!');
+    $tx->res->headers->header('X-Bender' => 'Bite my shiny metal ass!');
   });
 
-=head2 C<upgrade>
+=head2 unexpected
+
+  $tx->on(unexpected => sub {
+    my ($tx, $res) = @_;
+    ...
+  });
+
+Emitted for unexpected C<1xx> responses that will be ignored.
+
+  $tx->on(unexpected => sub {
+    my $tx = shift;
+    $tx->res->on(finish => sub { say 'Followup response is finished.' });
+  });
+
+=head2 upgrade
 
   $tx->on(upgrade => sub {
     my ($tx, $ws) = @_;
@@ -308,53 +251,74 @@ object.
 
   $tx->on(upgrade => sub {
     my ($tx, $ws) = @_;
-    $ws->res->headers->header('X-Bender', 'Bite my shiny metal ass!');
+    $ws->res->headers->header('X-Bender' => 'Bite my shiny metal ass!');
   });
 
 =head1 ATTRIBUTES
 
-L<Mojo::Transaction::HTTP> inherits all attributes from L<Mojo::Transaction>.
+L<Mojo::Transaction::HTTP> inherits all attributes from L<Mojo::Transaction>
+and implements the following new ones.
+
+=head2 previous
+
+  my $previous = $tx->previous;
+  $tx          = $tx->previous(Mojo::Transaction->new);
+
+Previous transaction that triggered this followup transaction.
+
+  # Path of previous request
+  say $tx->previous->req->url->path;
 
 =head1 METHODS
 
 L<Mojo::Transaction::HTTP> inherits all methods from L<Mojo::Transaction> and
 implements the following new ones.
 
-=head2 C<client_read>
+=head2 client_read
 
-  $tx->client_read($chunk);
+  $tx->client_read($bytes);
 
-Read and process client data.
+Read data client-side, used to implement user agents.
 
-=head2 C<client_write>
+=head2 client_write
 
-  my $chunk = $tx->client_write;
+  my $bytes = $tx->client_write;
 
-Write client data.
+Write data client-side, used to implement user agents.
 
-=head2 C<keep_alive>
+=head2 is_empty
+
+  my $success = $tx->is_empty;
+
+Check transaction for C<HEAD> request and C<1xx>, C<204> or C<304> response.
+
+=head2 keep_alive
 
   my $success = $tx->keep_alive;
 
 Check if connection can be kept alive.
 
-=head2 C<server_leftovers>
+=head2 redirects
 
-  my $leftovers = $tx->server_leftovers;
+  my $redirects = $tx->redirects;
 
-Leftovers from the server request, used for pipelining.
+Return a list of all previous transactions that preceded this followup
+transaction.
 
-=head2 C<server_read>
+  # Paths of all previous requests
+  say $_->req->url->path for @{$tx->redirects};
 
-  $tx->server_read($chunk);
+=head2 server_read
 
-Read and process server data.
+  $tx->server_read($bytes);
 
-=head2 C<server_write>
+Read data server-side, used to implement web servers.
 
-  my $chunk = $tx->server_write;
+=head2 server_write
 
-Write server data.
+  my $bytes = $tx->server_write;
+
+Write data server-side, used to implement web servers.
 
 =head1 SEE ALSO
 

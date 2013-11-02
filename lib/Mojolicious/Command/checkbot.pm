@@ -2,6 +2,7 @@ package Mojolicious::Command::checkbot;
 use strict;
 use warnings;
 use Mojo::Base 'Mojolicious::Commands';
+use MojoCheckbot;
 
 use Getopt::Long 'GetOptions';
 use Mojo::Server::Daemon;
@@ -117,13 +118,13 @@ EOF
 #  Why do they call it that?
 #  Cause it has no pigment."
 sub run {
-  $ENV{MOJO_APP} ||= 'MojoCheckbot';
   my $self   = shift;
-  my $daemon = Mojo::Server::Daemon->new;
+  my $daemon = Mojo::Server::Daemon->new(app => MojoCheckbot->new);
 
   # Options
   local @ARGV = @_;
   my @listen;
+  Getopt::Long::Configure('pass_through');
   GetOptions(
     'backlog=i'   => sub { $daemon->backlog($_[1]) },
     'clients=i'   => sub { $daemon->max_clients($_[1]) },

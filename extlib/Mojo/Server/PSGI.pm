@@ -1,32 +1,23 @@
 package Mojo::Server::PSGI;
 use Mojo::Base 'Mojo::Server';
 
-use constant CHUNK_SIZE => $ENV{MOJO_CHUNK_SIZE} || 131072;
-
-# "Things aren't as happy as they used to be down here at the unemployment
-#  office.
-#  Joblessness is no longer just for philosophy majors.
-#  Useful people are starting to feel the pinch."
 sub run {
   my ($self, $env) = @_;
 
-  # Environment
   my $tx  = $self->build_tx;
   my $req = $tx->req->parse($env);
-
-  # Store connection information
   $tx->local_port($env->{SERVER_PORT})->remote_address($env->{REMOTE_ADDR});
 
   # Request body
   my $len = $env->{CONTENT_LENGTH};
   until ($req->is_finished) {
-    my $chunk = ($len && $len < CHUNK_SIZE) ? $len : CHUNK_SIZE;
+    my $chunk = ($len && $len < 131072) ? $len : 131072;
     last unless my $read = $env->{'psgi.input'}->read(my $buffer, $chunk, 0);
     $req->parse($buffer);
     last if ($len -= $read) <= 0;
   }
 
-  # Handle
+  # Handle request
   $self->emit(request => $tx);
 
   # Response headers
@@ -38,8 +29,8 @@ sub run {
   }
 
   # PSGI response
-  return [$res->code || 404,
-    \@headers, Mojo::Server::PSGI::_IO->new(tx => $tx)];
+  my $io = Mojo::Server::PSGI::_IO->new(tx => $tx, empty => $tx->is_empty);
+  return [$res->code || 404, \@headers, $io];
 }
 
 sub to_psgi_app {
@@ -50,31 +41,32 @@ sub to_psgi_app {
   return sub { $self->run(@_) }
 }
 
-# "Wow! Homer must have got one of those robot cars!
-#  *Car crashes in background*
-#  Yeah, one of those AMERICAN robot cars."
 package Mojo::Server::PSGI::_IO;
 use Mojo::Base -base;
 
+# Finish transaction
 sub close { shift->{tx}->server_close }
 
 sub getline {
   my $self = shift;
 
+  # Empty
+  return undef if $self->{empty};
+
   # No content yet, try again later
-  my $chunk = $self->{tx}->res->get_body_chunk($self->{offset} //= 0);
+  my $chunk = $self->{tx}->res->get_body_chunk($self->{offset} = defined $self->{offset} ? $self->{offset} : 0);
   return '' unless defined $chunk;
 
   # End of content
-  return unless length $chunk;
+  return undef unless length $chunk;
 
-  # Content
   $self->{offset} += length $chunk;
   return $chunk;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -108,7 +100,7 @@ Mojo::Server::PSGI - PSGI server
 L<Mojo::Server::PSGI> allows L<Mojo> applications to run on all PSGI
 compatible servers.
 
-See L<Mojolicious::Guides::Cookbook> for deployment recipes.
+See L<Mojolicious::Guides::Cookbook> for more.
 
 =head1 EVENTS
 
@@ -116,16 +108,16 @@ L<Mojo::Server::PSGI> inherits all events from L<Mojo::Server>.
 
 =head1 METHODS
 
-L<Mojo::Server::PSGI> inherits all methods from L<Mojo::Server> and
-implements the following new ones.
+L<Mojo::Server::PSGI> inherits all methods from L<Mojo::Server> and implements
+the following new ones.
 
-=head2 C<run>
+=head2 run
 
   my $res = $psgi->run($env);
 
 Run L<PSGI>.
 
-=head2 C<to_psgi_app>
+=head2 to_psgi_app
 
   my $app = $psgi->to_psgi_app;
 

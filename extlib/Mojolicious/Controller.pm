@@ -1,150 +1,112 @@
 package Mojolicious::Controller;
 use Mojo::Base -base;
 
+# No imports, for security reasons!
 use Carp ();
 use Mojo::ByteStream;
-use Mojo::Cookie::Response;
 use Mojo::Exception;
-use Mojo::Home;
 use Mojo::Transaction::HTTP;
 use Mojo::URL;
 use Mojo::Util;
 use Mojolicious;
 use Mojolicious::Routes::Match;
 use Scalar::Util ();
+use Time::HiRes  ();
 
-# "Scalpel... blood bucket... priest."
 has app => sub { Mojolicious->new };
-has match => sub {
-  Mojolicious::Routes::Match->new(GET => '/')->root(shift->app->routes);
-};
+has match =>
+  sub { Mojolicious::Routes::Match->new(root => shift->app->routes) };
 has tx => sub { Mojo::Transaction::HTTP->new };
 
-# Bundled files
-our $H = Mojo::Home->new;
-$H->parse($H->parse($H->mojo_lib_dir)->rel_dir('Mojolicious/templates'));
-our $MOJOBAR = $H->slurp_rel_file('mojobar.html.ep');
-my $EXCEPTION     = $H->slurp_rel_file('exception.html.ep');
-my $DEV_EXCEPTION = $H->slurp_rel_file('exception.development.html.ep');
-my $NOT_FOUND     = $H->slurp_rel_file('not_found.html.ep');
-my $DEV_NOT_FOUND = $H->slurp_rel_file('not_found.development.html.ep');
-
 # Reserved stash values
-my @RESERVED = (
-  qw/action app cb controller data extends format handler json layout/,
-  qw/namespace partial path status template text/
+my %RESERVED = map { $_ => 1 } (
+  qw(action app cb controller data extends format handler json layout),
+  qw(namespace partial path status template text)
 );
-my %RESERVED = map { $_ => 1 } @RESERVED;
 
-# "Is all the work done by the children?
-#  No, not the whipping."
 sub AUTOLOAD {
   my $self = shift;
 
-  # Method
-  my ($package, $method) = our $AUTOLOAD =~ /^([\w\:]+)\:\:(\w+)$/;
-  Carp::croak(qq/Undefined subroutine &${package}::$method called/)
-    unless Scalar::Util::blessed($self) && $self->isa(__PACKAGE__);
+  my ($package, $method) = our $AUTOLOAD =~ /^([\w:]+)::(\w+)$/;
+  Carp::croak "Undefined subroutine &${package}::$method called"
+    unless Scalar::Util::blessed $self && $self->isa(__PACKAGE__);
 
-  # Call helper
-  Carp::croak(qq/Can't locate object method "$method" via package "$package"/)
+  # Call helper with current controller
+  Carp::croak qq{Can't locate object method "$method" via package "$package"}
     unless my $helper = $self->app->renderer->helpers->{$method};
   return $self->$helper(@_);
 }
 
 sub DESTROY { }
 
-# "For the last time, I don't like lilacs!
-#  Your first wife was the one who liked lilacs!
-#  She also liked to shut up!"
+sub continue { $_[0]->app->routes->continue($_[0]) }
+
 sub cookie {
-  my ($self, $name, $value, $options) = @_;
+  my ($self, $name) = (shift, shift);
 
   # Response cookie
-  if (defined $value) {
+  if (@_) {
 
     # Cookie too big
-    $self->app->log->error(qq/Cookie "$name" is bigger than 4096 bytes./)
-      if length $value > 4096;
+    my $cookie = {name => $name, value => shift, %{shift || {}}};
+    $self->app->log->error(qq{Cookie "$name" is bigger than 4096 bytes.})
+      if length $cookie->{value} > 4096;
 
-    # Create new cookie
-    my $cookie = Mojo::Cookie::Response->new(
-      name  => $name,
-      value => $value,
-      %{$options || {}}
-    );
     $self->res->cookies($cookie);
     return $self;
   }
 
-  # Request cookie
-  unless (wantarray) {
-    return unless my $cookie = $self->req->cookie($name);
-    return $cookie->value;
-  }
-
   # Request cookies
-  my @cookies = $self->req->cookie($name);
-  return map { $_->value } @cookies;
+  return map { $_->value } $self->req->cookie($name) if wantarray;
+  return undef unless my $cookie = $self->req->cookie($name);
+  return $cookie->value;
 }
 
-# "Something's wrong, she's not responding to my poking stick."
 sub finish {
-  my ($self, $chunk) = @_;
+  my $self = shift;
 
   # WebSocket
   my $tx = $self->tx;
-  return $tx->finish if $tx->is_websocket;
+  $tx->finish(@_) and return $self if $tx->is_websocket;
 
   # Chunked stream
-  if ($tx->res->is_chunked) {
-    $self->write_chunk($chunk) if defined $chunk;
+  if ($tx->res->content->is_chunked) {
+    $self->write_chunk(@_) if @_;
     return $self->write_chunk('');
   }
 
   # Normal stream
-  $self->write($chunk) if defined $chunk;
-  $self->write('');
+  $self->write(@_) if @_;
+  return $self->write('');
 }
 
-# "You two make me ashamed to call myself an idiot."
 sub flash {
   my $self = shift;
 
-  # Get
-  my $session = $self->stash->{'mojo.session'};
-  if ($_[0] && !defined $_[1] && !ref $_[0]) {
-    return unless $session && ref $session eq 'HASH';
-    return unless my $flash = $session->{flash};
-    return unless ref $flash eq 'HASH';
-    return $flash->{$_[0]};
-  }
+  # Check old flash
+  my $session = $self->session;
+  return $session->{flash} ? $session->{flash}{$_[0]} : undef
+    if @_ == 1 && !ref $_[0];
 
-  # Initialize
-  $session = $self->session;
-  my $flash = $session->{new_flash};
-  $flash = {} unless $flash && ref $flash eq 'HASH';
-  $session->{new_flash} = $flash;
-
-  # Set
-  my $values = @_ > 1 ? {@_} : $_[0];
-  $session->{new_flash} = {%$flash, %$values};
+  # Initialize new flash and merge values
+  my $flash = $session->{new_flash} ||= {};
+  %$flash = (%$flash, %{@_ > 1 ? {@_} : $_[0]});
 
   return $self;
 }
 
-# "My parents may be evil, but at least they're stupid."
 sub on {
   my ($self, $name, $cb) = @_;
   my $tx = $self->tx;
   $self->rendered(101) if $tx->is_websocket;
-  $tx->on($name => sub { shift and $self->$cb(@_) });
+  return $tx->on($name => sub { shift and $self->$cb(@_) });
 }
 
-# "Just make a simple cake. And this time, if someone's going to jump out of
-#  it make sure to put them in *after* you cook it."
 sub param {
   my ($self, $name) = (shift, shift);
+
+  # Multiple names
+  return map { scalar $self->param($_) } @$name if ref $name eq 'ARRAY';
 
   # List names
   my $captures = $self->stash->{'mojo.captures'} ||= {};
@@ -168,216 +130,134 @@ sub param {
     return ref $value eq 'ARRAY' ? wantarray ? @$value : $$value[0] : $value;
   }
 
-  # Upload
-  my $upload = $req->upload($name);
-  return $upload if $upload;
+  # Uploads
+  return $req->upload($name) if $req->upload($name);
 
   # Param values
   return $req->param($name);
 }
 
-# "Is there an app for kissing my shiny metal ass?
-#  Several!
-#  Oooh!"
 sub redirect_to {
   my $self = shift;
 
   # Don't override 3xx status
-  my $res     = $self->res;
-  my $headers = $res->headers;
-  $headers->location($self->url_for(@_)->to_abs);
-  return $self->rendered($res->is_status_class(300) ? undef : 302);
+  my $res = $self->res;
+  $res->headers->location($self->url_for(@_)->to_abs);
+  return $self->rendered($res->is_status_class(300) ? () : 302);
 }
 
-# "Mamma Mia! The cruel meatball of war has rolled onto our laps and ruined
-#  our white pants of peace!"
 sub render {
   my $self = shift;
 
   # Template may be first argument
-  my $template;
-  $template = shift if @_ % 2 && !ref $_[0];
-  my $args = ref $_[0] ? $_[0] : {@_};
-
-  # Template
-  my $stash = $self->stash;
+  my ($template, $args) = (@_ % 2 ? shift : undef, {@_});
   $args->{template} = $template if $template;
-  unless ($stash->{template} || $args->{template}) {
-
-    # Default template
-    my $controller = $args->{controller} || $stash->{controller};
-    my $action     = $args->{action}     || $stash->{action};
-
-    # Normal default template
-    if ($controller && $action) {
-      $self->stash->{template} = join('/', split(/-/, $controller), $action);
-    }
-
-    # Try the route name if we don't have controller and action
-    elsif ($self->match->endpoint) {
-      $self->stash->{template} = $self->match->endpoint->name;
-    }
-  }
+  my $maybe = delete $args->{'mojo.maybe'};
 
   # Render
-  my ($output, $type) = $self->app->renderer->render($self, $args);
-  return unless defined $output;
-  return Mojo::ByteStream->new($output) if $args->{partial};
+  my $app = $self->app;
+  my ($output, $format) = $app->renderer->render($self, $args);
+  return defined $output ? Mojo::ByteStream->new($output) : undef
+    if $args->{partial};
+
+  # Maybe
+  return $maybe ? undef : !$self->render_not_found unless defined $output;
 
   # Prepare response
-  my $res = $self->res;
-  $res->body($output) unless $res->body;
-  my $headers = $res->headers;
-  $headers->content_type($type) unless $headers->content_type;
-  return $self->rendered($stash->{status});
+  $app->plugins->emit_hook(after_render => $self, \$output, $format);
+  my $headers = $self->res->body($output)->headers;
+  $headers->content_type($app->types->type($format) || 'text/plain')
+    unless $headers->content_type;
+  return !!$self->rendered($self->stash->{status});
 }
 
-# "She's built like a steakhouse, but she handles like a bistro!"
-sub render_content {
-  my $self    = shift;
-  my $name    = shift || 'content';
-  my $content = pop;
-
-  # Set
-  my $stash = $self->stash;
-  my $c = $stash->{'mojo.content'} ||= {};
-  if (defined $content) {
-
-    # Reset with multiple values
-    if (@_) {
-      $c->{$name} =
-        join('', map({ref $_ eq 'CODE' ? $_->() : $_} @_, $content));
-    }
-
-    # First come
-    else { $c->{$name} ||= ref $content eq 'CODE' ? $content->() : $content }
-  }
-
-  # Get
-  $content = $c->{$name} // '';
-  return Mojo::ByteStream->new("$content");
-}
-
-sub render_data { shift->render(data => shift, @_) }
-
-# "The path to robot hell is paved with human flesh.
-#  Neat."
 sub render_exception {
   my ($self, $e) = @_;
-  $e = Mojo::Exception->new($e);
-  my $app = $self->app;
-  $app->log->error($e);
 
-  # Recursion
-  return if $self->stash->{'mojo.exception'};
+  my $app = $self->app;
+  $app->log->error($e = Mojo::Exception->new($e));
 
   # Filtered stash snapshot
-  my $snapshot = {};
-  my $stash    = $self->stash;
-  for my $key (keys %$stash) {
-    next if $key =~ /^mojo\./;
-    next unless defined(my $value = $stash->{$key});
-    $snapshot->{$key} = $value;
-  }
-
-  # Render with fallbacks
-  my $mode    = $app->mode;
-  my $options = {
-    template         => "exception.$mode",
-    format           => $stash->{format} || 'html',
-    handler          => undef,
-    status           => 500,
-    snapshot         => $snapshot,
-    exception        => $e,
-    'mojo.exception' => 1
-  };
-  my $inline = $mode eq 'development' ? $DEV_EXCEPTION : $EXCEPTION;
-  return if $self->_render_fallbacks($options, 'exception', $inline);
-  $options->{format} = 'html';
-  $self->_render_fallbacks($options, 'exception', $inline);
-}
-
-# "If you hate intolerance and being punched in the face by me,
-#  please support Proposition Infinity."
-sub render_json {
-  my ($self, $json) = (shift, shift);
-  my $args = ref $_[0] ? $_[0] : {@_};
-  $args->{json} = $json;
-  return $self->render($args);
-}
-
-sub render_later { shift->stash->{'mojo.rendered'}++ }
-
-# "Excuse me, sir, you're snowboarding off the trail.
-#  Lick my frozen metal ass."
-sub render_not_found {
-  my ($self, $resource) = @_;
-  $self->app->log->debug(qq/Resource "$resource" not found./) if $resource;
-
-  # Recursion
   my $stash = $self->stash;
-  return if $stash->{'mojo.exception'};
-  return if $stash->{'mojo.not_found'};
+  my %snapshot = map { $_ => $stash->{$_} }
+    grep { !/^mojo\./ and defined $stash->{$_} } keys %$stash;
 
   # Render with fallbacks
-  my $mode    = $self->app->mode;
-  my $options = {
-    template         => "not_found.$mode",
-    format           => $stash->{format} || 'html',
-    status           => 404,
-    'mojo.not_found' => 1
+  my $mode     = $app->mode;
+  my $renderer = $app->renderer;
+  my $options  = {
+    exception => $e,
+    snapshot  => \%snapshot,
+    template  => "exception.$mode",
+    format    => $stash->{format} || $renderer->default_format,
+    handler   => undef,
+    status    => 500
   };
-  my $inline = $mode eq 'development' ? $DEV_NOT_FOUND : $NOT_FOUND;
-  return if $self->_render_fallbacks($options, 'not_found', $inline);
-  $options->{format} = 'html';
-  $self->_render_fallbacks($options, 'not_found', $inline);
+  my $inline = $renderer->_bundled(
+    $mode eq 'development' ? 'exception.development' : 'exception');
+  return $self if $self->_fallbacks($options, 'exception', $inline);
+  $self->_fallbacks({%$options, format => 'html'}, 'exception', $inline);
+  return $self;
 }
 
-# "You called my thesis a fat sack of barf, and then you stole it?
-#  Welcome to academia."
-sub render_partial {
-  my $self     = shift;
-  my $template = @_ % 2 ? shift : undef;
-  my $args     = {@_, partial => 1};
-  $args->{template} = $template if defined $template;
-  return $self->render($args);
+sub render_later { shift->stash('mojo.rendered' => 1) }
+
+sub render_maybe { shift->render(@_, 'mojo.maybe' => 1) }
+
+sub render_not_found {
+  my $self = shift;
+
+  # Render with fallbacks
+  my $app      = $self->app;
+  my $mode     = $app->mode;
+  my $renderer = $app->renderer;
+  my $format   = $self->stash->{format} || $renderer->default_format;
+  my $options
+    = {template => "not_found.$mode", format => $format, status => 404};
+  my $inline = $renderer->_bundled(
+    $mode eq 'development' ? 'not_found.development' : 'not_found');
+  return $self if $self->_fallbacks($options, 'not_found', $inline);
+  $self->_fallbacks({%$options, format => 'html'}, 'not_found', $inline);
+  return $self;
 }
 
 sub render_static {
   my ($self, $file) = @_;
   my $app = $self->app;
-  $app->log->debug(qq/File "$file" not found, public directory missing?/)
-    and return
-    unless $app->static->serve($self, $file);
-  return $self->rendered;
+  return !!$self->rendered if $app->static->serve($self, $file);
+  $app->log->debug(qq{File "$file" not found, public directory missing?});
+  return !$self->render_not_found;
 }
-
-sub render_text { shift->render(text => shift, @_) }
 
 sub rendered {
   my ($self, $status) = @_;
 
-  # Disable auto rendering
-  $self->render_later;
-
-  # Make sure we have a status
-  my $res = $self->res;
-  $res->code($status) if $status;
+  # Disable auto rendering and make sure we have a status
+  my $res = $self->render_later->res;
+  $res->code($status || 200) if $status || !$res->code;
 
   # Finish transaction
   my $stash = $self->stash;
   unless ($stash->{'mojo.finished'}++) {
-    $res->code(200) unless $res->code;
+
+    # Stop timer
     my $app = $self->app;
+    if (my $started = delete $stash->{'mojo.started'}) {
+      my $elapsed = sprintf '%f',
+        Time::HiRes::tv_interval($started, [Time::HiRes::gettimeofday()]);
+      my $rps  = $elapsed == 0 ? '??' : sprintf '%.3f', 1 / $elapsed;
+      my $code = $res->code;
+      my $msg  = $res->message || $res->default_message($code);
+      $app->log->debug("$code $msg (${elapsed}s, $rps/s).");
+    }
+
     $app->plugins->emit_hook_reverse(after_dispatch => $self);
     $app->sessions->store($self);
   }
   $self->tx->resume;
-
   return $self;
 }
 
-# "A three month calendar? What is this, Mercury?"
 sub req { shift->tx->req }
 sub res { shift->tx->res }
 
@@ -387,10 +267,11 @@ sub respond_to {
 
   # Detect formats
   my $app     = $self->app;
-  my @formats = @{$app->types->detect($self->req->headers->accept)};
+  my $req     = $self->req;
+  my @formats = @{$app->types->detect($req->headers->accept, $req->is_xhr)};
   my $stash   = $self->stash;
   unless (@formats) {
-    my $format = $stash->{format} || $self->req->param('format');
+    my $format = $stash->{format} || $req->param('format');
     push @formats, $format ? $format : $app->renderer->default_format;
   }
 
@@ -409,33 +290,32 @@ sub respond_to {
   }
 
   # Dispatch
-  ref $target eq 'CODE' ? $target->($self) : $self->render($target);
+  ref $target eq 'CODE' ? $target->($self) : $self->render(%$target);
+
+  return $self;
 }
 
 sub send {
-  my ($self, $message, $cb) = @_;
+  my ($self, $msg, $cb) = @_;
   my $tx = $self->tx;
-  Carp::croak('No WebSocket connection to send message to')
+  Carp::croak 'No WebSocket connection to send message to'
     unless $tx->is_websocket;
-  $tx->send($message, sub { shift and $self->$cb(@_) if $cb });
+  $tx->send($msg => sub { shift and $self->$cb(@_) if $cb });
   return $self->rendered(101);
 }
 
-# "Why am I sticky and naked? Did I miss something fun?"
 sub session {
   my $self = shift;
 
   # Hash
-  my $stash = $self->stash;
-  $stash->{'mojo.session'} ||= {};
-  return $stash->{'mojo.session'} unless @_;
+  my $session = $self->stash->{'mojo.session'} ||= {};
+  return $session unless @_;
 
   # Get
-  return $stash->{'mojo.session'}->{$_[0]} unless @_ > 1 || ref $_[0];
+  return $session->{$_[0]} unless @_ > 1 || ref $_[0];
 
   # Set
-  my $values = ref $_[0] ? $_[0] : {@_};
-  $stash->{'mojo.session'} = {%{$stash->{'mojo.session'}}, %$values};
+  %$session = (%$session, %{ref $_[0] ? $_[0] : {@_}});
 
   return $self;
 }
@@ -444,88 +324,77 @@ sub signed_cookie {
   my ($self, $name, $value, $options) = @_;
 
   # Response cookie
-  my $secret = $self->app->secret;
-  if (defined $value) {
-
-    # Sign value
-    my $sig = Mojo::Util::hmac_md5_sum $value, $secret;
-
-    # Create cookie
-    return $self->cookie($name, "$value--$sig", $options);
-  }
+  my $secret = $self->stash->{'mojo.secret'};
+  return $self->cookie($name,
+    "$value--" . Mojo::Util::hmac_sha1_sum($value, $secret), $options)
+    if defined $value;
 
   # Request cookies
   my @results;
   for my $value ($self->cookie($name)) {
 
     # Check signature
-    if ($value =~ s/\-\-([^\-]+)$//) {
+    if ($value =~ s/--([^\-]+)$//) {
       my $sig = $1;
-      my $check = Mojo::Util::hmac_md5_sum $value, $secret;
 
       # Verified
+      my $check = Mojo::Util::hmac_sha1_sum $value, $secret;
       if (Mojo::Util::secure_compare $sig, $check) { push @results, $value }
 
       # Bad cookie
       else {
         $self->app->log->debug(
-          qq/Bad signed cookie "$name", possible hacking attempt./);
+          qq{Bad signed cookie "$name", possible hacking attempt.});
       }
     }
 
     # Not signed
-    else { $self->app->log->debug(qq/Cookie "$name" not signed./) }
+    else { $self->app->log->debug(qq{Cookie "$name" not signed.}) }
   }
 
   return wantarray ? @results : $results[0];
 }
 
-# "All this knowledge is giving me a raging brainer."
 sub stash {
   my $self = shift;
 
   # Hash
-  $self->{stash} ||= {};
-  return $self->{stash} unless @_;
+  my $stash = $self->{stash} ||= {};
+  return $stash unless @_;
 
   # Get
-  return $self->{stash}->{$_[0]} unless @_ > 1 || ref $_[0];
+  return $stash->{$_[0]} unless @_ > 1 || ref $_[0];
 
   # Set
   my $values = ref $_[0] ? $_[0] : {@_};
   for my $key (keys %$values) {
-    $self->app->log->debug(qq/Careful, "$key" is a reserved stash value./)
+    $self->app->log->debug(qq{Careful, "$key" is a reserved stash value.})
       if $RESERVED{$key};
-    $self->{stash}->{$key} = $values->{$key};
+    $stash->{$key} = $values->{$key};
   }
 
   return $self;
 }
 
-sub ua { shift->app->ua }
-
 sub url_for {
   my $self = shift;
-  my $target = shift // '';
+  my $target = shift; $target = defined $target ? $target : '';
 
   # Absolute URL
-  return $target if (Scalar::Util::blessed($target) || '') eq 'Mojo::URL';
-  return Mojo::URL->new($target) if $target =~ m#^\w+\://#;
+  return $target if Scalar::Util::blessed $target && $target->isa('Mojo::URL');
+  return Mojo::URL->new($target) if $target =~ m!^(?:[^:/?#]+:|//)!;
 
   # Base
-  my $url = Mojo::URL->new;
-  my $req = $self->req;
-  $url->base($req->url->base->clone);
-  my $base = $url->base;
-  $base->userinfo(undef);
+  my $url  = Mojo::URL->new;
+  my $req  = $self->req;
+  my $base = $url->base($req->url->base->clone)->base->userinfo(undef);
 
   # Relative URL
   my $path = $url->path;
-  if ($target =~ m#^/#) {
-    if (my $e = $self->stash->{path}) {
-      my $real = Mojo::Util::url_unescape($req->url->path->to_abs_string);
-      $real = Mojo::Util::decode('UTF-8', $real) // $real;
-      $real =~ s|/?$e$|$target|;
+  if ($target =~ m!^/!) {
+    if (my $prefix = $self->stash->{path}) {
+      my $real = $req->url->path->to_route;
+      $real =~ s!/?$prefix$!$target!;
       $target = $real;
     }
     $url->parse($target);
@@ -533,16 +402,9 @@ sub url_for {
 
   # Route
   else {
-    my ($p, $ws) = $self->match->path_for($target, @_);
-    $path->parse($p) if $p;
-
-    # Fix trailing slash
-    $path->trailing_slash(1)
-      if (!$target || $target eq 'current')
-      && $req->url->path->trailing_slash;
-
-    # Fix scheme for WebSockets
-    $base->scheme(($base->scheme || '') eq 'https' ? 'wss' : 'ws') if $ws;
+    my ($generated, $ws) = $self->match->path_for($target, @_);
+    $path->parse($generated) if $generated;
+    $base->scheme($base->protocol eq 'https' ? 'wss' : 'ws') if $ws;
   }
 
   # Make path absolute
@@ -556,42 +418,38 @@ sub url_for {
 sub write {
   my ($self, $chunk, $cb) = @_;
   ($cb, $chunk) = ($chunk, undef) if ref $chunk eq 'CODE';
-  $self->res->write($chunk, sub { shift and $self->$cb(@_) if $cb });
+  my $content = $self->res->content;
+  $content->write($chunk => sub { shift and $self->$cb(@_) if $cb });
   return $self->rendered;
 }
 
 sub write_chunk {
   my ($self, $chunk, $cb) = @_;
   ($cb, $chunk) = ($chunk, undef) if ref $chunk eq 'CODE';
-  $self->res->write_chunk($chunk, sub { shift and $self->$cb(@_) if $cb });
+  my $content = $self->res->content;
+  $content->write_chunk($chunk => sub { shift and $self->$cb(@_) if $cb });
   return $self->rendered;
 }
 
-sub _render_fallbacks {
+sub _fallbacks {
   my ($self, $options, $template, $inline) = @_;
 
   # Mode specific template
-  unless ($self->render($options)) {
+  return 1 if $self->render_maybe(%$options);
 
-    # Template
-    $options->{template} = $template;
-    unless ($self->render($options)) {
+  # Normal template
+  return 1 if $self->render_maybe(%$options, template => $template);
 
-      # Inline template
-      my $stash = $self->stash;
-      return unless $stash->{format} eq 'html';
-      delete $stash->{layout};
-      delete $stash->{extends};
-      delete $options->{template};
-      $options->{inline}  = $inline;
-      $options->{handler} = 'ep';
-      return $self->render($options);
-    }
-  }
+  # Inline template
+  my $stash = $self->stash;
+  return undef unless $stash->{format} eq 'html';
+  delete $stash->{$_} for qw(extends layout);
+  return $self->render_maybe(%$options, inline => $inline, handler => 'ep');
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -599,7 +457,17 @@ Mojolicious::Controller - Controller base class
 
 =head1 SYNOPSIS
 
+  # Controller
+  package MyApp::Foo;
   use Mojo::Base 'Mojolicious::Controller';
+
+  # Action
+  sub bar {
+    my $self = shift;
+    my $name = $self->param('name');
+    $self->res->headers->cache_control('max-age=1, no-cache');
+    $self->render(json => {hello => $name});
+  }
 
 =head1 DESCRIPTION
 
@@ -612,7 +480,7 @@ unless you set C<controller_class> in your application.
 L<Mojolicious::Controller> inherits all attributes from L<Mojo::Base> and
 implements the following new ones.
 
-=head2 C<app>
+=head2 app
 
   my $app = $c->app;
   $c      = $c->app(Mojolicious->new);
@@ -623,7 +491,7 @@ defaults to a L<Mojolicious> object.
   # Use application logger
   $c->app->log->debug('Hello Mojo!');
 
-=head2 C<match>
+=head2 match
 
   my $m = $c->match;
   $c    = $c->match(Mojolicious::Routes::Match->new);
@@ -634,7 +502,7 @@ L<Mojolicious::Routes::Match> object.
   # Introspect
   my $foo = $c->match->endpoint->pattern->defaults->{foo};
 
-=head2 C<tx>
+=head2 tx
 
   my $tx = $c->tx;
   $c     = $c->tx(Mojo::Transaction::HTTP->new);
@@ -650,7 +518,13 @@ L<Mojo::Transaction::HTTP> or L<Mojo::Transaction::WebSocket> object.
 L<Mojolicious::Controller> inherits all methods from L<Mojo::Base> and
 implements the following new ones.
 
-=head2 C<cookie>
+=head2 continue
+
+  $c->continue;
+
+Continue dispatch chain.
+
+=head2 cookie
 
   my $value  = $c->cookie('foo');
   my @values = $c->cookie('foo');
@@ -659,17 +533,19 @@ implements the following new ones.
 
 Access request cookie values and create new response cookies.
 
-  # Create response cookie with domain
-  $c->cookie(name => 'sebastian', {domain => 'mojolicio.us'});
+  # Create response cookie with domain and expiration date
+  $c->cookie(user => 'sri', {domain => 'example.com', expires => time + 60});
 
-=head2 C<finish>
+=head2 finish
 
-  $c->finish;
-  $c->finish('Bye!');
+  $c = $c->finish;
+  $c = $c->finish(1000);
+  $c = $c->finish(1003 => 'Cannot accept data!');
+  $c = $c->finish('Bye!');
 
-Gracefully end WebSocket connection or long poll stream.
+Close WebSocket connection or long poll stream gracefully.
 
-=head2 C<flash>
+=head2 flash
 
   my $foo = $c->flash('foo');
   $c      = $c->flash({foo => 'bar'});
@@ -681,35 +557,66 @@ Data storage persistent only for the next request, stored in the C<session>.
   $c->flash(message => 'User created successfully!');
   $c->redirect_to('show_user', id => 23);
 
-=head2 C<on>
+=head2 on
 
   my $cb = $c->on(finish => sub {...});
 
-Subscribe to events of C<tx>, which is usually a L<Mojo::Transaction::HTTP>
-or L<Mojo::Transaction::WebSocket> object.
+Subscribe to events of C<tx>, which is usually a L<Mojo::Transaction::HTTP> or
+L<Mojo::Transaction::WebSocket> object. Note that this method will
+automatically respond to WebSocket handshake requests with a C<101> response
+status.
 
-  # Emitted when the transaction has been finished
+  # Do something after the transaction has been finished
   $c->on(finish => sub {
     my $c = shift;
-    say 'We are done!';
+    $c->app->log->debug('We are done!');
   });
 
-  # Emitted when new WebSocket messages arrive
+  # Receive WebSocket message
   $c->on(message => sub {
-    my ($c, $message) = @_;
-    say "Message: $message";
+    my ($c, $msg) = @_;
+    $c->app->log->debug("Message: $msg");
   });
 
-=head2 C<param>
+  # Receive JSON object via WebSocket message
+  $c->on(json => sub {
+    my ($c, $hash) = @_;
+    $c->app->log->debug("Test: $hash->{test}");
+  });
 
-  my @names = $c->param;
-  my $foo   = $c->param('foo');
-  my @foo   = $c->param('foo');
-  $c        = $c->param(foo => 'ba;r');
-  $c        = $c->param(foo => qw/ba;r ba;z/);
+  # Receive WebSocket "Binary" message
+  $c->on(binary => sub {
+    my ($c, $bytes) = @_;
+    my $len = length $bytes;
+    $c->app->log->debug("Received $len bytes.");
+  });
 
-Access GET/POST parameters, file uploads and route captures that are not
-reserved stash values.
+=head2 param
+
+  my @names       = $c->param;
+  my $foo         = $c->param('foo');
+  my @foo         = $c->param('foo');
+  my ($foo, $bar) = $c->param(['foo', 'bar']);
+  $c              = $c->param(foo => 'ba;r');
+  $c              = $c->param(foo => qw(ba;r ba;z));
+
+Access GET/POST parameters, file uploads and route placeholder values that are
+not reserved stash values. Note that this method is context sensitive in some
+cases and therefore needs to be used with care, there can always be multiple
+values, which might have unexpected consequences. Parts of the request body
+need to be loaded into memory to parse POST parameters, so you have to make
+sure it is not excessively large.
+
+  # List context is ambiguous and should be avoided
+  my $hash = {foo => $self->param('foo')};
+
+  # Better enforce scalar context
+  my $hash = {foo => scalar $self->param('foo')};
+
+  # The multi name form can also enforce scalar context
+  my $hash = {foo => $self->param(['foo'])};
+
+For more control you can also access request information directly.
 
   # Only GET parameters
   my $foo = $c->req->url->query->param('foo');
@@ -720,15 +627,14 @@ reserved stash values.
   # Only file uploads
   my $foo = $c->req->upload('foo');
 
-=head2 C<redirect_to>
+=head2 redirect_to
 
-  $c = $c->redirect_to('named');
   $c = $c->redirect_to('named', foo => 'bar');
-  $c = $c->redirect_to('/path');
-  $c = $c->redirect_to('http://127.0.0.1/foo/bar');
+  $c = $c->redirect_to('named', {foo => 'bar'});
+  $c = $c->redirect_to('/perldoc');
+  $c = $c->redirect_to('http://mojolicio.us/perldoc');
 
-Prepare a C<302> redirect response, takes the exact same arguments as
-C<url_for>.
+Prepare a C<302> redirect response, takes the same arguments as C<url_for>.
 
   # Conditional redirect
   return $c->redirect_to('login') unless $c->session('user');
@@ -737,63 +643,40 @@ C<url_for>.
   $c->res->code(301);
   $c->redirect_to('some_route');
 
-=head2 C<render>
+=head2 render
 
   my $success = $c->render;
   my $success = $c->render(controller => 'foo', action => 'bar');
-  my $success = $c->render({controller => 'foo', action => 'bar'});
-  my $success = $c->render(text => 'Hello!');
   my $success = $c->render(template => 'foo/index');
   my $success = $c->render(template => 'index', format => 'html');
+  my $success = $c->render(data => $bytes);
+  my $success = $c->render(text => 'Hello!');
+  my $success = $c->render(json => {foo => 'bar'});
   my $success = $c->render(handler => 'something');
-  my $success = $c->render('foo/bar');
-  my $output  = $c->render('foo/bar', partial => 1);
+  my $success = $c->render('foo/index');
+  my $output  = $c->render('foo/index', partial => 1);
 
-This is a wrapper around L<Mojolicious::Renderer/"render"> exposing pretty
-much all functionality provided by it. It will set a default template to use
-based on the controller and action name or fall back to the route name. You
-can call it with a hash or hash reference of options which can be preceded by
-an optional template name.
+Render content using L<Mojolicious::Renderer/"render"> and emit
+C<after_render> hook unless the result is C<partial>. If no template is
+provided a default one based on controller and action or route name will be
+generated, all additional values get merged into the C<stash>.
 
-=head2 C<render_content>
+=head2 render_exception
 
-  my $output = $c->render_content;
-  my $output = $c->render_content('header');
-  my $output = $c->render_content(header => 'Hello world!');
-  my $output = $c->render_content(header => sub { 'Hello world!' });
-
-Contains partial rendered templates, used for the renderers C<layout> and
-C<extends> features.
-
-=head2 C<render_data>
-
-  $c->render_data($bytes);
-  $c->render_data($bytes, format => 'png');
-
-Render the given content as raw bytes, similar to C<render_text> but data
-will not be encoded.
-
-=head2 C<render_exception>
-
-  $c->render_exception('Oops!');
-  $c->render_exception(Mojo::Exception->new('Oops!'));
+  $c = $c->render_exception('Oops!');
+  $c = $c->render_exception(Mojo::Exception->new('Oops!'));
 
 Render the exception template C<exception.$mode.$format.*> or
-C<exception.$format.*> and set the response status code to C<500>.
+C<exception.$format.*> and set the response status code to C<500>. Also sets
+the stash values C<exception> to a L<Mojo::Exception> object and C<snapshot>
+to a copy of the C<stash> for use in the templates.
 
-=head2 C<render_json>
+=head2 render_later
 
-  $c->render_json({foo => 'bar'});
-  $c->render_json([1, 2, -3], status => 201);
+  $c = $c->render_later;
 
-Render a data structure as JSON.
-
-=head2 C<render_later>
-
-  $c->render_later;
-
-Disable automatic rendering, especially for long polling this can be quite
-useful.
+Disable automatic rendering to delay response generation, only necessary if
+automatic rendering would result in a response.
 
   # Delayed rendering
   $c->render_later;
@@ -801,109 +684,128 @@ useful.
     $c->render(text => 'Delayed by 2 seconds!');
   });
 
-=head2 C<render_not_found>
+=head2 render_maybe
 
-  $c->render_not_found;
-  $c->render_not_found('some_resource');
+  my $success = $c->render_maybe;
+  my $success = $c->render_maybe(controller => 'foo', action => 'bar');
+  my $success = $c->render_maybe('foo/index', format => 'html');
+
+Try to render content but do not call C<render_not_found> if no response could
+be generated, takes the same arguments as C<render>.
+
+  # Render template "index_local" only if it exists
+  $self->render_maybe('index_local') or $self->render('index');
+
+=head2 render_not_found
+
+  $c = $c->render_not_found;
 
 Render the not found template C<not_found.$mode.$format.*> or
 C<not_found.$format.*> and set the response status code to C<404>.
 
-=head2 C<render_partial>
-
-  my $output = $c->render_partial('menubar');
-  my $output = $c->render_partial('menubar', format => 'txt');
-
-Same as C<render> but returns the rendered result.
-
-=head2 C<render_static>
+=head2 render_static
 
   my $success = $c->render_static('images/logo.png');
   my $success = $c->render_static('../lib/MyApp.pm');
 
 Render a static file using L<Mojolicious::Static/"serve">, usually from the
-C<public> directory or C<DATA> section of your application.
+C<public> directories or C<DATA> sections of your application. Note that this
+method does not protect from traversing to parent directories.
 
-=head2 C<render_text>
-
-  $c->render_text('Hello World!');
-  $c->render_text('Hello World', layout => 'green');
-
-Render the given content as Perl characters, which will be encoded to bytes.
-See C<render_data> for an alternative without encoding. Note that this does
-not change the content type of the response, which is
-C<text/html;charset=UTF-8> by default.
-
-  # Render "text/plain" response
-  $c->render_text('Hello World!', format => 'txt');
-
-=head2 C<rendered>
+=head2 rendered
 
   $c = $c->rendered;
   $c = $c->rendered(302);
 
-Finalize response and run C<after_dispatch> plugin hook.
+Finalize response and emit C<after_dispatch> hook, defaults to using a C<200>
+response code.
 
-  # Stream content directly from file
-  $c->res->content->asset(Mojo::Asset::File->new(path => '/etc/passwd'));
-  $c->res->headers->content_type('text/plain');
-  $c->rendered(200);
-
-=head2 C<req>
+=head2 req
 
   my $req = $c->req;
 
-Alias for C<$c-E<gt>tx-E<gt>req>. Usually refers to a
-L<Mojo::Message::Request> object.
+Get L<Mojo::Message::Request> object from L<Mojo::Transaction/"req">.
+
+  # Longer version
+  my $req = $c->tx->req;
 
   # Extract request information
-  my $userinfo = $c->req->url->userinfo;
+  my $url      = $c->req->url->to_abs;
+  my $userinfo = $c->req->url->to_abs->userinfo;
+  my $host     = $c->req->url->to_abs->host;
+  my $agent    = $c->req->headers->user_agent;
+  my $bytes    = $c->req->body;
+  my $str      = $c->req->text;
+  my $hash     = $c->req->json;
+  my $foo      = $c->req->json('/23/foo');
+  my $dom      = $c->req->dom;
+  my $bar      = $c->req->dom('div.bar')->first->text;
 
-=head2 C<res>
+=head2 res
 
   my $res = $c->res;
 
-Alias for C<$c-E<gt>tx-E<gt>res>. Usually refers to a
-L<Mojo::Message::Response> object.
+Get L<Mojo::Message::Response> object from L<Mojo::Transaction/"res">.
+
+  # Longer version
+  my $res = $c->tx->res;
 
   # Force file download by setting a custom response header
   $c->res->headers->content_disposition('attachment; filename=foo.png;');
 
-=head2 C<respond_to>
+=head2 respond_to
 
-  $c->respond_to(
-    json => sub {...},
-    xml  => {text => 'hello!'},
+  $c = $c->respond_to(
+    json => {json => {message => 'Welcome!'}},
+    html => {template => 'welcome'},
     any  => sub {...}
   );
 
 Automatically select best possible representation for resource from C<Accept>
 request header, C<format> stash value or C<format> GET/POST parameter,
-defaults to rendering an empty C<204> response. Unspecific C<Accept> request
-headers that contain more than one MIME type are ignored.
+defaults to rendering an empty C<204> response. Since browsers often don't
+really know what they actually want, unspecific C<Accept> request headers with
+more than one MIME type will be ignored, unless the C<X-Requested-With> header
+is set to the value C<XMLHttpRequest>.
 
   $c->respond_to(
-    json => sub { $c->render_json({just => 'works'}) },
+    json => sub { $c->render(json => {just => 'works'}) },
     xml  => {text => '<just>works</just>'},
     any  => {data => '', status => 204}
   );
 
-=head2 C<send>
+=head2 send
 
   $c = $c->send({binary => $bytes});
   $c = $c->send({text   => $bytes});
-  $c = $c->send([$fin, $rsv1, $rsv2, $rsv3, $op, $payload]);
-  $c = $c->send('Hi there!');
-  $c = $c->send('Hi there!', sub {...});
+  $c = $c->send({json   => {test => [1, 2, 3]}});
+  $c = $c->send([$fin, $rsv1, $rsv2, $rsv3, $op, $bytes]);
+  $c = $c->send($chars);
+  $c = $c->send($chars => sub {...});
 
 Send message or frame non-blocking via WebSocket, the optional drain callback
-will be invoked once all data has been written.
+will be invoked once all data has been written. Note that this method will
+automatically respond to WebSocket handshake requests with a C<101> response
+status.
 
-  # Send JSON object as text frame
-  $c->send({text => Mojo::JSON->new->encode({hello => 'world'})});
+  # Send "Text" message
+  $c->send('I ♥ Mojolicious!');
+
+  # Send JSON object as "Text" message
+  $c->send({json => {test => 'I ♥ Mojolicious!'}});
+
+  # Send JSON object as "Binary" message
+  use Mojo::JSON 'j';
+  $c->send({binary => j({test => 'I ♥ Mojolicious!'})});
 
   # Send "Ping" frame
   $c->send([1, 0, 0, 0, 9, 'Hello World!']);
+
+  # Make sure previous message has been written before continuing
+  $c->send('First message!' => sub {
+    my $c = shift;
+    $c->send('Second message!');
+  });
 
 For mostly idle WebSockets you might also want to increase the inactivity
 timeout, which usually defaults to C<15> seconds.
@@ -911,25 +813,32 @@ timeout, which usually defaults to C<15> seconds.
   # Increase inactivity timeout for connection to 300 seconds
   Mojo::IOLoop->stream($c->tx->connection)->timeout(300);
 
-=head2 C<session>
+=head2 session
 
   my $session = $c->session;
   my $foo     = $c->session('foo');
   $c          = $c->session({foo => 'bar'});
   $c          = $c->session(foo => 'bar');
 
-Persistent data storage, stored C<JSON> serialized in a signed cookie. Note
-that cookies are generally limited to 4096 bytes of data.
+Persistent data storage, all session data gets serialized with L<Mojo::JSON>
+and stored C<Base64> encoded in C<HMAC-SHA1> signed cookies. Note that cookies
+usually have a 4096 byte limit, depending on browser.
 
   # Manipulate session
   $c->session->{foo} = 'bar';
   my $foo = $c->session->{foo};
   delete $c->session->{foo};
 
-  # Delete whole session
+  # Expiration date in seconds from now (persists between requests)
+  $c->session(expiration => 604800);
+
+  # Expiration date as absolute epoch time (only valid for one request)
+  $c->session(expires => time + 604800);
+
+  # Delete whole session by setting an expiration date in the past
   $c->session(expires => 1);
 
-=head2 C<signed_cookie>
+=head2 signed_cookie
 
   my $value  = $c->signed_cookie('foo');
   my @values = $c->signed_cookie('foo');
@@ -937,66 +846,42 @@ that cookies are generally limited to 4096 bytes of data.
   $c         = $c->signed_cookie(foo => 'bar', {path => '/'});
 
 Access signed request cookie values and create new signed response cookies.
-Cookies failing signature verification will be automatically discarded.
+Cookies failing C<HMAC-SHA1> signature verification will be automatically
+discarded.
 
-=head2 C<stash>
+=head2 stash
 
-  my $stash = $c->stash;
-  my $foo   = $c->stash('foo');
-  $c        = $c->stash({foo => 'bar'});
-  $c        = $c->stash(foo => 'bar');
+  my $hash = $c->stash;
+  my $foo  = $c->stash('foo');
+  $c       = $c->stash({foo => 'bar'});
+  $c       = $c->stash(foo => 'bar');
 
 Non persistent data storage and exchange, application wide default values can
-be set with L<Mojolicious/"defaults">. Many stash value have a special
-meaning and are reserved, the full list is currently C<action>, C<app>,
-C<cb>, C<controller>, C<data>, C<extends>, C<format>, C<handler>, C<json>,
-C<layout>, C<namespace>, C<partial>, C<path>, C<status>, C<template> and
-C<text>.
+be set with L<Mojolicious/"defaults">. Many stash values have a special
+meaning and are reserved, the full list is currently C<action>, C<app>, C<cb>,
+C<controller>, C<data>, C<extends>, C<format>, C<handler>, C<json>, C<layout>,
+C<namespace>, C<partial>, C<path>, C<status>, C<template> and C<text>. Note
+that all stash values with a C<mojo.*> prefix are reserved for internal use.
 
-  # Manipulate stash
-  $c->stash->{foo} = 'bar';
-  my $foo = $c->stash->{foo};
-  delete $c->stash->{foo};
+  # Remove value
+  my $foo = delete $c->stash->{foo};
 
-=head2 C<ua>
-
-  my $ua = $c->ua;
-
-Alias for C<$c-E<gt>app-E<gt>ua>. Usually refers to a L<Mojo::UserAgent>
-object.
-
-  # Blocking
-  my $tx = $c->ua->get('http://mojolicio.us');
-  my $tx = $c->ua->post_form('http://kraih.com/login' => {user => 'mojo'});
-
-  # Non-blocking
-  $c->ua->get('http://mojolicio.us' => sub {
-    my ($ua, $tx) = @_;
-    $c->render_data($tx->res->body);
-  });
-
-  # Parallel non-blocking
-  my $delay = Mojo::IOLoop->delay(sub {
-    my ($delay, @titles) = @_;
-    $c->render_json(\@titles);
-  });
-  for my $url ('http://mojolicio.us', 'https://metacpan.org') {
-    $delay->begin;
-    $c->ua->get($url => sub {
-      my ($ua, $tx) = @_;
-      $delay->end($tx->res->dom->html->head->title->text);
-    });
-  }
-
-=head2 C<url_for>
+=head2 url_for
 
   my $url = $c->url_for;
   my $url = $c->url_for(name => 'sebastian');
+  my $url = $c->url_for({name => 'sebastian'});
   my $url = $c->url_for('test', name => 'sebastian');
+  my $url = $c->url_for('test', {name => 'sebastian'});
   my $url = $c->url_for('/perldoc');
+  my $url = $c->url_for('//mojolicio.us/perldoc');
   my $url = $c->url_for('http://mojolicio.us/perldoc');
+  my $url = $c->url_for('mailto:sri@example.com');
 
 Generate a portable L<Mojo::URL> object with base for a route, path or URL.
+
+  # "http://127.0.0.1:3000/perldoc" if application has been started with Morbo
+  $c->url_for('/perldoc')->to_abs;
 
   # "/perldoc?foo=bar" if application is deployed under "/"
   $c->url_for('/perldoc')->query(foo => 'bar');
@@ -1010,52 +895,52 @@ to inherit query parameters from the current request.
   # "/list?q=mojo&page=2" if current request was for "/list?q=mojo&page=1"
   $c->url_with->query([page => 2]);
 
-=head2 C<write>
+=head2 write
 
-  $c->write;
-  $c->write('Hello!');
-  $c->write(sub {...});
-  $c->write('Hello!', sub {...});
+  $c = $c->write;
+  $c = $c->write($bytes);
+  $c = $c->write(sub {...});
+  $c = $c->write($bytes => sub {...});
 
 Write dynamic content non-blocking, the optional drain callback will be
 invoked once all data has been written.
 
   # Keep connection alive (with Content-Length header)
   $c->res->headers->content_length(6);
-  $c->write('Hel', sub {
+  $c->write('Hel' => sub {
     my $c = shift;
     $c->write('lo!')
   });
 
   # Close connection when finished (without Content-Length header)
-  $c->write('Hel', sub {
+  $c->write('Hel' => sub {
     my $c = shift;
-    $c->write('lo!', sub {
+    $c->write('lo!' => sub {
       my $c = shift;
       $c->finish;
     });
   });
 
-For Comet (C<long polling>) you might also want to increase the inactivity
+For Comet (long polling) you might also want to increase the inactivity
 timeout, which usually defaults to C<15> seconds.
 
   # Increase inactivity timeout for connection to 300 seconds
   Mojo::IOLoop->stream($c->tx->connection)->timeout(300);
 
-=head2 C<write_chunk>
+=head2 write_chunk
 
-  $c->write_chunk;
-  $c->write_chunk('Hello!');
-  $c->write_chunk(sub {...});
-  $c->write_chunk('Hello!', sub {...});
+  $c = $c->write_chunk;
+  $c = $c->write_chunk($bytes);
+  $c = $c->write_chunk(sub {...});
+  $c = $c->write_chunk($bytes => sub {...});
 
 Write dynamic content non-blocking with C<chunked> transfer encoding, the
 optional drain callback will be invoked once all data has been written.
 
   # Make sure previous chunk has been written before continuing
-  $c->write_chunk('He', sub {
+  $c->write_chunk('He' => sub {
     my $c = shift;
-    $c->write_chunk('ll', sub {
+    $c->write_chunk('ll' => sub {
       my $c = shift;
       $c->finish('o!');
     });
@@ -1075,8 +960,7 @@ You can call C<finish> at any time to end the stream.
 
 In addition to the attributes and methods above you can also call helpers on
 L<Mojolicious::Controller> objects. This includes all helpers from
-L<Mojolicious::Plugin::DefaultHelpers> and
-L<Mojolicious::Plugin::TagHelpers>.
+L<Mojolicious::Plugin::DefaultHelpers> and L<Mojolicious::Plugin::TagHelpers>.
 
   $c->layout('green');
   $c->title('Welcome!');

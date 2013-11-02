@@ -1,6 +1,8 @@
 package Mojo;
 use Mojo::Base -base;
 
+# "Professor: These old Doomsday devices are dangerously unstable. I'll rest
+#             easier not knowing where they are."
 use Carp 'croak';
 use Mojo::Home;
 use Mojo::Log;
@@ -13,25 +15,21 @@ has log  => sub { Mojo::Log->new };
 has ua   => sub {
   my $self = shift;
 
-  # Fresh user agent
   my $ua = Mojo::UserAgent->new->app($self);
   weaken $self;
-  $ua->on(error => sub { $self->log->error(pop) });
+  $ua->on(error => sub { $self->log->error($_[1]) });
   weaken $ua->{app};
 
   return $ua;
 };
 
-# "Oh, so they have internet on computers now!"
 sub new {
   my $self = shift->SUPER::new(@_);
 
-  # Detect home directory
-  $self->home->detect(ref $self);
-
-  # Log directory
-  $self->log->path($self->home->rel_file('log/mojo.log'))
-    if -w $self->home->rel_file('log');
+  # Check if we have a log directory
+  my $home = $self->home->detect(ref $self);
+  $self->log->path($home->rel_file('log/mojo.log'))
+    if -w $home->rel_file('log');
 
   return $self;
 }
@@ -40,28 +38,27 @@ sub build_tx { Mojo::Transaction::HTTP->new }
 
 sub config { shift->_dict(config => @_) }
 
-# "D’oh."
 sub handler { croak 'Method "handler" not implemented in subclass' }
 
 sub _dict {
   my ($self, $name) = (shift, shift);
 
   # Hash
-  $self->{$name} ||= {};
-  return $self->{$name} unless @_;
+  my $dict = $self->{$name} ||= {};
+  return $dict unless @_;
 
   # Get
-  return $self->{$name}->{$_[0]} unless @_ > 1 || ref $_[0];
+  return $dict->{$_[0]} unless @_ > 1 || ref $_[0];
 
   # Set
-  my $values = ref $_[0] ? $_[0] : {@_};
-  $self->{$name} = {%{$self->{$name}}, %$values};
+  %$dict = (%$dict, %{ref $_[0] ? $_[0] : {@_}});
 
   return $self;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -69,6 +66,7 @@ Mojo - Duct tape for the HTML5 web!
 
 =head1 SYNOPSIS
 
+  package MyApp;
   use Mojo::Base 'Mojo';
 
   # All the complexities of CGI, PSGI, HTTP and WebSockets get reduced to a
@@ -93,16 +91,16 @@ Mojo - Duct tape for the HTML5 web!
 
 Mojo provides a flexible runtime environment for Perl real-time web
 frameworks. It provides all the basic tools and helpers needed to write
-simple web applications and higher level web frameworks such as
+simple web applications and higher level web frameworks, such as
 L<Mojolicious>.
 
-See L<Mojolicious> for more!
+See L<Mojolicious::Guides> for more!
 
 =head1 ATTRIBUTES
 
 L<Mojo> implements the following attributes.
 
-=head2 C<home>
+=head2 home
 
   my $home = $app->home;
   $app     = $app->home(Mojo::Home->new);
@@ -113,7 +111,7 @@ which stringifies to the actual path.
   # Generate portable path relative to home directory
   my $path = $app->home->rel_file('data/important.txt');
 
-=head2 C<log>
+=head2 log
 
   my $log = $app->log;
   $app    = $app->log(Mojo::Log->new);
@@ -123,59 +121,58 @@ The logging layer of your application, defaults to a L<Mojo::Log> object.
   # Log debug message
   $app->log->debug('It works!');
 
-=head2 C<ua>
+=head2 ua
 
   my $ua = $app->ua;
   $app   = $app->ua(Mojo::UserAgent->new);
 
-A full featured HTTP 1.1 user agent for use in your applications, defaults to
-a L<Mojo::UserAgent> object.
+A full featured HTTP user agent for use in your applications, defaults to a
+L<Mojo::UserAgent> object. Note that this user agent should not be used in
+plugins, since non-blocking requests that are already in progress will
+interfere with new blocking ones.
 
   # Perform blocking request
-  my $body = $app->ua->get('mojolicio.us')->res->body;
+  say $app->ua->get('example.com')->res->body;
 
 =head1 METHODS
 
 L<Mojo> inherits all methods from L<Mojo::Base> and implements the following
 new ones.
 
-=head2 C<new>
+=head2 new
 
   my $app = Mojo->new;
 
 Construct a new L<Mojo> application. Will automatically detect your home
-directory and set up logging to C<log/mojo.log> if there's a C<log>
-directory.
+directory and set up logging to C<log/mojo.log> if there's a C<log> directory.
 
-=head2 C<build_tx>
+=head2 build_tx
 
   my $tx = $app->build_tx;
 
 Transaction builder, defaults to building a L<Mojo::Transaction::HTTP>
 object.
 
-=head2 C<config>
+=head2 config
 
-  my $config = $app->config;
-  my $foo    = $app->config('foo');
-  $app       = $app->config({foo => 'bar'});
-  $app       = $app->config(foo => 'bar');
+  my $hash = $app->config;
+  my $foo  = $app->config('foo');
+  $app     = $app->config({foo => 'bar'});
+  $app     = $app->config(foo => 'bar');
 
 Application configuration.
 
-  # Manipulate configuration
-  $app->config->{foo} = 'bar';
-  my $foo = $app->config->{foo};
-  delete $app->config->{foo};
+  # Remove value
+  my $foo = delete $app->config->{foo};
 
-=head2 C<handler>
+=head2 handler
 
-  $app->handler($tx);
+  $app->handler(Mojo::Transaction::HTTP->new);
 
 The handler is the main entry point to your application or framework and will
 be called for each new transaction, which will usually be a
-L<Mojo::Transaction::HTTP> or L<Mojo::Transaction::WebSocket> object. Meant
-to be overloaded in a subclass.
+L<Mojo::Transaction::HTTP> or L<Mojo::Transaction::WebSocket> object. Meant to
+be overloaded in a subclass.
 
   sub handler {
     my ($self, $tx) = @_;

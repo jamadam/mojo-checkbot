@@ -6,19 +6,16 @@ use Mojo::Server;
 sub register {
   my ($self, $app, $conf) = @_;
 
-  # Extract host and path
-  my $prefix = (keys %$conf)[0];
-  my ($host, $path);
-  if ($prefix =~ m#^(\*\.)?([^/]+)(/.*)?$#) {
-    $host = quotemeta $2;
-    $host = "(?:.*\\.)?$host" if $1;
-    $path = defined $3 ? $3 : '/';
-    $host = qr/^$host$/i;
-  }
-  else { $path = $prefix }
+  my $path  = (keys %$conf)[0];
+  my $embed = Mojo::Server->new->load_app($conf->{$path});
 
-  # Generate route
-  my $embed = Mojo::Server->new->load_app($conf->{$prefix});
+  # Extract host
+  my $host;
+  if ($path =~ m!^(\*\.)?([^/]+)(/.*)?$!) {
+    $host = $1 ? qr/^(?:.*\.)?\Q$2\E$/i : qr/^\Q$2\E$/i;
+    $path = $3;
+  }
+
   my $route = $app->routes->route($path)->detour(app => $embed);
   $route->over(host => $host) if $host;
 
@@ -26,7 +23,8 @@ sub register {
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -35,37 +33,40 @@ Mojolicious::Plugin::Mount - Application mount plugin
 =head1 SYNOPSIS
 
   # Mojolicious
-  $self->plugin(Mount => {'/prefix' => '/home/sri/myapp.pl'});
+  my $route = $self->plugin(Mount => {'/prefix' => '/home/sri/myapp.pl'});
 
   # Mojolicious::Lite
-  plugin Mount => {'/prefix' => '/home/sri/myapp.pl'};
+  my $route = plugin Mount => {'/prefix' => '/home/sri/myapp.pl'};
 
   # Adjust the generated route
   my $example = plugin Mount => {'/example' => '/home/sri/example.pl'};
   $example->to(message => 'It works great!');
 
   # Mount application with host
-  plugin Mount => {'mojolicio.us' => '/home/sri/myapp.pl'};
+  plugin Mount => {'example.com' => '/home/sri/myapp.pl'};
 
   # Host and path
-  plugin Mount => {'mojolicio.us/myapp' => '/home/sri/myapp.pl'};
+  plugin Mount => {'example.com/myapp' => '/home/sri/myapp.pl'};
 
   # Or even hosts with wildcard subdomains
-  plugin Mount => {'*.mojolicio.us/myapp' => '/home/sri/myapp.pl'};
+  plugin Mount => {'*.example.com/myapp' => '/home/sri/myapp.pl'};
 
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::Mount> is a plugin that allows you to mount whole
 L<Mojolicious> applications.
 
+The code of this plugin is a good example for learning to build new plugins,
+you're welcome to fork it.
+
 =head1 METHODS
 
-L<Mojolicious::Plugin::Mount> inherits all methods from
-L<Mojolicious::Plugin> and implements the following new ones.
+L<Mojolicious::Plugin::Mount> inherits all methods from L<Mojolicious::Plugin>
+and implements the following new ones.
 
-=head2 C<register>
+=head2 register
 
-  $plugin->register;
+  my $route = $plugin->register(Mojolicious->new, {'/foo' => '/some/app.pl'});
 
 Mount L<Mojolicious> application.
 

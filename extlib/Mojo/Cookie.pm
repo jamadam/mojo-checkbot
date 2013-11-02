@@ -1,89 +1,47 @@
 package Mojo::Cookie;
 use Mojo::Base -base;
-use overload
-  'bool'   => sub {1},
-  '""'     => sub { shift->to_string },
-  fallback => 1;
+use overload bool => sub {1}, '""' => sub { shift->to_string }, fallback => 1;
 
 use Carp 'croak';
-use Mojo::Util 'unquote';
 
-has [qw/name value/];
+has [qw(name value)];
 
-# "My Homer is not a communist.
-#  He may be a liar, a pig, an idiot, a communist,
-#  but he is not a porn star."
 sub parse     { croak 'Method "parse" not implemented by subclass' }
 sub to_string { croak 'Method "to_string" not implemented by subclass' }
 
-sub _tokenize {
-  my ($self, $string) = @_;
-
-  # Nibbling parser
-  my (@tree, @token);
-  while ($string) {
-
-    # Name
-    if ($string =~ s/^\s*([^\=\;\,]+)\s*\=?\s*//) {
-      my $name = $1;
-
-      # "expires" is a special case, thank you Netscape...
-      $string =~ s/^([^\;\,]+\,?[^\;\,]+)/"$1"/ if $name =~ /^expires$/i;
-
-      # Value
-      my $value;
-      $value = unquote $1
-        if $string =~ s/^("(?:\\\\|\\"|[^"])+"|[^\;\,]+)\s*//;
-
-      # Token
-      push @token, [$name, $value];
-
-      # Separator
-      $string =~ s/^\s*\;\s*//;
-      if ($string =~ s/^\s*\,\s*//) {
-        push @tree, [@token];
-        @token = ();
-      }
-    }
-
-    # Bad format
-    else {last}
-
-  }
-
-  # No separator
-  push @tree, [@token] if @token;
-
-  return @tree;
-}
-
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
-Mojo::Cookie - HTTP 1.1 cookie base class
+Mojo::Cookie - HTTP cookie base class
 
 =head1 SYNOPSIS
 
+  package Mojo::Cookie::MyCookie;
   use Mojo::Base 'Mojo::Cookie';
+
+  sub parse     {...}
+  sub to_string {...}
 
 =head1 DESCRIPTION
 
-L<Mojo::Cookie> is an abstract base class for HTTP 1.1 cookies.
+L<Mojo::Cookie> is an abstract base class for HTTP cookies as described in RFC
+6265.
 
 =head1 ATTRIBUTES
 
 L<Mojo::Cookie> implements the following attributes.
 
-=head2 C<name>
+=head2 name
 
   my $name = $cookie->name;
   $cookie  = $cookie->name('foo');
 
 Cookie name.
 
-=head2 C<value>
+=head2 value
 
   my $value = $cookie->value;
   $cookie   = $cookie->value('/test');
@@ -95,15 +53,16 @@ Cookie value.
 L<Mojo::Cookie> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
-=head2 C<parse>
+=head2 parse
 
-  my $cookies = $cookie->parse($string);
+  my $cookies = $cookie->parse($str);
 
 Parse cookies. Meant to be overloaded in a subclass.
 
-=head2 C<to_string>
+=head2 to_string
 
-  my $string = $cookie->to_string;
+  my $str = $cookie->to_string;
+  my $str = "$cookie";
 
 Render cookie. Meant to be overloaded in a subclass.
 

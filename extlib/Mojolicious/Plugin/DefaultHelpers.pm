@@ -1,20 +1,19 @@
 package Mojolicious::Plugin::DefaultHelpers;
 use Mojo::Base 'Mojolicious::Plugin';
 
-require Data::Dumper;
+use Data::Dumper ();
+use Mojo::ByteStream;
 
-# "You're watching Futurama,
-#  the show that doesn't condone the cool crime of robbery."
 sub register {
   my ($self, $app) = @_;
 
   # Controller alias helpers
-  for my $name (qw/app flash param stash session url_for/) {
+  for my $name (qw(app flash param stash session url_for)) {
     $app->helper($name => sub { shift->$name(@_) });
   }
 
-  # Stash key shortcuts
-  for my $name (qw/extends layout title/) {
+  # Stash key shortcuts (should not generate log messages)
+  for my $name (qw(extends layout title)) {
     $app->helper(
       $name => sub {
         my $self  = shift;
@@ -26,100 +25,72 @@ sub register {
     );
   }
 
-  # Add "config" helper
   $app->helper(config => sub { shift->app->config(@_) });
+  $app->helper(content       => \&_content);
+  $app->helper(content_for   => \&_content_for);
+  $app->helper(current_route => \&_current_route);
+  $app->helper(dumper        => \&_dumper);
+  $app->helper(include       => \&_include);
+  $app->helper(ua            => sub { shift->app->ua });
+  $app->helper(url_with      => \&_url_with);
+}
 
-  # Add "content" helper
-  $app->helper(content => sub { shift->render_content(@_) });
+sub _content {
+  my ($self, $name, $content) = @_;
+  $name ||= 'content';
 
-  # Add "content_for" helper
-  $app->helper(
-    content_for => sub {
-      my ($self, $name) = (shift, shift);
-      $self->render_content($name, $self->render_content($name), @_);
-    }
-  );
+  # Set (first come)
+  my $c = $self->stash->{'mojo.content'} ||= {};
+  $c->{$name} ||= ref $content eq 'CODE' ? $content->() : $content
+    if defined $content;
 
-  # Add "current_route" helper
-  $app->helper(
-    current_route => sub {
-      my $self = shift;
-      return '' unless my $endpoint = $self->match->endpoint;
-      return $endpoint->name unless @_;
-      return $endpoint->name eq shift;
-    }
-  );
+  # Get
+  return Mojo::ByteStream->new(defined $c->{$name} ? $c->{$name} : '');
+}
 
-  # Add "dumper" helper
-  $app->helper(
-    dumper => sub {
-      shift;
-      Data::Dumper->new([@_])->Indent(1)->Terse(1)->Dump;
-    }
-  );
+sub _content_for {
+  my ($self, $name, $content) = @_;
+  return _content($self, $name) unless defined $content;
+  my $c = $self->stash->{'mojo.content'} ||= {};
+  return $c->{$name} .= ref $content eq 'CODE' ? $content->() : $content;
+}
 
-  # Add "include" helper
-  $app->helper(
-    include => sub {
-      my $self     = shift;
-      my $template = @_ % 2 ? shift : undef;
-      my $args     = {@_};
-      $args->{template} = $template if defined $template;
+sub _current_route {
+  return '' unless my $endpoint = shift->match->endpoint;
+  return $endpoint->name unless @_;
+  return $endpoint->name eq shift;
+}
 
-      # "layout" and "extends" can't be localized
-      my $layout  = delete $args->{layout};
-      my $extends = delete $args->{extends};
+sub _dumper {
+  my $self = shift;
+  return Data::Dumper->new([@_])->Indent(1)->Sortkeys(1)->Terse(1)->Dump;
+}
 
-      # Localize arguments
-      my @keys = keys %$args;
-      local @{$self->stash}{@keys} = @{$args}{@keys};
+sub _include {
+  my $self     = shift;
+  my $template = @_ % 2 ? shift : undef;
+  my $args     = {@_};
+  $args->{template} = $template if defined $template;
 
-      return $self->render_partial(layout => $layout, extend => $extends);
-    }
-  );
+  # "layout" and "extends" can't be localized
+  my $layout  = delete $args->{layout};
+  my $extends = delete $args->{extends};
 
-  # Add "memorize" helper
-  my $memorize = {};
-  $app->helper(
-    memorize => sub {
-      shift;
-      my $cb = pop;
-      return '' unless ref $cb eq 'CODE';
-      my $name = shift;
-      my $args;
-      if (ref $name eq 'HASH') { ($args, $name) = ($name, undef) }
-      else                     { $args = shift || {} }
+  # Localize arguments
+  my @keys = keys %$args;
+  local @{$self->stash}{@keys} = @{$args}{@keys};
 
-      # Default name
-      $name ||= join '', map { $_ || '' } (caller(1))[0 .. 3];
+  return $self->render(partial => 1, layout => $layout, extend => $extends);
+}
 
-      # Expire
-      my $expires = $args->{expires} || 0;
-      delete $memorize->{$name}
-        if exists $memorize->{$name}
-          && $expires > 0
-          && $memorize->{$name}->{expires} < time;
-
-      # Memorized
-      return $memorize->{$name}->{content} if exists $memorize->{$name};
-
-      # Memorize
-      $memorize->{$name}->{expires} = $expires;
-      $memorize->{$name}->{content} = $cb->();
-    }
-  );
-
-  # Add "url_with" helper
-  $app->helper(
-    url_with => sub {
-      my $self = shift;
-      return $self->url_for(@_)->query($self->req->url->query->clone);
-    }
-  );
+sub _url_with {
+  my $self = shift;
+  return $self->url_for(@_)->query($self->req->url->query->clone);
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -135,44 +106,48 @@ Mojolicious::Plugin::DefaultHelpers - Default helpers plugin
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::DefaultHelpers> is a collection of renderer helpers
-for L<Mojolicious>. This is a core plugin, that means it is always enabled
-and its code a good example for learning to build new plugins.
+L<Mojolicious::Plugin::DefaultHelpers> is a collection of renderer helpers for
+L<Mojolicious>.
+
+This is a core plugin, that means it is always enabled and its code a good
+example for learning to build new plugins, you're welcome to fork it.
 
 =head1 HELPERS
 
 L<Mojolicious::Plugin::DefaultHelpers> implements the following helpers.
 
-=head2 C<app>
+=head2 app
 
   %= app->secret
 
 Alias for L<Mojolicious::Controller/"app">.
 
-=head2 C<config>
+=head2 config
 
   %= config 'something'
 
 Alias for L<Mojo/"config">.
 
-=head2 C<content>
+=head2 content
 
   %= content foo => begin
     test
   % end
+  %= content bar => 'Hello World!'
   %= content 'foo'
+  %= content 'bar'
   %= content
 
-Store content and retrieve it.
+Store partial rendered content in named buffer and retrieve it.
 
-=head2 C<content_for>
+=head2 content_for
 
   % content_for foo => begin
     test
   % end
   %= content_for 'foo'
 
-Append content to named buffer and retrieve it.
+Append partial rendered content to named buffer and retrieve it.
 
   % content_for message => begin
     Hello
@@ -182,7 +157,7 @@ Append content to named buffer and retrieve it.
   % end
   %= content_for 'message'
 
-=head2 C<current_route>
+=head2 current_route
 
   % if (current_route 'login') {
     Welcome to Mojolicious!
@@ -191,26 +166,26 @@ Append content to named buffer and retrieve it.
 
 Check or get name of current route.
 
-=head2 C<dumper>
+=head2 dumper
 
   %= dumper {some => 'data'}
 
-Dump a Perl data structure using L<Data::Dumper>.
+Dump a Perl data structure with L<Data::Dumper>.
 
-=head2 C<extends>
+=head2 extends
 
   % extends 'blue';
   % extends 'blue', title => 'Blue!';
 
-Extend a template, all arguments get merged into the stash.
+Extend a template. All additional values get merged into the C<stash>.
 
-=head2 C<flash>
+=head2 flash
 
   %= flash 'foo'
 
 Alias for L<Mojolicious::Controller/"flash">.
 
-=head2 C<include>
+=head2 include
 
   %= include 'menubar'
   %= include 'menubar', format => 'txt'
@@ -218,64 +193,56 @@ Alias for L<Mojolicious::Controller/"flash">.
 Include a partial template, all arguments get localized automatically and are
 only available in the partial template.
 
-=head2 C<layout>
+=head2 layout
 
   % layout 'green';
   % layout 'green', title => 'Green!';
 
-Render this template with a layout, all arguments get merged into the stash.
+Render this template with a layout. All additional values get merged into the
+C<stash>.
 
-=head2 C<memorize>
-
-  %= memorize begin
-    %= time
-  % end
-  %= memorize {expires => time + 1} => begin
-    %= time
-  % end
-  %= memorize foo => begin
-    %= time
-  % end
-  %= memorize foo => {expires => time + 1} => begin
-    %= time
-  % end
-
-Memorize block result in memory and prevent future execution.
-
-=head2 C<param>
+=head2 param
 
   %= param 'foo'
 
 Alias for L<Mojolicious::Controller/"param">.
 
-=head2 C<session>
+=head2 session
 
   %= session 'foo'
 
 Alias for L<Mojolicious::Controller/"session">.
 
-=head2 C<stash>
+=head2 stash
 
   %= stash 'foo'
   % stash foo => 'bar';
 
 Alias for L<Mojolicious::Controller/"stash">.
 
-=head2 C<title>
+  %= stash('name') // 'Somebody'
+
+=head2 title
 
   % title 'Welcome!';
   % title 'Welcome!', foo => 'bar';
   %= title
 
-Page title, all arguments get merged into the stash.
+Page title. All additional values get merged into the C<stash>.
 
-=head2 C<url_for>
+=head2 ua
+
+  %= ua->get('mojolicio.us')->res->dom->at('title')->text
+
+Alias for L<Mojo/"ua">.
+
+=head2 url_for
 
   %= url_for 'named', controller => 'bar', action => 'baz'
 
 Alias for L<Mojolicious::Controller/"url_for">.
 
-=head2 C<url_with>
+=head2 url_with
 
   %= url_with 'named', controller => 'bar', action => 'baz'
 
@@ -289,9 +256,9 @@ request.
 L<Mojolicious::Plugin::DefaultHelpers> inherits all methods from
 L<Mojolicious::Plugin> and implements the following new ones.
 
-=head2 C<register>
+=head2 register
 
-  $plugin->register;
+  $plugin->register(Mojolicious->new);
 
 Register helpers in L<Mojolicious> application.
 

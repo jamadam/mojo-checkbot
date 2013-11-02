@@ -2,67 +2,85 @@ package Mojo::Loader;
 use Mojo::Base -base;
 
 use File::Basename 'fileparse';
-use File::Spec::Functions qw/catdir catfile splitdir/;
-use Mojo::Command;
+use File::Spec::Functions qw(catdir catfile splitdir);
 use Mojo::Exception;
+use Mojo::Util qw(b64_decode class_to_path);
 
-# "Homer no function beer well without."
+my (%BIN, %CACHE);
+
+sub data { $_[1] ? $_[2] ? _all($_[1])->{$_[2]} : _all($_[1]) : undef }
+
+sub is_binary { keys %{_all($_[1])} ? !!$BIN{$_[1]}{$_[2]} : undef }
+
 sub load {
   my ($self, $module) = @_;
 
   # Check module name
-  return 1 if !$module || $module !~ /^\w(?:[\w\:\']*\w)?$/;
-
-  # Already loaded
-  return if $module->can('new');
+  return 1 if !$module || $module !~ /^\w(?:[\w:']*\w)?$/;
 
   # Load
-  unless (eval "require $module; 1") {
+  return undef if $module->can('new') || eval "require $module; 1";
 
-    # Exists
-    my $path = Mojo::Command->class_to_path($module);
-    return 1 if $@ =~ /^Can't locate $path in \@INC/;
+  # Exists
+  return 1 if $@ =~ /^Can't locate \Q@{[class_to_path $module]}\E in \@INC/;
 
-    # Real error
-    return Mojo::Exception->new($@);
-  }
-
-  return;
+  # Real error
+  return Mojo::Exception->new($@);
 }
 
-# "This is the worst thing you've ever done.
-#  You say that so often that it lost its meaning."
 sub search {
   my ($self, $namespace) = @_;
 
-  # Scan
-  my $modules = [];
-  my %found;
-  for my $directory (exists $INC{'blib.pm'} ? grep {/blib/} @INC : @INC) {
-    my $path = catdir $directory, (split /::/, $namespace);
-    next unless (-e $path && -d $path);
+  my (@modules, %found);
+  for my $directory (@INC) {
+    next unless -d (my $path = catdir $directory, split(/::|'/, $namespace));
 
-    # Get files
+    # List "*.pm" files in directory
     opendir(my $dir, $path);
-    my @files = grep /\.pm$/, readdir($dir);
-    closedir($dir);
-
-    # Check files
-    for my $file (@files) {
+    for my $file (grep /\.pm$/, readdir $dir) {
       next if -d catfile splitdir($path), $file;
-
-      # Module found
-      my $class = "$namespace\::" . fileparse $file, qr/\.pm/;
-      push @$modules, $class unless $found{$class};
-      $found{$class} ||= 1;
+      my $class = "${namespace}::" . fileparse $file, qr/\.pm/;
+      push @modules, $class unless $found{$class}++;
     }
   }
 
-  return $modules;
+  return \@modules;
+}
+
+sub _all {
+  my $class = shift;
+
+  # Refresh or use cached data
+  my $handle = do { no strict 'refs'; \*{"${class}::DATA"} };
+  return $CACHE{$class} || {} unless fileno $handle;
+  seek $handle, 0, 0;
+  my $data = join '', <$handle>;
+  close $handle;
+
+  # Ignore everything before __DATA__ (Windows will seek to start of file)
+  $data =~ s/^.*\n__DATA__\r?\n/\n/s;
+
+  # Ignore everything after __END__
+  $data =~ s/\n__END__\r?\n.*$/\n/s;
+
+  # Split files
+  my @files = split /^@@\s*(.+?)\s*\r?\n/m, $data;
+  shift @files;
+
+  # Find data
+  my $all = $CACHE{$class} = {};
+  while (@files) {
+    my ($name, $data) = splice @files, 0, 2;
+    $all->{$name} = $name =~ s/\s*\(\s*base64\s*\)$//
+      && ++$BIN{$class}{$name} ? b64_decode($data) : $data;
+  }
+
+  return $all;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -76,9 +94,12 @@ Mojo::Loader - Loader
   my $loader = Mojo::Loader->new;
   for my $module (@{$loader->search('Some::Namespace')}) {
 
-    # And load them safely
+    # Load them safely
     my $e = $loader->load($module);
-    warn qq/Loading "$module" failed: $e/ if ref $e;
+    warn qq{Loading "$module" failed: $e} and next if ref $e;
+
+    # And extract files from the DATA section
+    say $loader->data($module, 'some_file.txt');
   }
 
 =head1 DESCRIPTION
@@ -90,7 +111,22 @@ L<Mojo::Loader> is a class loader and plugin framework.
 L<Mojo::Loader> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
-=head2 C<load>
+=head2 data
+
+  my $all   = $loader->data('Foo::Bar');
+  my $index = $loader->data('Foo::Bar', 'index.html');
+
+Extract embedded file from the C<DATA> section of a class.
+
+  say for keys %{$loader->data('Foo::Bar')};
+
+=head2 is_binary
+
+  my $success = $loader->is_binary('Foo::Bar', 'test.png');
+
+Check if embedded file from the C<DATA> section of a class was Base64 encoded.
+
+=head2 load
 
   my $e = $loader->load('Foo::Bar');
 
@@ -98,10 +134,10 @@ Load a class and catch exceptions. Note that classes are checked for a C<new>
 method to see if they are already loaded.
 
   if (my $e = $loader->load('Foo::Bar')) {
-    die "Exception: $e" if ref $e;
+    die ref $e ? "Exception: $e" : 'Not found!';
   }
 
-=head2 C<search>
+=head2 search
 
   my $modules = $loader->search('MyApp::Namespace');
 

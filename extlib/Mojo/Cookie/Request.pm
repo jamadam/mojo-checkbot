@@ -1,28 +1,17 @@
 package Mojo::Cookie::Request;
 use Mojo::Base 'Mojo::Cookie';
 
-use Mojo::Util 'quote';
+use Mojo::Util qw(quote split_header);
 
-# "Lisa, would you like a donut?
-#  No thanks. Do you have any fruit?
-#  This has purple in it. Purple is a fruit."
 sub parse {
-  my ($self, $string) = @_;
+  my ($self, $str) = @_;
 
-  # Walk tree
   my @cookies;
-  for my $knot ($self->_tokenize($string)) {
-    for my $token (@{$knot}) {
-      my ($name, $value) = @{$token};
-
-      # Garbage (RFC 2965)
-      next if $name =~ /^\$/;
-
-      # Name and value
-      push @cookies, Mojo::Cookie::Request->new;
-      $cookies[-1]->name($name);
-      $cookies[-1]->value($value //= '');
-    }
+  my @pairs = map {@$_} @{split_header(defined $str? $str: '')};
+  while (@pairs) {
+    my ($name, $value) = (shift @pairs, shift @pairs);
+    next if $name =~ /^\$/;
+    push @cookies, $self->new(name => $name, value => defined $value ? $value : '');
   }
 
   return \@cookies;
@@ -30,19 +19,18 @@ sub parse {
 
 sub to_string {
   my $self = shift;
-  return '' unless my $cookie = $self->name;
-  $cookie .= '=';
-  my $value = $self->value;
-  $cookie .= $value =~ /[,;"]/ ? quote($value) : $value if defined $value;
-  return $cookie;
+  return '' unless length(my $name = defined $self->name ? $self->name : '');
+  my $value = defined $self->value ? $self->value : '';
+  return join '=', $name, $value =~ /[,;" ]/ ? quote($value) : $value;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
-Mojo::Cookie::Request - HTTP 1.1 request cookie container
+Mojo::Cookie::Request - HTTP request cookie
 
 =head1 SYNOPSIS
 
@@ -51,11 +39,12 @@ Mojo::Cookie::Request - HTTP 1.1 request cookie container
   my $cookie = Mojo::Cookie::Request->new;
   $cookie->name('foo');
   $cookie->value('bar');
-  say $cookie;
+  say "$cookie";
 
 =head1 DESCRIPTION
 
-L<Mojo::Cookie::Request> is a container for HTTP 1.1 request cookies.
+L<Mojo::Cookie::Request> is a container for HTTP request cookies as described
+in RFC 6265.
 
 =head1 ATTRIBUTES
 
@@ -66,15 +55,15 @@ L<Mojo::Cookie::Request> inherits all attributes from L<Mojo::Cookie>.
 L<Mojo::Cookie::Request> inherits all methods from L<Mojo::Cookie> and
 implements the following new ones.
 
-=head2 C<parse>
+=head2 parse
 
-  my $cookies = $cookie->parse('f=b; g=a');
+  my $cookies = Mojo::Cookie::Request->parse('f=b; g=a');
 
 Parse cookies.
 
-=head2 C<to_string>
+=head2 to_string
 
-  my $string = $cookie->to_string;
+  my $str = $cookie->to_string;
 
 Render cookie.
 

@@ -1,267 +1,197 @@
 package Mojolicious::Plugin::TagHelpers;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use List::Util 'first';
-use Mojo::ByteStream 'b';
+use Mojo::ByteStream;
 use Mojo::Util 'xml_escape';
 
-# "Is today's hectic lifestyle making you tense and impatient?
-#  Shut up and get to the point!"
 sub register {
   my ($self, $app) = @_;
 
-  # Add "base_tag" helper
-  $app->helper(
-    base_tag => sub { $self->_tag('base', href => shift->req->url->base, @_) }
-  );
+  # Text field variations
+  my @time = qw(date datetime month time week);
+  for my $name (@time, qw(color email number range search tel text url)) {
+    $app->helper("${name}_field" => sub { _input(@_, type => $name) });
+  }
 
-  # Add "checkbox" helper
-  $app->helper(
-    check_box => sub {
-      $self->_input(shift, shift, value => shift, @_, type => 'checkbox');
-    }
-  );
-
-  # Add "file_field" helper
+  $app->helper(check_box =>
+      sub { _input(shift, shift, value => shift, @_, type => 'checkbox') });
   $app->helper(file_field =>
-      sub { shift; $self->_tag('input', name => shift, type => 'file', @_) });
+      sub { shift; _tag('input', name => shift, @_, type => 'file') });
 
-  # Add "form_for" helper
-  $app->helper(
-    form_for => sub {
-      my ($c, @url) = (shift, shift);
-      push @url, shift if ref $_[0] eq 'HASH';
+  $app->helper(form_for     => \&_form_for);
+  $app->helper(hidden_field => \&_hidden_field);
+  $app->helper(image => sub { _tag('img', src => shift->url_for(shift), @_) });
+  $app->helper(input_tag => sub { _input(@_) });
+  $app->helper(javascript => \&_javascript);
+  $app->helper(link_to    => \&_link_to);
 
-      # POST detection
-      my @post;
-      if (my $r = $c->app->routes->find($url[0])) {
-        my %methods = (GET => 1, POST => 1);
-        do {
-          my @via = @{$r->via || []};
-          %methods = map { $_ => 1 } grep { $methods{$_} } @via if @via;
-        } while $r = $r->parent;
-        @post = (method => 'POST') if $methods{POST} && !$methods{GET};
-      }
+  $app->helper(password_field =>
+      sub { shift; _tag('input', name => shift, @_, type => 'password') });
+  $app->helper(radio_button =>
+      sub { _input(shift, shift, value => shift, @_, type => 'radio') });
 
-      return $self->_tag('form', action => $c->url_for(@url), @post, @_);
-    }
-  );
+  $app->helper(select_field  => \&_select_field);
+  $app->helper(stylesheet    => \&_stylesheet);
+  $app->helper(submit_button => \&_submit_button);
 
-  # Add "hidden_field" helper
-  $app->helper(
-    hidden_field => sub {
-      shift;
-      my %attrs = (type => 'hidden', name => shift, value => shift, @_);
-      return $self->_tag('input', %attrs);
-    }
-  );
+  # "t" is just a shortcut for the "tag" helper
+  $app->helper($_ => sub { shift; _tag(@_) }) for qw(t tag);
 
-  # Add "image" helper
-  $app->helper(
-    image => sub { $self->_tag('img', src => shift->url_for(shift), @_) });
+  $app->helper(text_area => \&_text_area);
+}
 
-  # Add "input_tag" helper
-  $app->helper(input_tag => sub { $self->_input(@_) });
+sub _form_for {
+  my ($self, @url) = (shift, shift);
+  push @url, shift if ref $_[0] eq 'HASH';
 
-  # Add "javascript" helper
-  $app->helper(
-    javascript => sub {
-      my $c = shift;
+  # POST detection
+  my @post;
+  if (my $r = $self->app->routes->find($url[0])) {
+    my %methods = (GET => 1, POST => 1);
+    do {
+      my @via = @{$r->via || []};
+      %methods = map { $_ => 1 } grep { $methods{$_} } @via if @via;
+    } while $r = $r->parent;
+    @post = (method => 'POST') if $methods{POST} && !$methods{GET};
+  }
 
-      # CDATA
-      my $cb = sub {''};
-      if (ref $_[-1] eq 'CODE') {
-        my $old = pop;
-        $cb = sub { "//<![CDATA[\n" . $old->() . "\n//]]>" }
-      }
+  return _tag('form', action => $self->url_for(@url), @post, @_);
+}
 
-      # URL
-      my $src = @_ % 2 ? $c->url_for(shift) : undef;
-
-      # Attributes
-      my %attrs = (@_, $src ? (src => $src) : ());
-
-      return $self->_tag('script', type => 'text/javascript', %attrs, $cb);
-    }
-  );
-
-  # Add "link_to" helper
-  $app->helper(
-    link_to => sub {
-      my ($c, $content) = (shift, shift);
-      my @url = ($content);
-
-      # Content
-      unless (defined $_[-1] && ref $_[-1] eq 'CODE') {
-        @url = (shift);
-        push @_, $content;
-      }
-
-      # Captures
-      push @url, shift if ref $_[0] eq 'HASH';
-
-      return $self->_tag('a', href => $c->url_for(@url), @_);
-    }
-  );
-
-  # Add "password_field" helper
-  $app->helper(
-    password_field => sub {
-      shift;
-      $self->_tag('input', name => shift, type => 'password', @_);
-    }
-  );
-
-  # Add "radio_button" helper
-  $app->helper(
-    radio_button => sub {
-      $self->_input(shift, shift, value => shift, @_, type => 'radio');
-    }
-  );
-
-  # Add "select_field" helper
-  $app->helper(
-    select_field => sub {
-      my ($c, $name, $options, %attrs) = (shift, shift, shift, @_);
-
-      # "option" callback
-      my %values = map { $_ => 1 } $c->param($name);
-      my $option = sub {
-
-        # Pair
-        my $pair = shift;
-        $pair = [$pair => $pair] unless ref $pair eq 'ARRAY';
-
-        # Attributes
-        my %attrs = (value => $pair->[1]);
-        $attrs{selected} = 'selected' if exists $values{$pair->[1]};
-        %attrs = (%attrs, @$pair[2 .. $#$pair]);
-
-        return $self->_tag('option', %attrs, sub { xml_escape $pair->[0] });
-      };
-
-      # "optgroup" callback
-      my $optgroup = sub {
-
-        # Parts
-        my $parts = '';
-        for my $group (@$options) {
-
-          # "optgroup" tag
-          if (ref $group eq 'HASH') {
-            my ($label, $values) = each %$group;
-            my $content = join '', map { $option->($_) } @$values;
-            $parts
-              .= $self->_tag('optgroup', label => $label, sub {$content});
-          }
-
-          # "option" tag
-          else { $parts .= $option->($group) }
-        }
-
-        return $parts;
-      };
-
-      return $self->_tag('select', name => $name, %attrs, $optgroup);
-    }
-  );
-
-  # Add "stylesheet" helper
-  $app->helper(
-    stylesheet => sub {
-      my $c = shift;
-
-      # CDATA
-      my $cb;
-      if (ref $_[-1] eq 'CODE') {
-        my $old = pop;
-        $cb = sub { "/*<![CDATA[*/\n" . $old->() . "\n/*]]>*/" }
-      }
-
-      # URL
-      my $href = @_ % 2 ? $c->url_for(shift) : undef;
-
-      # "style" tag
-      return $self->_tag('style', type => 'text/css', @_, $cb) unless $href;
-
-      # "link" tag
-      my %attrs = (href => $href, type => 'text/css', media => 'screen', @_);
-      return $self->_tag('link', rel => 'stylesheet', %attrs);
-    }
-  );
-
-  # Add "submit_button" helper
-  $app->helper(
-    submit_button => sub {
-      shift;
-      $self->_tag('input', value => shift // 'Ok', type => 'submit', @_);
-    }
-  );
-
-  # Add "t" helper
-  $app->helper(t => sub { shift; $self->_tag(@_) });
-
-  # Add "tag" helper
-  $app->helper(tag => sub { shift; $self->_tag(@_) });
-
-  # Add "text_area" helper
-  $app->helper(
-    text_area => sub {
-      my ($c, $name) = (shift, shift);
-
-      # Content
-      my $cb = ref $_[-1] eq 'CODE' ? pop @_ : sub {''};
-      my $content = @_ % 2 ? shift : undef;
-
-      # Make sure content is wrapped
-      if (defined($content = $c->param($name) // $content)) {
-        $cb = sub { xml_escape $content }
-      }
-
-      return $self->_tag('textarea', name => $name, @_, $cb);
-    }
-  );
-
-  # Add "text_field" helper
-  $app->helper(text_field => sub { $self->_input(@_) });
+sub _hidden_field {
+  my $self = shift;
+  my %attrs = (name => shift, value => shift, @_, type => 'hidden');
+  return _tag('input', %attrs);
 }
 
 sub _input {
-  my ($self, $c, $name) = (shift, shift, shift);
-
-  # Attributes
+  my ($self, $name) = (shift, shift);
   my %attrs = @_ % 2 ? (value => shift, @_) : @_;
 
-  # Values
-  my @values = $c->param($name);
-
   # Special selection value
+  my @values = $self->param($name);
   my $type = $attrs{type} || '';
   if (@values && $type ne 'submit') {
 
     # Checkbox or radiobutton
-    my $value = $attrs{value} // '';
+    my $value = defined $attrs{value} ? $attrs{value} : '';
     if ($type eq 'checkbox' || $type eq 'radio') {
       $attrs{value} = $value;
-      $attrs{checked} = 'checked' if defined first { $value eq $_ } @values;
+      $attrs{checked} = 'checked' if grep { $_ eq $value } @values;
     }
 
     # Others
     else { $attrs{value} = $values[0] }
 
-    return $self->_tag('input', name => $name, %attrs);
+    return _tag('input', name => $name, %attrs);
   }
 
   # Empty tag
-  return $self->_tag('input', name => $name, %attrs);
+  return _tag('input', name => $name, %attrs);
 }
 
-# "We’ve lost power of the forward Gameboy! Mario not responding!"
-sub _tag {
-  my ($self, $name) = (shift, shift);
+sub _javascript {
+  my $self = shift;
+
+  # CDATA
+  my $cb = sub {''};
+  if (ref $_[-1] eq 'CODE') {
+    my $old = pop;
+    $cb = sub { "//<![CDATA[\n" . $old->() . "\n//]]>" }
+  }
+
+  # URL
+  my $src = @_ % 2 ? $self->url_for(shift) : undef;
+
+  return _tag('script', @_, $src ? (src => $src) : (), $cb);
+}
+
+sub _link_to {
+  my ($self, $content) = (shift, shift);
+  my @url = ($content);
 
   # Content
-  my $cb = ref $_[-1] eq 'CODE' ? pop @_ : undef;
+  unless (defined $_[-1] && ref $_[-1] eq 'CODE') {
+    @url = (shift);
+    push @_, $content;
+  }
+
+  # Captures
+  push @url, shift if ref $_[0] eq 'HASH';
+
+  return _tag('a', href => $self->url_for(@url), @_);
+}
+
+sub _select_field {
+  my ($self, $name, $options, %attrs) = (shift, shift, shift, @_);
+
+  # "option" callback
+  my %values = map { $_ => 1 } $self->param($name);
+  my $option = sub {
+
+    # Pair
+    my $pair = shift;
+    $pair = [$pair => $pair] unless ref $pair eq 'ARRAY';
+
+    # Attributes
+    my %attrs = (value => $pair->[1]);
+    $attrs{selected} = 'selected' if exists $values{$pair->[1]};
+    %attrs = (%attrs, @$pair[2 .. $#$pair]);
+
+    return _tag('option', %attrs, sub { xml_escape $pair->[0] });
+  };
+
+  # "optgroup" callback
+  my $optgroup = sub {
+
+    # Parts
+    my $parts = '';
+    for my $group (@$options) {
+
+      # "optgroup" tag
+      if (ref $group eq 'HASH') {
+        my ($label, $values) = each %$group;
+        my $content = join '', map { $option->($_) } @$values;
+        $parts .= _tag('optgroup', label => $label, sub {$content});
+      }
+
+      # "option" tag
+      else { $parts .= $option->($group) }
+    }
+
+    return $parts;
+  };
+
+  return _tag('select', name => $name, %attrs, $optgroup);
+}
+
+sub _stylesheet {
+  my $self = shift;
+
+  # CDATA
+  my $cb;
+  if (ref $_[-1] eq 'CODE') {
+    my $old = pop;
+    $cb = sub { "/*<![CDATA[*/\n" . $old->() . "\n/*]]>*/" }
+  }
+
+  # "link" or "style" tag
+  my $href = @_ % 2 ? $self->url_for(shift) : undef;
+  return $href
+    ? _tag('link', rel => 'stylesheet', href => $href, @_)
+    : _tag('style', @_, $cb);
+}
+
+sub _submit_button {
+  my $self = shift;
+  return _tag('input', value => do {my $tmp = shift; defined $tmp ? $tmp : 'Ok'}, @_, type => 'submit');
+}
+
+sub _tag {
+  my $name = shift;
+
+  # Content
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   my $content = @_ % 2 ? pop : undef;
 
   # Start tag
@@ -270,7 +200,7 @@ sub _tag {
   # Attributes
   my %attrs = @_;
   for my $key (sort keys %attrs) {
-    $tag .= qq/ $key="/ . xml_escape($attrs{$key} // '') . '"';
+    $tag .= qq{ $key="} . xml_escape(defined $attrs{$key} ? $attrs{$key} : '') . '"';
   }
 
   # End tag
@@ -282,11 +212,27 @@ sub _tag {
   else { $tag .= ' />' }
 
   # Prevent escaping
-  return b($tag);
+  return Mojo::ByteStream->new($tag);
+}
+
+sub _text_area {
+  my ($self, $name) = (shift, shift);
+
+  # Content
+  my $cb = ref $_[-1] eq 'CODE' ? pop : sub {''};
+  my $content = @_ % 2 ? shift : undef;
+
+  # Make sure content is wrapped
+  if (defined($content = defined $self->param($name) ? $self->param($name) : $content)) {
+    $cb = sub { xml_escape $content }
+  }
+
+  return _tag('textarea', name => $name, @_, $cb);
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -302,9 +248,8 @@ Mojolicious::Plugin::TagHelpers - Tag helpers plugin
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::TagHelpers> is a collection of HTML5 tag helpers for
-L<Mojolicious>. This is a core plugin, that means it is always enabled and
-its code a good example for learning how to build new plugins.
+L<Mojolicious::Plugin::TagHelpers> is a collection of HTML tag helpers for
+L<Mojolicious>.
 
 Most form helpers can automatically pick up previous input values and will
 show them as default. You can also use
@@ -316,19 +261,14 @@ necessary attributes always be generated automatically.
   <%= radio_button country => 'france'  %> France
   <%= radio_button country => 'uk'      %> UK
 
+This is a core plugin, that means it is always enabled and its code a good
+example for learning how to build new plugins, you're welcome to fork it.
+
 =head1 HELPERS
 
 L<Mojolicious::Plugin::TagHelpers> implements the following helpers.
 
-=head2 C<base_tag>
-
-  %= base_tag
-
-Generate portable C<base> tag refering to the current base URL.
-
-  <base href="http://localhost/cgi-bin/myapp.pl" />
-
-=head2 C<check_box>
+=head2 check_box
 
   %= check_box employed => 1
   %= check_box employed => 1, id => 'foo'
@@ -339,7 +279,59 @@ picked up and shown as default.
   <input name="employed" type="checkbox" value="1" />
   <input id="foo" name="employed" type="checkbox" value="1" />
 
-=head2 C<file_field>
+=head2 color_field
+
+  %= color_field 'background'
+  %= color_field background => '#ffffff'
+  %= color_field background => '#ffffff', id => 'foo'
+
+Generate color input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="background" type="color" />
+  <input name="background" type="color" value="#ffffff" />
+  <input id="foo" name="background" type="color" value="#ffffff" />
+
+=head2 date_field
+
+  %= date_field 'end'
+  %= date_field end => '2012-12-21'
+  %= date_field end => '2012-12-21', id => 'foo'
+
+Generate date input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="end" type="date" />
+  <input name="end" type="date" value="2012-12-21" />
+  <input id="foo" name="end" type="date" value="2012-12-21" />
+
+=head2 datetime_field
+
+  %= datetime_field 'end'
+  %= datetime_field end => '2012-12-21T23:59:59Z'
+  %= datetime_field end => '2012-12-21T23:59:59Z', id => 'foo'
+
+Generate datetime input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="end" type="datetime" />
+  <input name="end" type="datetime" value="2012-12-21T23:59:59Z" />
+  <input id="foo" name="end" type="datetime" value="2012-12-21T23:59:59Z" />
+
+=head2 email_field
+
+  %= email_field 'notify'
+  %= email_field notify => 'nospam@example.com'
+  %= email_field notify => 'nospam@example.com', id => 'foo'
+
+Generate email input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="notify" type="email" />
+  <input name="notify" type="email" value="nospam@example.com" />
+  <input id="foo" name="notify" type="email" value="nospam@example.com" />
+
+=head2 file_field
 
   %= file_field 'avatar'
   %= file_field 'avatar', id => 'foo'
@@ -349,13 +341,13 @@ Generate file input element.
   <input name="avatar" type="file" />
   <input id="foo" name="avatar" type="file" />
 
-=head2 C<form_for>
+=head2 form_for
 
-  %= form_for login => (method => 'POST') => begin
+  %= form_for login => begin
     %= text_field 'first_name'
     %= submit_button
   % end
-  %= form_for login => {foo => 'bar'} => (method => 'POST') => begin
+  %= form_for login => {format => 'txt'} => (method => 'POST') => begin
     %= text_field 'first_name'
     %= submit_button
   % end
@@ -363,32 +355,32 @@ Generate file input element.
     %= text_field 'first_name'
     %= submit_button
   % end
-  %= form_for 'http://kraih.com/login' => (method => 'POST') => begin
+  %= form_for 'http://example.com/login' => (method => 'POST') => begin
     %= text_field 'first_name'
     %= submit_button
   % end
 
-Generate portable form for route, path or URL. For routes that allow C<POST>
-but not C<GET>, a C<method> attribute will be automatically added.
+Generate portable form tag for route, path or URL. For routes that allow POST
+but not GET, a C<method> attribute will be automatically added.
 
+  <form action="/path/to/login">
+    <input name="first_name" />
+    <input value="Ok" type="submit" />
+  </form>
+  <form action="/path/to/login.txt" method="POST">
+    <input name="first_name" />
+    <input value="Ok" type="submit" />
+  </form>
   <form action="/path/to/login" method="POST">
     <input name="first_name" />
     <input value="Ok" type="submit" />
   </form>
-  <form action="/path/to/login/bar" method="POST">
-    <input name="first_name" />
-    <input value="Ok" type="submit" />
-  </form>
-  <form action="/login" method="POST">
-    <input name="first_name" />
-    <input value="Ok" type="submit" />
-  </form>
-  <form action="http://kraih.com/login" method="POST">
+  <form action="http://example.com/login" method="POST">
     <input name="first_name" />
     <input value="Ok" type="submit" />
   </form>
 
-=head2 C<hidden_field>
+=head2 hidden_field
 
   %= hidden_field foo => 'bar'
   %= hidden_field foo => 'bar', id => 'bar'
@@ -398,17 +390,17 @@ Generate hidden input element.
   <input name="foo" type="hidden" value="bar" />
   <input id="bar" name="foo" type="hidden" value="bar" />
 
-=head2 C<image>
+=head2 image
 
   %= image '/images/foo.png'
   %= image '/images/foo.png', alt => 'Foo'
 
-Generate image tag.
+Generate portable img tag.
 
-  <img src="/images/foo.png" />
-  <img alt="Foo" src="/images/foo.png" />
+  <img src="/path/to/images/foo.png" />
+  <img alt="Foo" src="/path/to/images/foo.png" />
 
-=head2 C<input_tag>
+=head2 input_tag
 
   %= input_tag 'first_name'
   %= input_tag first_name => 'Default name'
@@ -421,7 +413,7 @@ picked up and shown as default.
   <input name="first_name" value="Default name" />
   <input name="employed" type="checkbox" />
 
-=head2 C<javascript>
+=head2 javascript
 
   %= javascript '/script.js'
   %= javascript begin
@@ -430,19 +422,21 @@ picked up and shown as default.
 
 Generate portable script tag for C<Javascript> asset.
 
-  <script src="/script.js" type="text/javascript" />
-  <script type="text/javascript"><![CDATA[
+  <script src="/path/to/script.js" />
+  <script><![CDATA[
     var a = 'b';
   ]]></script>
 
-=head2 C<link_to>
+=head2 link_to
 
   %= link_to Home => 'index'
-  %= link_to index => {foo => 'bar'} => (class => 'links') => begin
+  %= link_to Home => 'index' => {format => 'txt'} => (class => 'links')
+  %= link_to index => {format => 'txt'} => (class => 'links') => begin
     Home
   % end
+  %= link_to Contact => 'mailto:sri@example.com'
   <%= link_to index => begin %>Home<% end %>
-  <%= link_to '/path/to/file' => begin %>File<% end %>
+  <%= link_to '/file.txt' => begin %>File<% end %>
   <%= link_to 'http://mojolicio.us' => begin %>Mojolicious<% end %>
   <%= link_to url_for->query(foo => 'bar')->to_abs => begin %>Retry<% end %>
 
@@ -450,13 +444,43 @@ Generate portable link to route, path or URL, defaults to using the
 capitalized link target as content.
 
   <a href="/path/to/index">Home</a>
-  <a class="links" href="/path/to/index/bar">Home</a>
+  <a class="links" href="/path/to/index.txt">Home</a>
+  <a class="links" href="/path/to/index.txt">
+    Home
+  </a>
+  <a href="mailto:sri@example.com">Contact</a>
   <a href="/path/to/index">Home</a>
-  <a href="/path/to/file">File</a>
+  <a href="/path/to/file.txt">File</a>
   <a href="http://mojolicio.us">Mojolicious</a>
   <a href="http://127.0.0.1:3000/current/path?foo=bar">Retry</a>
 
-=head2 C<password_field>
+=head2 month_field
+
+  %= month_field 'vacation'
+  %= month_field vacation => '2012-12'
+  %= month_field vacation => '2012-12', id => 'foo'
+
+Generate month input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="vacation" type="month" />
+  <input name="vacation" type="month" value="2012-12" />
+  <input id="foo" name="vacation" type="month" value="2012-12" />
+
+=head2 number_field
+
+  %= number_field 'age'
+  %= number_field age => 25
+  %= number_field age => 25, id => 'foo', min => 0, max => 200
+
+Generate number input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="age" type="number" />
+  <input name="age" type="number" value="25" />
+  <input id="foo" max="200" min="0" name="age" type="number" value="25" />
+
+=head2 password_field
 
   %= password_field 'pass'
   %= password_field 'pass', id => 'foo'
@@ -466,7 +490,7 @@ Generate password input element.
   <input name="pass" type="password" />
   <input id="foo" name="pass" type="password" />
 
-=head2 C<radio_button>
+=head2 radio_button
 
   %= radio_button country => 'germany'
   %= radio_button country => 'germany', id => 'foo'
@@ -477,10 +501,36 @@ picked up and shown as default.
   <input name="country" type="radio" value="germany" />
   <input id="foo" name="country" type="radio" value="germany" />
 
-=head2 C<select_field>
+=head2 range_field
 
-  %= select_field language => [qw/de en/]
-  %= select_field language => [qw/de en/], id => 'lang'
+  %= range_field 'age'
+  %= range_field age => 25
+  %= range_field age => 25, id => 'foo', min => 0, max => 200
+
+Generate range input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="age" type="range" />
+  <input name="age" type="range" value="25" />
+  <input id="foo" max="200" min="200" name="age" type="range" value="25" />
+
+=head2 search_field
+
+  %= search_field 'q'
+  %= search_field q => 'perl'
+  %= search_field q => 'perl', id => 'foo'
+
+Generate search input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="q" type="search" />
+  <input name="q" type="search" value="perl" />
+  <input id="foo" name="q" type="search" value="perl" />
+
+=head2 select_field
+
+  %= select_field language => [qw(de en)]
+  %= select_field language => [qw(de en)], id => 'lang'
   %= select_field country => [[Germany => 'de'], 'en']
   %= select_field country => [{Europe => [[Germany => 'de'], 'en']}]
   %= select_field country => [[Germany => 'de', class => 'europe'], 'en']
@@ -511,7 +561,7 @@ automatically get picked up and shown as default.
     <option value="en">en</option>
   </select>
 
-=head2 C<stylesheet>
+=head2 stylesheet
 
   %= stylesheet '/foo.css'
   %= stylesheet begin
@@ -520,12 +570,12 @@ automatically get picked up and shown as default.
 
 Generate portable style or link tag for C<CSS> asset.
 
-  <link href="/foo.css" media="screen" rel="stylesheet" type="text/css" />
-  <style type="text/css"><![CDATA[
+  <link href="/path/to/foo.css" rel="stylesheet" />
+  <style><![CDATA[
     body {color: #000}
   ]]></style>
 
-=head2 C<submit_button>
+=head2 submit_button
 
   %= submit_button
   %= submit_button 'Ok!', id => 'foo'
@@ -535,7 +585,7 @@ Generate submit input element.
   <input type="submit" value="Ok" />
   <input id="foo" type="submit" value="Ok!" />
 
-=head2 C<t>
+=head2 t
 
   %=t div => 'some & content'
 
@@ -543,14 +593,14 @@ Alias for C<tag>.
 
   <div>some &amp; content</div>
 
-=head2 C<tag>
+=head2 tag
 
   %= tag 'div'
   %= tag 'div', id => 'foo'
   %= tag div => 'some & content'
   <%= tag div => begin %>some & content<% end %>
 
-HTML5 tag generator.
+HTML tag generator.
 
   <div />
   <div id="foo" />
@@ -566,7 +616,39 @@ Very useful for reuse in more specific tag helpers.
 Results are automatically wrapped in L<Mojo::ByteStream> objects to prevent
 accidental double escaping.
 
-=head2 C<text_field>
+=head2 tel_field
+
+  %= tel_field 'work'
+  %= tel_field work => '123456789'
+  %= tel_field work => '123456789', id => 'foo'
+
+Generate tel input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="work" type="tel" />
+  <input name="work" type="tel" value="123456789" />
+  <input id="foo" name="work" type="tel" value="123456789" />
+
+=head2 text_area
+
+  %= text_area 'foo'
+  %= text_area 'foo', cols => 40
+  %= text_area foo => 'Default!', cols => 40
+  %= text_area foo => (cols => 40) => begin
+    Default!
+  % end
+
+Generate textarea element. Previous input values will automatically get picked
+up and shown as default.
+
+  <textarea name="foo"></textarea>
+  <textarea cols="40" name="foo"></textarea>
+  <textarea cols="40" name="foo">Default!</textarea>
+  <textarea cols="40" name="foo">
+    Default!
+  </textarea>
+
+=head2 text_field
 
   %= text_field 'first_name'
   %= text_field first_name => 'Default name'
@@ -575,35 +657,57 @@ accidental double escaping.
 Generate text input element. Previous input values will automatically get
 picked up and shown as default.
 
-  <input name="first_name" />
-  <input name="first_name" value="Default name" />
-  <input class="user" name="first_name" value="Default name" />
+  <input name="first_name" type="text" />
+  <input name="first_name" type="text" value="Default name" />
+  <input class="user" name="first_name" type="text" value="Default name" />
 
-=head2 C<text_area>
+=head2 time_field
 
-  %= text_area 'foo'
-  %= text_area foo => 'Default!', cols => 40
-  %= text_area foo => begin
-    Default!
-  % end
+  %= time_field 'start'
+  %= time_field start => '23:59:59'
+  %= time_field start => '23:59:59', id => 'foo'
 
-Generate textarea element. Previous input values will automatically get
+Generate time input element. Previous input values will automatically get
 picked up and shown as default.
 
-  <textarea name="foo"></textarea>
-  <textarea cols="40" name="foo">Default!</textarea>
-  <textarea name="foo">
-    Default!
-  </textarea>
+  <input name="start" type="time" />
+  <input name="start" type="time" value="23:59:59" />
+  <input id="foo" name="start" type="time" value="23:59:59" />
+
+=head2 url_field
+
+  %= url_field 'address'
+  %= url_field address => 'http://mojolicio.us'
+  %= url_field address => 'http://mojolicio.us', id => 'foo'
+
+Generate url input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="address" type="url" />
+  <input name="address" type="url" value="http://mojolicio.us" />
+  <input id="foo" name="address" type="url" value="http://mojolicio.us" />
+
+=head2 week_field
+
+  %= week_field 'vacation'
+  %= week_field vacation => '2012-W17'
+  %= week_field vacation => '2012-W17', id => 'foo'
+
+Generate week input element. Previous input values will automatically get
+picked up and shown as default.
+
+  <input name="vacation" type="week" />
+  <input name="vacation" type="week" value="2012-W17" />
+  <input id="foo" name="vacation" type="week" value="2012-W17" />
 
 =head1 METHODS
 
 L<Mojolicious::Plugin::TagHelpers> inherits all methods from
 L<Mojolicious::Plugin> and implements the following new ones.
 
-=head2 C<register>
+=head2 register
 
-  $plugin->register;
+  $plugin->register(Mojolicious->new);
 
 Register helpers in L<Mojolicious> application.
 

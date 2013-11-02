@@ -1,26 +1,18 @@
 package Mojo::Date;
 use Mojo::Base -base;
-use overload
-  'bool'   => sub {1},
-  '""'     => sub { shift->to_string },
-  fallback => 1;
+use overload bool => sub {1}, '""' => sub { shift->to_string }, fallback => 1;
 
 use Time::Local 'timegm';
 
 has 'epoch';
 
-# Days and months
-my @DAYS   = qw/Sun Mon Tue Wed Thu Fri Sat/;
-my @MONTHS = qw/Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec/;
+my @DAYS   = qw(Sun Mon Tue Wed Thu Fri Sat);
+my @MONTHS = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 my %MONTHS;
 @MONTHS{@MONTHS} = (0 .. 11);
 
 sub new { shift->SUPER::new->parse(@_) }
 
-# "I suggest you leave immediately.
-#  Or what? You'll release the dogs or the bees?
-#  Or the dogs with bees in their mouths and when they bark they shoot bees
-#  at you?"
 sub parse {
   my ($self, $date) = @_;
 
@@ -61,31 +53,35 @@ sub to_string {
   my $self = shift;
 
   # RFC 2616 (Sun, 06 Nov 1994 08:49:37 GMT)
-  my ($s, $m, $h, $mday, $month, $year, $wday) = gmtime($self->epoch // time);
-  return sprintf "%s, %02d %s %04d %02d:%02d:%02d GMT", $DAYS[$wday], $mday,
+  my ($s, $m, $h, $mday, $month, $year, $wday) = gmtime(defined $self->epoch ? $self->epoch : time);
+  return sprintf '%s, %02d %s %04d %02d:%02d:%02d GMT', $DAYS[$wday], $mday,
     $MONTHS[$month], $year + 1900, $h, $m, $s;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
-Mojo::Date - HTTP 1.1 date container
+Mojo::Date - HTTP date
 
 =head1 SYNOPSIS
 
   use Mojo::Date;
 
-  my $date = Mojo::Date->new(784111777);
-  my $http_date = $date->to_string;
-  $date->parse('Sun, 06 Nov 1994 08:49:37 GMT');
-  my $epoch = $date->epoch;
+  # Parse
+  my $date = Mojo::Date->new('Sun, 06 Nov 1994 08:49:37 GMT');
+  say $date->epoch;
+
+  # Build
+  my $date = Mojo::Date->new(time);
+  say "$date";
 
 =head1 DESCRIPTION
 
-L<Mojo::Date> implements HTTP 1.1 date and time functions according to
-RFC 2616.
+L<Mojo::Date> implements HTTP date and time functions as described in RFC
+2616.
 
   Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
   Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036
@@ -95,7 +91,7 @@ RFC 2616.
 
 L<Mojo::Date> implements the following attributes.
 
-=head2 C<epoch>
+=head2 epoch
 
   my $epoch = $date->epoch;
   $date     = $date->epoch(784111777);
@@ -107,29 +103,37 @@ Epoch seconds.
 L<Mojo::Date> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
-=head2 C<new>
+=head2 new
 
   my $date = Mojo::Date->new;
-  my $date = Mojo::Date->new($string);
+  my $date = Mojo::Date->new('Sun Nov  6 08:49:37 1994');
 
-Construct a new L<Mojo::Date> object.
+Construct a new L<Mojo::Date> object and C<parse> date if necessary.
 
-=head2 C<parse>
+=head2 parse
 
   $date = $date->parse('Sun Nov  6 08:49:37 1994');
 
-Parse date in one of the following formats.
+Parse date.
 
-  - Epoch format (784111777)
-  - RFC 822/1123 (Sun, 06 Nov 1994 08:49:37 GMT)
-  - RFC 850/1036 (Sunday, 06-Nov-94 08:49:37 GMT)
-  - ANSI C asctime() (Sun Nov  6 08:49:37 1994)
+  # Epoch
+  say Mojo::Date->new('784111777')->epoch;
 
-=head2 C<to_string>
+  # RFC 822/1123
+  say Mojo::Date->new('Sun, 06 Nov 1994 08:49:37 GMT')->epoch;
 
-  my $string = $date->to_string;
+  # RFC 850/1036
+  say Mojo::Date->new('Sunday, 06-Nov-94 08:49:37 GMT')->epoch;
 
-Render date suitable for HTTP 1.1 messages.
+  # Ansi C asctime()
+  say Mojo::Date->new('Sun Nov  6 08:49:37 1994')->epoch;
+
+=head2 to_string
+
+  my $str = $date->to_string;
+  my $str = "$date";
+
+Render date suitable for HTTP messages.
 
 =head1 SEE ALSO
 

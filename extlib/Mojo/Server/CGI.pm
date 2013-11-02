@@ -1,90 +1,40 @@
 package Mojo::Server::CGI;
 use Mojo::Base 'Mojo::Server';
 
-use constant CHUNK_SIZE => $ENV{MOJO_CHUNK_SIZE} || 131072;
+has 'nph';
 
-has nph => 0;
-
-# "Lisa, you're a Buddhist, so you believe in reincarnation.
-#  Eventually, Snowball will be reborn as a higher lifeform...
-#  like a snowman."
 sub run {
   my $self = shift;
 
-  # Environment
   my $tx  = $self->build_tx;
   my $req = $tx->req->parse(\%ENV);
-
-  # Store connection information
   $tx->local_port($ENV{SERVER_PORT})->remote_address($ENV{REMOTE_ADDR});
 
   # Request body
   binmode STDIN;
   until ($req->is_finished) {
-    last unless my $read = STDIN->read(my $buffer, CHUNK_SIZE, 0);
+    last unless my $read = STDIN->read(my $buffer, 131072, 0);
     $req->parse($buffer);
   }
 
-  # Handle
+  # Handle request
   $self->emit(request => $tx);
 
   # Response start line
   STDOUT->autoflush(1);
   binmode STDOUT;
-  my $res    = $tx->res;
-  my $offset = 0;
-  while ($self->nph) {
-    my $chunk = $res->get_start_line_chunk($offset);
-
-    # No start line yet, try again
-    sleep 1 and next unless defined $chunk;
-
-    # End of start line
-    last unless length $chunk;
-
-    # Start line
-    return unless STDOUT->opened;
-    print STDOUT $chunk;
-    $offset += length $chunk;
-  }
+  my $res = $tx->res;
+  return undef if $self->nph && !_write($res, 'get_start_line_chunk');
 
   # Response headers
   $res->fix_headers;
-  my $code    = $res->code    || 404;
-  my $message = $res->message || $res->default_message;
-  $res->headers->status("$code $message") unless $self->nph;
-  $offset = 0;
-  while (1) {
-    my $chunk = $res->get_header_chunk($offset);
-
-    # No headers yet, try again
-    sleep 1 and next unless defined $chunk;
-
-    # End of headers
-    last unless length $chunk;
-
-    # Headers
-    return unless STDOUT->opened;
-    print STDOUT $chunk;
-    $offset += length $chunk;
-  }
+  my $code = $res->code    || 404;
+  my $msg  = $res->message || $res->default_message;
+  $res->headers->status("$code $msg") unless $self->nph;
+  return undef unless _write($res, 'get_header_chunk');
 
   # Response body
-  $offset = 0;
-  while (1) {
-    my $chunk = $res->get_body_chunk($offset);
-
-    # No content yet, try again
-    sleep 1 and next unless defined $chunk;
-
-    # End of content
-    last unless length $chunk;
-
-    # Content
-    return unless STDOUT->opened;
-    print STDOUT $chunk;
-    $offset += length $chunk;
-  }
+  $tx->is_empty or _write($res, 'get_body_chunk') or return undef;
 
   # Finish transaction
   $tx->server_close;
@@ -92,8 +42,30 @@ sub run {
   return $res->code;
 }
 
+sub _write {
+  my ($res, $method) = @_;
+
+  my $offset = 0;
+  while (1) {
+
+    # No chunk yet, try again
+    sleep 1 and next unless defined(my $chunk = $res->$method($offset));
+
+    # End of part
+    last unless my $len = length $chunk;
+
+    # Make sure we can still write
+    $offset += $len;
+    return undef unless STDOUT->opened;
+    print STDOUT $chunk;
+  }
+
+  return 1;
+}
+
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -126,7 +98,7 @@ Mojo::Server::CGI - CGI server
 
 L<Mojo::Server::CGI> is a simple and portable implementation of RFC 3875.
 
-See L<Mojolicious::Guides::Cookbook> for deployment recipes.
+See L<Mojolicious::Guides::Cookbook> for more.
 
 =head1 EVENTS
 
@@ -137,21 +109,21 @@ L<Mojo::Server::CGI> inherits all events from L<Mojo::Server>.
 L<Mojo::Server::CGI> inherits all attributes from L<Mojo::Server> and
 implements the following new ones.
 
-=head2 C<nph>
+=head2 nph
 
   my $nph = $cgi->nph;
   $cgi    = $cgi->nph(1);
 
-Activate non parsed header mode.
+Activate non-parsed header mode.
 
 =head1 METHODS
 
-L<Mojo::Server::CGI> inherits all methods from L<Mojo::Server> and
-implements the following new ones.
+L<Mojo::Server::CGI> inherits all methods from L<Mojo::Server> and implements
+the following new ones.
 
-=head2 C<run>
+=head2 run
 
-  $cgi->run;
+  my $status = $cgi->run;
 
 Run CGI.
 

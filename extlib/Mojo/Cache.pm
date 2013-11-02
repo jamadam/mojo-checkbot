@@ -3,30 +3,23 @@ use Mojo::Base -base;
 
 has 'max_keys' => 100;
 
-# "If at first you don't succeed, give up."
 sub get { (shift->{cache} || {})->{shift()} }
 
-# "Maybe I should hook up with you guys.
-#  After all, how long do any of us have to live?
-#  Well, if you like the ribwich, not very.
-#  *holds up ribwich box with Krusty saying 'WILL CAUSE EARLY DEATH'*
-#  D'oh!"
 sub set {
   my ($self, $key, $value) = @_;
 
-  # Cache with size limit
-  my $keys  = $self->max_keys;
   my $cache = $self->{cache} ||= {};
-  my $stack = $self->{stack} ||= [];
-  delete $cache->{shift @$stack} while @$stack >= $keys;
-  push @$stack, $key;
+  my $queue = $self->{queue} ||= [];
+  delete $cache->{shift @$queue} if @$queue >= $self->max_keys;
+  push @$queue, $key unless exists $cache->{$key};
   $cache->{$key} = $value;
 
   return $self;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -48,10 +41,10 @@ L<Mojo::Cache> is a naive in-memory cache with size limits.
 
 L<Mojo::Cache> implements the following attributes.
 
-=head2 C<max_keys>
+=head2 max_keys
 
-  my $max_keys = $cache->max_keys;
-  $cache       = $cache->max_keys(50);
+  my $max = $cache->max_keys;
+  $cache  = $cache->max_keys(50);
 
 Maximum number of cache keys, defaults to C<100>.
 
@@ -60,13 +53,13 @@ Maximum number of cache keys, defaults to C<100>.
 L<Mojo::Cache> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
-=head2 C<get>
+=head2 get
 
   my $value = $cache->get('foo');
 
 Get cached value.
 
-=head2 C<set>
+=head2 set
 
   $cache = $cache->set(foo => 'bar');
 

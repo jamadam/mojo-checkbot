@@ -2,17 +2,18 @@ package Mojo::Reactor;
 use Mojo::Base 'Mojo::EventEmitter';
 
 use Carp 'croak';
-use IO::Poll qw/POLLERR POLLHUP POLLIN/;
+use IO::Poll qw(POLLERR POLLHUP POLLIN);
 use Mojo::Loader;
+
+sub again { croak 'Method "again" not implemented by subclass' }
 
 sub detect {
   my $try = $ENV{MOJO_REACTOR} || 'Mojo::Reactor::EV';
-  return Mojo::Loader->load($try) ? 'Mojo::Reactor::Poll' : $try;
+  return Mojo::Loader->new->load($try) ? 'Mojo::Reactor::Poll' : $try;
 }
 
 sub io { croak 'Method "io" not implemented by subclass' }
 
-# "This was such a pleasant St. Patrick's Day until Irish people showed up."
 sub is_readable {
   my ($self, $handle) = @_;
 
@@ -35,7 +36,8 @@ sub timer      { croak 'Method "timer" not implemented by subclass' }
 sub watch      { croak 'Method "watch" not implemented by subclass' }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -48,6 +50,7 @@ Mojo::Reactor - Low level event reactor base class
 
   $ENV{MOJO_REACTOR} ||= 'Mojo::Reactor::MyEventLoop';
 
+  sub again      {...}
   sub io         {...}
   sub is_running {...}
   sub one_tick   {...}
@@ -58,17 +61,16 @@ Mojo::Reactor - Low level event reactor base class
   sub timer      {...}
   sub watch      {...}
 
-  1;
-
 =head1 DESCRIPTION
 
 L<Mojo::Reactor> is an abstract base class for low level event reactors.
 
 =head1 EVENTS
 
-L<Mojo::Reactor> can emit the following events.
+L<Mojo::Reactor> inherits all events from L<Mojo::EventEmitter> and can emit
+the following new ones.
 
-=head2 C<error>
+=head2 error
 
   $reactor->on(error => sub {
     my ($reactor, $err) = @_;
@@ -87,18 +89,24 @@ Emitted safely for exceptions caught in callbacks.
 L<Mojo::Reactor> inherits all methods from L<Mojo::EventEmitter> and
 implements the following new ones.
 
-=head2 C<detect>
+=head2 again
+
+  $reactor->again($id);
+
+Restart active timer. Meant to be overloaded in a subclass.
+
+=head2 detect
 
   my $class = Mojo::Reactor->detect;
 
 Detect and load the best reactor implementation available, will try the value
-of the C<MOJO_REACTOR> environment variable, L<Mojo::Reactor::EV> or
+of the MOJO_REACTOR environment variable, L<Mojo::Reactor::EV> or
 L<Mojo::Reactor::Poll>.
 
   # Instantiate best reactor implementation available
   my $reactor = Mojo::Reactor->detect->new;
 
-=head2 C<io>
+=head2 io
 
   $reactor = $reactor->io($handle => sub {...});
 
@@ -111,28 +119,32 @@ readable or writable. Meant to be overloaded in a subclass.
     say $writable ? 'Handle is writable' : 'Handle is readable';
   });
 
-=head2 C<is_readable>
+=head2 is_readable
 
   my $success = $reactor->is_readable($handle);
 
 Quick non-blocking check if a handle is readable, useful for identifying
 tainted sockets.
 
-=head2 C<is_running>
+=head2 is_running
 
   my $success = $reactor->is_running;
 
 Check if reactor is running. Meant to be overloaded in a subclass.
 
-=head2 C<one_tick>
+=head2 one_tick
 
   $reactor->one_tick;
 
-Run reactor until at least one event has been handled or no events are being
-watched anymore. Note that this method can recurse back into the reactor, so
-you need to be careful. Meant to be overloaded in a subclass.
+Run reactor until an event occurs. Note that this method can recurse back into
+the reactor, so you need to be careful. Meant to be overloaded in a subclass.
 
-=head2 C<recurring>
+  # Don't block longer than 0.5 seconds
+  my $id = $reactor->timer(0.5 => sub {});
+  $reactor->one_tick;
+  $reactor->remove($id);
+
+=head2 recurring
 
   my $id = $reactor->recurring(0.25 => sub {...});
 
@@ -142,28 +154,28 @@ amount of time in seconds. Meant to be overloaded in a subclass.
   # Invoke as soon as possible
   $reactor->recurring(0 => sub { say 'Reactor tick.' });
 
-=head2 C<remove>
+=head2 remove
 
   my $success = $reactor->remove($handle);
   my $success = $reactor->remove($id);
 
 Remove handle or timer. Meant to be overloaded in a subclass.
 
-=head2 C<start>
+=head2 start
 
   $reactor->start;
 
 Start watching for I/O and timer events, this will block until C<stop> is
-called or no events are being watched anymore. Meant to be overloaded in a
-subclass.
+called. Note that some reactors stop automatically if there are no events
+being watched anymore. Meant to be overloaded in a subclass.
 
-=head2 C<stop>
+=head2 stop
 
   $reactor->stop;
 
 Stop watching for I/O and timer events. Meant to be overloaded in a subclass.
 
-=head2 C<timer>
+=head2 timer
 
   my $id = $reactor->timer(0.5 => sub {...});
 
@@ -173,12 +185,13 @@ seconds. Meant to be overloaded in a subclass.
   # Invoke as soon as possible
   $reactor->timer(0 => sub { say 'Next tick.' });
 
-=head2 C<watch>
+=head2 watch
 
   $reactor = $reactor->watch($handle, $readable, $writable);
 
-Change I/O events to watch handle for with C<true> and C<false> values, meant
-to be overloaded in a subclass.
+Change I/O events to watch handle for with true and false values. Meant to be
+overloaded in a subclass. Note that this method requires an active I/O
+watcher.
 
   # Watch only for readable events
   $reactor->watch($handle, 1, 0);

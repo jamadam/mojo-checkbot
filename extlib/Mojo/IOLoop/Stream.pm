@@ -1,171 +1,143 @@
 package Mojo::IOLoop::Stream;
 use Mojo::Base 'Mojo::EventEmitter';
 
-use Errno qw/EAGAIN ECONNRESET EINTR EPIPE EWOULDBLOCK/;
+use Errno qw(EAGAIN ECONNRESET EINTR EPIPE EWOULDBLOCK);
 use Scalar::Util 'weaken';
-use Time::HiRes 'time';
-
-use constant CHUNK_SIZE => $ENV{MOJO_CHUNK_SIZE} || 131072;
 
 has reactor => sub {
   require Mojo::IOLoop;
   Mojo::IOLoop->singleton->reactor;
 };
-has timeout => 15;
 
-# "And America has so many enemies.
-#  Iran, Iraq, China, Mordor, the hoochies that laid low Tiger Woods,
-#  undesirable immigrants - by which I mean everyone that came after me,
-#  including my children..."
 sub DESTROY { shift->close }
 
-sub new { shift->SUPER::new(handle => shift, buffer => '', active => time) }
+sub new { shift->SUPER::new(handle => shift, buffer => '', timeout => 15) }
 
 sub close {
   my $self = shift;
 
-  # Cleanup
-  return unless my $reactor = $self->{reactor};
-  $reactor->remove(delete $self->{timer}) if $self->{timer};
-  return unless my $handle = delete $self->{handle};
+  return unless my $reactor = $self->reactor;
+  return unless my $handle  = delete $self->timeout(0)->{handle};
   $reactor->remove($handle);
-
-  # Close
   close $handle;
   $self->emit_safe('close');
+}
+
+sub close_gracefully {
+  my $self = shift;
+  return $self->{graceful} = 1 if $self->is_writing;
+  $self->close;
 }
 
 sub handle { shift->{handle} }
 
 sub is_readable {
   my $self = shift;
-  $self->{active} = time;
+  $self->_again;
   return $self->{handle} && $self->reactor->is_readable($self->{handle});
 }
 
 sub is_writing {
   my $self = shift;
-  return unless exists $self->{handle};
-  return length($self->{buffer}) || $self->has_subscribers('drain');
+  return undef unless $self->{handle};
+  return !!length($self->{buffer}) || $self->has_subscribers('drain');
 }
 
 sub start {
   my $self = shift;
 
-  # Timeout
+  # Resume
   my $reactor = $self->reactor;
+  return $reactor->watch($self->{handle}, 1, $self->is_writing)
+    if delete $self->{paused};
+
   weaken $self;
-  $self->{timer} ||= $reactor->recurring(
-    0.025 => sub {
-      return unless $self && (my $t = $self->timeout);
-      $self->emit_safe('timeout')->close if (time - ($self->{active})) >= $t;
-    }
-  );
-
-  # Start streaming
-  my $handle = $self->{handle};
-  return $reactor->io($handle => sub { pop() ? $self->_write : $self->_read })
-    unless $self->{streaming}++;
-
-  # Resume streaming
-  return unless delete $self->{paused};
-  $reactor->watch($handle, 1, $self->is_writing);
+  my $cb = sub { pop() ? $self->_write : $self->_read };
+  $reactor->io($self->timeout($self->{timeout})->{handle} => $cb);
 }
 
 sub stop {
   my $self = shift;
-  return if $self->{paused}++;
-  $self->reactor->watch($self->{handle}, 0, $self->is_writing);
+  $self->reactor->watch($self->{handle}, 0, $self->is_writing)
+    unless $self->{paused}++;
 }
 
-# "No children have ever meddled with the Republican Party and lived to tell
-#  about it."
 sub steal_handle {
   my $self = shift;
   $self->reactor->remove($self->{handle});
   return delete $self->{handle};
 }
 
+sub timeout {
+  my $self = shift;
+
+  return $self->{timeout} unless @_;
+
+  my $reactor = $self->reactor;
+  $reactor->remove(delete $self->{timer}) if $self->{timer};
+  return $self unless my $timeout = $self->{timeout} = shift;
+  weaken $self;
+  $self->{timer}
+    = $reactor->timer($timeout => sub { $self->emit_safe('timeout')->close });
+
+  return $self;
+}
+
 sub write {
   my ($self, $chunk, $cb) = @_;
 
-  # Prepare chunk for writing
   $self->{buffer} .= $chunk;
-
-  # Write with roundtrip
   if ($cb) { $self->once(drain => $cb) }
-  else     { return unless length $self->{buffer} }
-
-  # Start writing
+  else     { return $self unless length $self->{buffer} }
   $self->reactor->watch($self->{handle}, !$self->{paused}, 1)
     if $self->{handle};
+
+  return $self;
+}
+
+sub _again { $_[0]->reactor->again($_[0]{timer}) if $_[0]{timer} }
+
+sub _error {
+  my $self = shift;
+
+  # Retry
+  return if $! == EAGAIN || $! == EINTR || $! == EWOULDBLOCK;
+
+  # Closed
+  return $self->close if $! == ECONNRESET || $! == EPIPE;
+
+  # Error
+  $self->emit_safe(error => $!)->close;
 }
 
 sub _read {
   my $self = shift;
-
-  # Read
-  my $read = $self->{handle}->sysread(my $buffer, CHUNK_SIZE, 0);
-
-  # Error
-  unless (defined $read) {
-
-    # Retry
-    return if $! ~~ [EAGAIN, EINTR, EWOULDBLOCK];
-
-    # Closed
-    return $self->close if $! ~~ [ECONNRESET, EPIPE];
-
-    # Read error
-    return $self->emit_safe(error => $!)->close;
-  }
-
-  # EOF
+  my $read = $self->{handle}->sysread(my $buffer, 131072, 0);
+  return $self->_error unless defined $read;
   return $self->close if $read == 0;
-
-  # Handle read
-  $self->emit_safe(read => $buffer);
-  $self->{active} = time;
+  $self->emit_safe(read => $buffer)->_again;
 }
 
-# "Oh, I'm in no condition to drive. Wait a minute.
-#  I don't have to listen to myself. I'm drunk."
 sub _write {
   my $self = shift;
 
-  # Write as much as possible
   my $handle = $self->{handle};
   if (length $self->{buffer}) {
     my $written = $handle->syswrite($self->{buffer});
-
-    # Error
-    unless (defined $written) {
-
-      # Retry
-      return if $! ~~ [EAGAIN, EINTR, EWOULDBLOCK];
-
-      # Closed
-      return $self->close if $! ~~ [ECONNRESET, EPIPE];
-
-      # Write error
-      return $self->emit_safe(error => $!)->close;
-    }
-
-    # Remove written chunk from buffer
+    return $self->_error unless defined $written;
     $self->emit_safe(write => substr($self->{buffer}, 0, $written, ''));
-    $self->{active} = time;
+    $self->_again;
   }
 
-  # Handle drain
-  $self->emit_safe('drain') if !length $self->{buffer};
-
-  # Stop writing
+  $self->emit_safe('drain') unless length $self->{buffer};
   return if $self->is_writing;
-  $self->reactor->watch($handle, !$self->{paused}, 0);
+  return $self->close if $self->{graceful};
+  $self->reactor->watch($handle, !$self->{paused}, 0) if $self->{handle};
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -178,7 +150,7 @@ Mojo::IOLoop::Stream - Non-blocking I/O stream
   # Create stream
   my $stream = Mojo::IOLoop::Stream->new($handle);
   $stream->on(read => sub {
-    my ($stream, $chunk) = @_;
+    my ($stream, $bytes) = @_;
     ...
   });
   $stream->on(close => sub {
@@ -194,6 +166,9 @@ Mojo::IOLoop::Stream - Non-blocking I/O stream
   $stream->start;
   $stream->stop;
 
+  # Start reactor if necessary
+  $stream->reactor->start unless $stream->reactor->is_running;
+
 =head1 DESCRIPTION
 
 L<Mojo::IOLoop::Stream> is a container for I/O streams used by
@@ -201,9 +176,10 @@ L<Mojo::IOLoop>.
 
 =head1 EVENTS
 
-L<Mojo::IOLoop::Stream> can emit the following events.
+L<Mojo::IOLoop::Stream> inherits all events from L<Mojo::EventEmitter> and can
+emit the following new ones.
 
-=head2 C<close>
+=head2 close
 
   $stream->on(close => sub {
     my $stream = shift;
@@ -212,7 +188,7 @@ L<Mojo::IOLoop::Stream> can emit the following events.
 
 Emitted safely if the stream gets closed.
 
-=head2 C<drain>
+=head2 drain
 
   $stream->on(drain => sub {
     my $stream = shift;
@@ -221,25 +197,25 @@ Emitted safely if the stream gets closed.
 
 Emitted safely once all data has been written.
 
-=head2 C<error>
+=head2 error
 
   $stream->on(error => sub {
     my ($stream, $err) = @_;
     ...
   });
 
-Emitted safely if an error happens on the stream.
+Emitted safely if an error occurs on the stream.
 
-=head2 C<read>
+=head2 read
 
   $stream->on(read => sub {
-    my ($stream, $chunk) = @_;
+    my ($stream, $bytes) = @_;
     ...
   });
 
 Emitted safely if new data arrives on the stream.
 
-=head2 C<timeout>
+=head2 timeout
 
   $stream->on(timeout => sub {
     my $stream = shift;
@@ -249,10 +225,10 @@ Emitted safely if new data arrives on the stream.
 Emitted safely if the stream has been inactive for too long and will get
 closed automatically.
 
-=head2 C<write>
+=head2 write
 
   $stream->on(write => sub {
-    my ($stream, $chunk) = @_;
+    my ($stream, $bytes) = @_;
     ...
   });
 
@@ -262,7 +238,7 @@ Emitted safely if new data has been written to the stream.
 
 L<Mojo::IOLoop::Stream> implements the following attributes.
 
-=head2 C<reactor>
+=head2 reactor
 
   my $reactor = $stream->reactor;
   $stream     = $stream->reactor(Mojo::Reactor::Poll->new);
@@ -270,73 +246,79 @@ L<Mojo::IOLoop::Stream> implements the following attributes.
 Low level event reactor, defaults to the C<reactor> attribute value of the
 global L<Mojo::IOLoop> singleton.
 
-=head2 C<timeout>
-
-  my $timeout = $stream->timeout;
-  $stream     = $stream->timeout(45);
-
-Maximum amount of time in seconds stream can be inactive before getting
-closed automatically, defaults to C<15>. Setting the value to C<0> will allow
-this stream to be inactive indefinitely.
-
 =head1 METHODS
 
 L<Mojo::IOLoop::Stream> inherits all methods from L<Mojo::EventEmitter> and
 implements the following new ones.
 
-=head2 C<new>
+=head2 new
 
   my $stream = Mojo::IOLoop::Stream->new($handle);
 
 Construct a new L<Mojo::IOLoop::Stream> object.
 
-=head2 C<close>
+=head2 close
 
   $stream->close;
 
 Close stream immediately.
 
-=head2 C<handle>
+=head2 close_gracefully
+
+  $stream->close_gracefully;
+
+Close stream gracefully.
+
+=head2 handle
 
   my $handle = $stream->handle;
 
 Get handle for stream.
 
-=head2 C<is_readable>
+=head2 is_readable
 
   my $success = $stream->is_readable;
 
-Quick non-blocking check if stream is readable, useful for identifying
-tainted sockets.
+Quick non-blocking check if stream is readable, useful for identifying tainted
+sockets.
 
-=head2 C<is_writing>
+=head2 is_writing
 
   my $success = $stream->is_writing;
 
 Check if stream is writing.
 
-=head2 C<start>
+=head2 start
 
   $stream->start;
 
 Start watching for new data on the stream.
 
-=head2 C<stop>
+=head2 stop
 
   $stream->stop;
 
 Stop watching for new data on the stream.
 
-=head2 C<steal_handle>
+=head2 steal_handle
 
   my $handle = $stream->steal_handle;
 
 Steal handle from stream and prevent it from getting closed automatically.
 
-=head2 C<write>
+=head2 timeout
 
-  $stream->write('Hello!');
-  $stream->write('Hello!', sub {...});
+  my $timeout = $stream->timeout;
+  $stream     = $stream->timeout(45);
+
+Maximum amount of time in seconds stream can be inactive before getting closed
+automatically, defaults to C<15>. Setting the value to C<0> will allow this
+stream to be inactive indefinitely.
+
+=head2 write
+
+  $stream = $stream->write($bytes);
+  $stream = $stream->write($bytes => sub {...});
 
 Write data to stream, the optional drain callback will be invoked once all
 data has been written.

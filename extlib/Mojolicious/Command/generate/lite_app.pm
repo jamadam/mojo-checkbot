@@ -1,11 +1,9 @@
 package Mojolicious::Command::generate::lite_app;
-use Mojo::Base 'Mojo::Command';
+use Mojo::Base 'Mojolicious::Command';
 
 has description => "Generate Mojolicious::Lite application.\n";
 has usage       => "usage: $0 generate lite_app [NAME]\n";
 
-# "As a scientist,
-#  I can assure you that we did in fact evolve from filthy monkey-men."
 sub run {
   my ($self, $name) = @_;
   $name ||= 'myapp.pl';
@@ -17,7 +15,6 @@ sub run {
 __DATA__
 
 @@ liteapp
-% my $class = shift;
 #!/usr/bin/env perl
 use Mojolicious::Lite;
 
@@ -45,6 +42,9 @@ Welcome to the Mojolicious real-time web framework!
 </html>
 
 __END__
+
+=encoding utf8
+
 =head1 NAME
 
 Mojolicious::Command::generate::lite_app - Lite app generator command
@@ -61,19 +61,22 @@ Mojolicious::Command::generate::lite_app - Lite app generator command
 L<Mojolicious::Command::generate::lite_app> generate fully functional
 L<Mojolicious::Lite> applications.
 
+This is a core command, that means it is always enabled and its code a good
+example for learning to build new commands, you're welcome to fork it.
+
 =head1 ATTRIBUTES
 
 L<Mojolicious::Command::generate::lite_app> inherits all attributes from
-L<Mojo::Command> and implements the following new ones.
+L<Mojolicious::Command> and implements the following new ones.
 
-=head2 C<description>
+=head2 description
 
   my $description = $app->description;
   $app            = $app->description('Foo!');
 
 Short description of this command, used for the command list.
 
-=head2 C<usage>
+=head2 usage
 
   my $usage = $app->usage;
   $app      = $app->usage('Foo!');
@@ -83,9 +86,9 @@ Usage information for this command, used for the help screen.
 =head1 METHODS
 
 L<Mojolicious::Command::generate::lite_app> inherits all methods from
-L<Mojo::Command> and implements the following new ones.
+L<Mojolicious::Command> and implements the following new ones.
 
-=head2 C<run>
+=head2 run
 
   $app->run(@ARGV);
 

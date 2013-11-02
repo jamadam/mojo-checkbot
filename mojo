@@ -9,17 +9,10 @@ use File::Spec;
 use lib join '/', File::Spec->splitdir(dirname(__FILE__)), './extlib';
 use lib join '/', File::Spec->splitdir(dirname(__FILE__)), './lib';
 
-# Check if Mojolicious is installed
-die <<EOF unless eval 'use Mojolicious::Commands; 1';
-It looks like you don't have the Mojolicious framework installed.
-Please visit http://mojolicio.us for detailed installation instructions.
+require Mojolicious::Commands;
+Mojolicious::Commands->start_app('Mojo::HelloWorld');
 
-EOF
-
-# "My eyes! The goggles do nothing!"
-Mojolicious::Commands->start;
-
-__END__
+=encoding utf8
 
 =head1 NAME
 

@@ -1,154 +1,128 @@
 package Mojolicious::Plugin::PODRenderer;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use IO::File;
 use Mojo::Asset::File;
 use Mojo::ByteStream 'b';
 use Mojo::DOM;
-use Mojo::Util 'url_escape';
-use Pod::Simple::HTML;
-use Pod::Simple::Search;
+use Mojo::Util qw'slurp url_escape';
+BEGIN {eval {require Pod::Simple::HTML; import Pod::Simple::HTML}}
+BEGIN {eval {require Pod::Simple::Search; import Pod::Simple::Search}}
 
-# Paths
-my @PATHS = map { $_, "$_/pods" } @INC;
-
-# Bundled files
-my $PERLDOC = $Mojolicious::Controller::H->slurp_rel_file('perldoc.html.ep');
-
-# "This is my first visit to the Galaxy of Terror and I'd like it to be a
-#  pleasant one."
 sub register {
   my ($self, $app, $conf) = @_;
 
-  # Config
-  $conf ||= {};
-  my $name       = $conf->{name}       || 'pod';
   my $preprocess = $conf->{preprocess} || 'ep';
-
-  # Add "pod" handler
   $app->renderer->add_handler(
-    $name => sub {
-      my ($r, $c, $output, $options) = @_;
+    $conf->{name} || 'pod' => sub {
+      my ($renderer, $c, $output, $options) = @_;
 
-      # Preprocess with ep and then render
-      $$output = _pod_to_html($$output)
-        if $r->handlers->{$preprocess}->($r, $c, $output, $options);
+      # Preprocess and render
+      my $handler = $renderer->handlers->{$preprocess};
+      return undef unless $handler->($renderer, $c, $output, $options);
+      $$output = _pod_to_html($$output);
+      return 1;
     }
   );
 
-  # Add "pod_to_html" helper
   $app->helper(pod_to_html => sub { shift; b(_pod_to_html(@_)) });
 
-  # Perldoc
-  $app->routes->any(
-    '/perldoc/*module' => {module => 'Mojolicious/Guides'} => sub {
-      my $self = shift;
+  # Perldoc browser
+  return if $conf->{no_perldoc};
+  my $defaults = {module => 'Mojolicious/Guides', format => 'html'};
+  return $app->routes->any(
+    '/perldoc/:module' => $defaults => [module => qr/[^.]+/] => \&_perldoc);
+}
 
-      # Find module
-      my $module = $self->param('module');
-      $module =~ s|/|\:\:|g;
-      my $path = Pod::Simple::Search->new->find($module, @PATHS);
+sub _html {
+  my ($self, $src) = @_;
 
-      # Redirect to CPAN
-      return $self->redirect_to("http://metacpan.org/module/$module")
-        unless $path && -r $path;
+  # Rewrite links
+  my $dom     = Mojo::DOM->new(_pod_to_html($src));
+  my $perldoc = $self->url_for('/perldoc/');
+  for my $e ($dom->find('a[href]')->each) {
+    my $attrs = $e->attr;
+    $attrs->{href} =~ s!%3A%3A!/!gi
+      if $attrs->{href} =~ s!^http://search\.cpan\.org/perldoc\?!$perldoc!;
+  }
 
-      # Turn POD into HTML
-      my $file = IO::File->new("< $path");
-      my $html = _pod_to_html(join '', <$file>);
+  # Rewrite code blocks for syntax highlighting
+  for my $e ($dom->find('pre')->each) {
+    next if $e->all_text =~ /^\s*\$\s+/m;
+    my $attrs = $e->attr;
+    my $class = $attrs->{class};
+    $attrs->{class} = defined $class ? "$class prettyprint" : 'prettyprint';
+  }
 
-      # Rewrite links
-      my $dom     = Mojo::DOM->new("$html");
-      my $perldoc = $self->url_for('/perldoc/');
-      $dom->find('a[href]')->each(
-        sub {
-          my $attrs = shift->attrs;
-          $attrs->{href} =~ s|%3A%3A|/|gi
-            if $attrs->{href}
-              =~ s|^http\://search\.cpan\.org/perldoc\?|$perldoc|;
-        }
-      );
+  # Rewrite headers
+  my $url = $self->req->url->clone;
+  my (%anchors, @parts);
+  for my $e ($dom->find('h1, h2, h3')->each) {
 
-      # Rewrite code sections for syntax highlighting
-      $dom->find('pre')->each(
-        sub {
-          my $e = shift;
-          return if $e->all_text =~ /^\s*\$\s+/m;
-          my $attrs = $e->attrs;
-          my $class = $attrs->{class};
-          $attrs->{class} =
-            defined $class ? "$class prettyprint" : 'prettyprint';
-        }
-      );
+    # Anchor and text
+    my $name = my $text = $e->all_text;
+    $name =~ s/\s+/_/g;
+    $name =~ s/[^\w\-]//g;
+    my $anchor = $name;
+    my $i      = 1;
+    $anchor = $name . $i++ while $anchors{$anchor}++;
 
-      # Rewrite headers
-      my $url      = $self->req->url->clone;
-      my $sections = [];
-      $dom->find('h1, h2, h3')->each(
-        sub {
-          my $e = shift;
-          my $anchor = my $text = $e->all_text;
-          $anchor =~ s/\s+/_/g;
-          $anchor = url_escape $anchor, 'A-Za-z0-9_';
-          $anchor =~ s/\%//g;
-          push @$sections, [] if $e->type eq 'h1' || !@$sections;
-          push @{$sections->[-1]}, $text, $url->fragment($anchor)->to_abs;
-          $e->replace_content(
-            $self->link_to(
-              $text => $url->fragment('toc')->to_abs,
-              class => 'mojoscroll',
-              id    => $anchor
-            )
-          );
-        }
-      );
+    # Rewrite
+    push @parts, [] if $e->type eq 'h1' || !@parts;
+    push @{$parts[-1]}, $text, $url->to_abs->fragment($anchor);
+    my $toc = $url->to_abs->fragment('toc');
+    $e->replace_content(
+      $self->link_to($text => $toc, class => 'mojoscroll', id => $anchor));
+  }
 
-      # Try to find a title
-      my $title = 'Perldoc';
-      $dom->find('h1 + p')->first(sub { $title = shift->text });
+  # Try to find a title
+  my $title = 'Perldoc';
+  $dom->find('h1 + p')->first(sub { $title = shift->text });
 
-      # Combine everything to a proper response
-      $self->content_for(perldoc => "$dom");
-      $self->render(
-        inline   => $PERLDOC,
-        title    => $title,
-        sections => $sections
-      );
-      $self->res->headers->content_type('text/html;charset="UTF-8"');
-    }
-  ) unless $conf->{no_perldoc};
+  # Combine everything to a proper response
+  $self->content_for(perldoc => "$dom");
+  my $template = $self->app->renderer->_bundled('perldoc');
+  $self->render(inline => $template, title => $title, parts => \@parts);
+}
+
+sub _perldoc {
+  my $self = shift;
+
+  # Find module or redirect to CPAN
+  my $module = $self->param('module');
+  $module =~ s!/!::!g;
+  my $path
+    = Pod::Simple::Search->new->find($module, map { $_, "$_/pods" } @INC);
+  return $self->redirect_to("http://metacpan.org/module/$module")
+    unless $path && -r $path;
+
+  my $src = slurp $path;
+  $self->respond_to(txt => {data => $src}, html => sub { _html($self, $src) });
 }
 
 sub _pod_to_html {
-  my $pod = shift;
-  return unless defined $pod;
+  return '' unless defined(my $pod = shift);
 
   # Block
   $pod = $pod->() if ref $pod eq 'CODE';
 
-  # Parser
   my $parser = Pod::Simple::HTML->new;
   $parser->force_title('');
   $parser->html_header_before_title('');
   $parser->html_header_after_title('');
   $parser->html_footer('');
-
-  # Parse
-  my $output;
-  $parser->output_string(\$output);
-  eval { $parser->parse_string_document("$pod") };
-  return $@ if $@;
+  $parser->output_string(\(my $output));
+  return $@ unless eval { $parser->parse_string_document("$pod"); 1 };
 
   # Filter
-  $output =~ s|<a name='___top' class='dummyTopAnchor'\s*?></a>\n||g;
-  $output =~ s|<a class='u'.*?name=".*?"\s*>(.*?)</a>|$1|sg;
+  $output =~ s!<a name='___top' class='dummyTopAnchor'\s*?></a>\n!!g;
+  $output =~ s!<a class='u'.*?name=".*?"\s*>(.*?)</a>!$1!sg;
 
   return $output;
 }
 
 1;
 
-__END__
+=encoding utf8
 
 =head1 NAME
 
@@ -157,70 +131,73 @@ Mojolicious::Plugin::PODRenderer - POD renderer plugin
 =head1 SYNOPSIS
 
   # Mojolicious
-  $self->plugin('PODRenderer');
-  $self->plugin(PODRenderer => {name => 'foo'});
-  $self->plugin(PODRenderer => {preprocess => 'epl'});
-  $self->render('some_template', handler => 'pod');
-  %= pod_to_html "=head1 TEST\n\nC<123>"
+  my $route = $self->plugin('PODRenderer');
+  my $route = $self->plugin(PODRenderer => {name => 'foo'});
+  my $route = $self->plugin(PODRenderer => {preprocess => 'epl'});
 
   # Mojolicious::Lite
-  plugin 'PODRenderer';
-  plugin PODRenderer => {name => 'foo'};
-  plugin PODRenderer => {preprocess => 'epl'};
-  $self->render('some_template', handler => 'pod');
+  my $route = plugin 'PODRenderer';
+  my $route = plugin PODRenderer => {name => 'foo'};
+  my $route = plugin PODRenderer => {preprocess => 'epl'};
+
+  # foo.html.ep
   %= pod_to_html "=head1 TEST\n\nC<123>"
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::PODRenderer> is a renderer for true Perl hackers,
-rawr!
+L<Mojolicious::Plugin::PODRenderer> is a renderer for true Perl hackers, rawr!
+
+The code of this plugin is a good example for learning to build new plugins,
+you're welcome to fork it.
 
 =head1 OPTIONS
 
 L<Mojolicious::Plugin::PODRenderer> supports the following options.
 
-=head2 C<name>
+=head2 name
 
   # Mojolicious::Lite
   plugin PODRenderer => {name => 'foo'};
 
-Handler name.
+Handler name, defaults to C<pod>.
 
-=head2 C<no_perldoc>
+=head2 no_perldoc
 
   # Mojolicious::Lite
   plugin PODRenderer => {no_perldoc => 1};
 
-Disable perldoc browser.
+Disable L<Mojolicious::Guides> documentation browser that will otherwise be
+available under C</perldoc>.
 
-=head2 C<preprocess>
+=head2 preprocess
 
   # Mojolicious::Lite
   plugin PODRenderer => {preprocess => 'epl'};
 
-Handler name of preprocessor.
+Name of handler used to preprocess POD, defaults to C<ep>.
 
 =head1 HELPERS
 
 L<Mojolicious::Plugin::PODRenderer> implements the following helpers.
 
-=head2 C<pod_to_html>
+=head2 pod_to_html
 
   %= pod_to_html '=head2 lalala'
   <%= pod_to_html begin %>=head2 lalala<% end %>
 
-Render POD to HTML.
+Render POD to HTML without preprocessing.
 
 =head1 METHODS
 
 L<Mojolicious::Plugin::PODRenderer> inherits all methods from
 L<Mojolicious::Plugin> and implements the following new ones.
 
-=head2 C<register>
+=head2 register
 
-  $plugin->register;
+  my $route = $plugin->register(Mojolicious->new);
+  my $route = $plugin->register(Mojolicious->new, {name => 'foo'});
 
-Register renderer in L<Mojolicious> application.
+Register renderer and helper in L<Mojolicious> application.
 
 =head1 SEE ALSO
 

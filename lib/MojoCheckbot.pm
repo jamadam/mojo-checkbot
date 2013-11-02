@@ -7,9 +7,9 @@ use Data::Dumper;
 use Getopt::Long 'GetOptionsFromArray';
 use Mojo::DOM;
 use Mojo::URL;
-use Mojo::CookieJar;
+use Mojo::UserAgent::CookieJar;
 use Mojo::Cookie::Response;
-use Mojo::Util qw{md5_sum html_escape};
+use Mojo::Util qw{md5_sum xml_escape};
 use Mojo::Base 'Mojolicious';
 use Mojo::Parameters;
 use Mojo::JSON;
@@ -185,7 +185,7 @@ our $VERSION = '0.37';
         
         if ($options{cookie}) {
             my $cookies = Mojo::Cookie::Response->parse($options{cookie});
-            $ua->cookie_jar(Mojo::CookieJar->new->add(@$cookies));
+            $ua->cookie_jar(Mojo::UserAgent::CookieJar->new->add(@$cookies));
         }
         
         my $loop_id;
@@ -239,7 +239,7 @@ our $VERSION = '0.37';
             }
             my @diff    = @$result[$offset .. $last - 1];
             my @diff_d  = @$dialog[$offset_d .. $last_d - 1];
-            $c->render_json({
+            $c->render(json => {
                 queues  => scalar @$queues,
                 fixed   => scalar @$result,
                 result  => \@diff,
@@ -252,7 +252,7 @@ our $VERSION = '0.37';
             my $encode = guess_encoding($res) || 'utf-8';
             my $body    = Encode::decode($encode, $res->body);
             my $error = Encode::decode($encode, validate_html($body));
-            $c->render_json({result => html_escape($error)});
+            $c->render(json => {result => xml_escape($error)});
         });
         $r->route('/auth')->to(cb => sub {
             my $c = shift;
@@ -263,7 +263,7 @@ our $VERSION = '0.37';
             push(@$queues, {
                 $QUEUE_KEY_RESOLVED_URI => "$url"
             });
-            $c->render_json({result => 'success'});
+            $c->render(json => {result => 'success'});
         });
         $r->route('/form')->to(cb => sub {
             my $c = shift;
@@ -273,7 +273,7 @@ our $VERSION = '0.37';
                 $queue->{$key} = $c->req->param('key_'. $key);
             }
             append_queues($queue->{$QUEUE_KEY_REFERER}, $queues, [$queue]);
-            $c->render_json({result => 'success'});
+            $c->render(json => {result => 'success'});
         });
         $r->route('/')->to(cb => sub {
             my $c = shift;
@@ -330,7 +330,7 @@ our $VERSION = '0.37';
                 my $body    = Encode::decode($encode, $res->body);
                 my $dom     = Mojo::DOM->new($body);
                 if (my $base_tag = $dom->at('base')) {
-                    $base = Mojo::URL->new($base_tag->attrs('href'));
+                    $base = Mojo::URL->new($base_tag->attr('href'));
                 }
                 if ($recursion) {
                     my @a       = collect_urls($dom);
@@ -468,7 +468,7 @@ our $VERSION = '0.37';
                 $context = substr($context, 0, 300). '...';
             }
             return {
-                $QUEUE_KEY_CONTEXT      => html_escape($context),
+                $QUEUE_KEY_CONTEXT      => xml_escape($context),
                 $QUEUE_KEY_LITERAL_URI  => $href,
             };
         }
@@ -483,8 +483,8 @@ our $VERSION = '0.37';
             my @names;
             $dom->find('[name]')->each(sub {
                 my $dom = shift;
-                my $a = {name => $dom->attrs('name')};
-                if (my $value = html_escape($dom->attrs('value') || $dom->text)) {
+                my $a = {name => $dom->attr('name')};
+                if (my $value = xml_escape($dom->attr('value') || $dom->text)) {
                     $a->{value} = $value;
                 }
                 push(@names, $a);
@@ -579,7 +579,7 @@ our $VERSION = '0.37';
         my $new = $base->clone;
         my $temp = Mojo::URL->new($href);
         
-        $temp->fragment('');
+        $temp->fragment(undef);
         if ($temp->scheme) {
             return $temp;
         }

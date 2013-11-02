@@ -1,28 +1,29 @@
 package Mojo::Upload;
 use Mojo::Base -base;
 
-use Carp 'croak';
 use Mojo::Asset::File;
 use Mojo::Headers;
 
 has asset => sub { Mojo::Asset::File->new };
-has [qw/filename name/];
+has [qw(filename name)];
 has headers => sub { Mojo::Headers->new };
 
-# "B-6
-#  You sunk my scrabbleship!
-#  This game makes no sense.
-#  Tell that to the good men who just lost their lives... SEMPER-FI!"
-sub move_to { shift->asset->move_to(@_) }
-sub size    { shift->asset->size }
-sub slurp   { shift->asset->slurp }
+sub move_to {
+  my $self = shift;
+  $self->asset->move_to(@_);
+  return $self;
+}
+
+sub size  { shift->asset->size }
+sub slurp { shift->asset->slurp }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
-Mojo::Upload - Upload container
+Mojo::Upload - Upload
 
 =head1 SYNOPSIS
 
@@ -30,39 +31,39 @@ Mojo::Upload - Upload container
 
   my $upload = Mojo::Upload->new;
   say $upload->filename;
-  $upload->move_to('/foo/bar/baz.txt');
+  $upload->move_to('/home/sri/foo.txt');
 
 =head1 DESCRIPTION
 
-L<Mojo::Upload> is a container for uploads.
+L<Mojo::Upload> is a container for uploaded files.
 
 =head1 ATTRIBUTES
 
 L<Mojo::Upload> implements the following attributes.
 
-=head2 C<asset>
+=head2 asset
 
   my $asset = $upload->asset;
   $upload   = $upload->asset(Mojo::Asset::File->new);
 
-Asset containing the uploaded data, defaults to a L<Mojo::Asset::File>
-object.
+Asset containing the uploaded data, usually a L<Mojo::Asset::File> or
+L<Mojo::Asset::Memory> object.
 
-=head2 C<filename>
+=head2 filename
 
   my $filename = $upload->filename;
   $upload      = $upload->filename('foo.txt');
 
 Name of the uploaded file.
 
-=head2 C<headers>
+=head2 headers
 
   my $headers = $upload->headers;
   $upload     = $upload->headers(Mojo::Headers->new);
 
 Headers for upload, defaults to a L<Mojo::Headers> object.
 
-=head2 C<name>
+=head2 name
 
   my $name = $upload->name;
   $upload  = $upload->name('foo');
@@ -74,23 +75,23 @@ Name of the upload.
 L<Mojo::Upload> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
-=head2 C<move_to>
+=head2 move_to
 
-  $upload->move_to('/foo/bar/baz.txt');
+  $upload = $upload->move_to('/home/sri/foo.txt');
 
-Move uploaded data to a specific file.
+Move uploaded data into a specific file.
 
-=head2 C<size>
+=head2 size
 
   my $size = $upload->size;
 
-Size of upload in bytes.
+Size of uploaded data in bytes.
 
-=head2 C<slurp>
+=head2 slurp
 
-  my $string = $upload->slurp;
+  my $bytes = $upload->slurp;
 
-Read all upload data at once.
+Read all uploaded data at once.
 
 =head1 SEE ALSO
 

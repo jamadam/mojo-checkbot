@@ -1,23 +1,23 @@
 package Mojo::IOLoop::Client;
 use Mojo::Base 'Mojo::EventEmitter';
 
+use Errno 'EINPROGRESS';
 use IO::Socket::INET;
 use Scalar::Util 'weaken';
-use Socket qw/IPPROTO_TCP SO_ERROR TCP_NODELAY/;
+use Socket qw(IPPROTO_TCP SO_ERROR TCP_NODELAY);
 
 # IPv6 support requires IO::Socket::IP
 use constant IPV6 => $ENV{MOJO_NO_IPV6}
   ? 0
-  : eval 'use IO::Socket::IP 0.06 (); 1';
+  : eval 'use IO::Socket::IP 0.16 (); 1';
 
 # TLS support requires IO::Socket::SSL
-use constant TLS => $ENV{MOJO_NO_TLS}
-  ? 0
-  : eval 'use IO::Socket::SSL 1.37 "inet4"; 1';
+use constant TLS => $ENV{MOJO_NO_TLS} ? 0
+  : eval(IPV6 ? 'use IO::Socket::SSL 1.75 (); 1'
+  : 'use IO::Socket::SSL 1.75 "inet4"; 1');
 use constant TLS_READ  => TLS ? IO::Socket::SSL::SSL_WANT_READ()  : 0;
 use constant TLS_WRITE => TLS ? IO::Socket::SSL::SSL_WANT_WRITE() : 0;
 
-# "It's like my dad always said: eventually, everybody gets shot."
 has reactor => sub {
   require Mojo::IOLoop;
   Mojo::IOLoop->singleton->reactor;
@@ -25,113 +25,107 @@ has reactor => sub {
 
 sub DESTROY { shift->_cleanup }
 
-# "I wonder where Bart is, his dinner's getting all cold... and eaten."
 sub connect {
   my $self = shift;
   my $args = ref $_[0] ? $_[0] : {@_};
-  $args->{address} ||= '127.0.0.1';
-  $args->{address} = '127.0.0.1' if $args->{address} eq 'localhost';
   weaken $self;
   $self->{delay} = $self->reactor->timer(0 => sub { $self->_connect($args) });
 }
 
 sub _cleanup {
   my $self = shift;
-  return unless my $reactor = $self->{reactor};
-  $reactor->remove(delete $self->{delay})  if $self->{delay};
-  $reactor->remove(delete $self->{timer})  if $self->{timer};
-  $reactor->remove(delete $self->{handle}) if $self->{handle};
+  return $self unless my $reactor = $self->reactor;
+  $self->{$_} && $reactor->remove(delete $self->{$_})
+    for qw(delay timer handle);
+  return $self;
 }
 
 sub _connect {
   my ($self, $args) = @_;
 
-  # New socket
   my $handle;
   my $reactor = $self->reactor;
-  unless ($handle = $args->{handle}) {
+  my $address = $args->{address} ||= 'localhost';
+  unless ($handle = $self->{handle} = $args->{handle}) {
     my %options = (
       Blocking => 0,
-      PeerAddr => $args->{address},
-      PeerPort => $args->{port} || ($args->{tls} ? 443 : 80),
-      Proto    => 'tcp'
+      PeerAddr => $address eq 'localhost' ? '127.0.0.1' : $address,
+      PeerPort => $args->{port} || ($args->{tls} ? 443 : 80)
     );
     $options{LocalAddr} = $args->{local_address} if $args->{local_address};
     $options{PeerAddr} =~ s/[\[\]]//g if $options{PeerAddr};
     my $class = IPV6 ? 'IO::Socket::IP' : 'IO::Socket::INET';
-    return $self->emit_safe(error => "Couldn't connect.")
-      unless $handle = $class->new(%options);
+    return $self->emit_safe(error => "Couldn't connect: $@")
+      unless $self->{handle} = $handle = $class->new(%options);
 
-    # Timer
+    # Timeout
     $self->{timer} = $reactor->timer($args->{timeout} || 10,
-      sub { $self->emit_safe(error => 'Connect timeout.') });
-
-    # IPv6 needs an early start
-    $handle->connect if IPV6;
+      sub { $self->emit_safe(error => 'Connect timeout') });
   }
   $handle->blocking(0);
+
+  # Wait for handle to become writable
+  weaken $self;
+  $reactor->io($handle => sub { $self->_try($args) })->watch($handle, 0, 1);
+}
+
+sub _tls {
+  my $self = shift;
+
+  # Connected
+  my $handle = $self->{handle};
+  return $self->_cleanup->emit_safe(connect => $handle)
+    if $handle->connect_SSL;
+
+  # Switch between reading and writing
+  my $err = $IO::Socket::SSL::SSL_ERROR;
+  if    ($err == TLS_READ)  { $self->reactor->watch($handle, 1, 0) }
+  elsif ($err == TLS_WRITE) { $self->reactor->watch($handle, 1, 1) }
+}
+
+sub _try {
+  my ($self, $args) = @_;
+
+  # Retry or handle exceptions
+  my $handle = $self->{handle};
+  return $! == EINPROGRESS ? undef : $self->emit_safe(error => $!)
+    if IPV6 && !$handle->connect;
+  return $self->emit_safe(error => $! = $handle->sockopt(SO_ERROR))
+    if !IPV6 && !$handle->connected;
 
   # Disable Nagle's algorithm
   setsockopt $handle, IPPROTO_TCP, TCP_NODELAY, 1;
 
-  # TLS
+  return $self->_cleanup->emit_safe(connect => $handle)
+    if !$args->{tls} || $handle->isa('IO::Socket::SSL');
+  return $self->emit_safe(
+    error => 'IO::Socket::SSL 1.75 required for TLS support')
+    unless TLS;
+
+  # Upgrade
   weaken $self;
-  if ($args->{tls}) {
-
-    # No TLS support
-    return $self->emit_safe(
-      error => 'IO::Socket::SSL 1.37 required for TLS support.')
-      unless TLS;
-
-    # Upgrade
-    my %options = (
-      SSL_startHandshake => 0,
-      SSL_error_trap     => sub {
-        $self->_cleanup;
-        $self->emit_safe(error => $_[1]);
-      },
-      SSL_cert_file => $args->{tls_cert},
-      SSL_key_file  => $args->{tls_key},
-      SSL_ca_file   => $args->{tls_ca}
-        && -T $args->{tls_ca} ? $args->{tls_ca} : undef,
-      SSL_verify_mode => $args->{tls_ca} ? 0x01 : 0x00
-    );
-    $self->{tls} = 1;
-    return $self->emit_safe(error => 'TLS upgrade failed.')
-      unless $handle = IO::Socket::SSL->start_SSL($handle, %options);
-  }
-
-  # Wait for handle to become writable
-  $self->{handle} = $handle;
-  $reactor->io($handle => sub { $self->_connecting })->watch($handle, 0, 1);
-}
-
-# "Have you ever seen that Blue Man Group? Total ripoff of the Smurfs.
-#  And the Smurfs, well, they SUCK."
-sub _connecting {
-  my $self = shift;
-
-  # Switch between reading and writing
-  my $handle  = $self->{handle};
+  my %options = (
+    SSL_ca_file => $args->{tls_ca}
+      && -T $args->{tls_ca} ? $args->{tls_ca} : undef,
+    SSL_cert_file       => $args->{tls_cert},
+    SSL_error_trap      => sub { $self->_cleanup->emit_safe(error => $_[1]) },
+    SSL_hostname        => $args->{address},
+    SSL_key_file        => $args->{tls_key},
+    SSL_startHandshake  => 0,
+    SSL_verify_mode     => $args->{tls_ca} ? 0x01 : 0x00,
+    SSL_verifycn_name   => $args->{address},
+    SSL_verifycn_scheme => $args->{tls_ca} ? 'http' : undef
+  );
   my $reactor = $self->reactor;
-  if ($self->{tls} && !$handle->connect_SSL) {
-    my $err = $IO::Socket::SSL::SSL_ERROR;
-    if    ($err == TLS_READ)  { $reactor->watch($handle, 1, 0) }
-    elsif ($err == TLS_WRITE) { $reactor->watch($handle, 1, 1) }
-    return;
-  }
-
-  # Check for errors
-  return $self->emit_safe(error => $! = $handle->sockopt(SO_ERROR))
-    unless $handle->connected;
-
-  # Connected
-  $self->_cleanup;
-  $self->emit_safe(connect => $handle);
+  $reactor->remove($handle);
+  return $self->emit_safe(error => 'TLS upgrade failed')
+    unless $handle = IO::Socket::SSL->start_SSL($handle, %options);
+  $reactor->io($handle => sub { $self->_tls })->watch($handle, 0, 1);
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -151,7 +145,10 @@ Mojo::IOLoop::Client - Non-blocking TCP client
     my ($client, $err) = @_;
     ...
   });
-  $client->connect(address => 'mojolicio.us', port => 80);
+  $client->connect(address => 'example.com', port => 80);
+
+  # Start reactor if necessary
+  $client->reactor->start unless $client->reactor->is_running;
 
 =head1 DESCRIPTION
 
@@ -159,9 +156,10 @@ L<Mojo::IOLoop::Client> opens TCP connections for L<Mojo::IOLoop>.
 
 =head1 EVENTS
 
-L<Mojo::IOLoop::Client> can emit the following events.
+L<Mojo::IOLoop::Client> inherits all events from L<Mojo::EventEmitter> and can
+emit the following new ones.
 
-=head2 C<connect>
+=head2 connect
 
   $client->on(connect => sub {
     my ($client, $handle) = @_;
@@ -170,20 +168,20 @@ L<Mojo::IOLoop::Client> can emit the following events.
 
 Emitted safely once the connection is established.
 
-=head2 C<error>
+=head2 error
 
   $client->on(error => sub {
     my ($client, $err) = @_;
     ...
   });
 
-Emitted safely if an error happens on the connection.
+Emitted safely if an error occurs on the connection.
 
 =head1 ATTRIBUTES
 
 L<Mojo::IOLoop::Client> implements the following attributes.
 
-=head2 C<reactor>
+=head2 reactor
 
   my $reactor = $client->reactor;
   $client     = $client->reactor(Mojo::Reactor::Poll->new);
@@ -196,54 +194,69 @@ global L<Mojo::IOLoop> singleton.
 L<Mojo::IOLoop::Client> inherits all methods from L<Mojo::EventEmitter> and
 implements the following new ones.
 
-=head2 C<connect>
+=head2 connect
 
-  $client->connect(
-    address => '127.0.0.1',
-    port    => 3000
-  );
+  $client->connect(address => '127.0.0.1', port => 3000);
 
 Open a socket connection to a remote host. Note that TLS support depends on
-L<IO::Socket::SSL> and IPv6 support on L<IO::Socket::IP>.
+L<IO::Socket::SSL> (1.75+) and IPv6 support on L<IO::Socket::IP> (0.16+).
 
 These options are currently available:
 
 =over 2
 
-=item C<address>
+=item address
 
-Address or host name of the peer to connect to.
+  address => 'mojolicio.us'
 
-=item C<handle>
+Address or host name of the peer to connect to, defaults to C<localhost>.
+
+=item handle
+
+  handle => $handle
 
 Use an already prepared handle.
 
-=item C<local_address>
+=item local_address
+
+  local_address => '127.0.0.1'
 
 Local address to bind to.
 
-=item C<port>
+=item port
 
-Port to connect to.
+  port => 80
 
-=item C<timeout>
+Port to connect to, defaults to C<80> or C<443> with C<tls> option.
+
+=item timeout
+
+  timeout => 15
 
 Maximum amount of time in seconds establishing connection may take before
 getting canceled, defaults to C<10>.
 
-=item C<tls>
+=item tls
+
+  tls => 1
 
 Enable TLS.
 
-=item C<tls_ca>
+=item tls_ca
 
-Path to TLS certificate authority file.
+  tls_ca => '/etc/tls/ca.crt'
 
-=item C<tls_cert>
+Path to TLS certificate authority file. Also activates hostname verification.
+
+=item tls_cert
+
+  tls_cert => '/etc/tls/client.crt'
 
 Path to the TLS certificate file.
 
-=item C<tls_key>
+=item tls_key
+
+  tls_key => '/etc/tls/client.key'
 
 Path to the TLS key file.
 

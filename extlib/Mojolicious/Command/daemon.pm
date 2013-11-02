@@ -1,59 +1,51 @@
 package Mojolicious::Command::daemon;
-use Mojo::Base 'Mojo::Command';
+use Mojo::Base 'Mojolicious::Command';
 
-use Getopt::Long qw/GetOptions :config no_auto_abbrev no_ignore_case/;
+use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Server::Daemon;
 
-has description => "Start application with HTTP 1.1 and WebSocket server.\n";
-has usage       => <<"EOF";
+has description => "Start application with HTTP and WebSocket server.\n";
+has usage       => <<EOF;
 usage: $0 daemon [OPTIONS]
 
 These options are available:
-  -b, --backlog <size>         Set listen backlog size, defaults to
-                               SOMAXCONN.
-  -c, --clients <number>       Set maximum number of concurrent clients,
-                               defaults to 1000.
-  -g, --group <name>           Set group name for process.
-  -i, --inactivity <seconds>   Set inactivity timeout, defaults to the value
-                               of MOJO_INACTIVITY_TIMEOUT or 15.
-  -l, --listen <location>      Set one or more locations you want to listen
-                               on, defaults to the value of MOJO_LISTEN or
+  -b, --backlog <size>         Listen backlog size, defaults to SOMAXCONN.
+  -c, --clients <number>       Maximum number of concurrent clients, defaults
+                               to 1000.
+  -g, --group <name>           Group name for process.
+  -i, --inactivity <seconds>   Inactivity timeout, defaults to the value of
+                               MOJO_INACTIVITY_TIMEOUT or 15.
+  -l, --listen <location>      One or more locations you want to listen on,
+                               defaults to the value of MOJO_LISTEN or
                                "http://*:3000".
   -p, --proxy                  Activate reverse proxy support, defaults to
                                the value of MOJO_REVERSE_PROXY.
-  -r, --requests <number>      Set maximum number of requests per keep-alive
+  -r, --requests <number>      Maximum number of requests per keep-alive
                                connection, defaults to 25.
-  -u, --user <name>            Set username for process.
+  -u, --user <name>            Username for process.
 EOF
 
-# "It's an albino humping worm!
-#  Why do they call it that?
-#  Cause it has no pigment."
 sub run {
-  my $self   = shift;
-  my $daemon = Mojo::Server::Daemon->new;
+  my ($self, @args) = @_;
 
-  # Options
-  local @ARGV = @_;
-  my @listen;
-  GetOptions(
+  my $daemon = Mojo::Server::Daemon->new(app => $self->app);
+  GetOptionsFromArray \@args,
     'b|backlog=i'    => sub { $daemon->backlog($_[1]) },
     'c|clients=i'    => sub { $daemon->max_clients($_[1]) },
     'g|group=s'      => sub { $daemon->group($_[1]) },
     'i|inactivity=i' => sub { $daemon->inactivity_timeout($_[1]) },
-    'l|listen=s'     => \@listen,
+    'l|listen=s'     => \my @listen,
     'p|proxy' => sub { $ENV{MOJO_REVERSE_PROXY} = 1 },
     'r|requests=i' => sub { $daemon->max_requests($_[1]) },
-    'u|user=s'     => sub { $daemon->user($_[1]) }
-  );
+    'u|user=s'     => sub { $daemon->user($_[1]) };
 
-  # Start
   $daemon->listen(\@listen) if @listen;
   $daemon->run;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -71,19 +63,22 @@ Mojolicious::Command::daemon - Daemon command
 L<Mojolicious::Command::daemon> starts applications with
 L<Mojo::Server::Daemon> backend.
 
+This is a core command, that means it is always enabled and its code a good
+example for learning to build new commands, you're welcome to fork it.
+
 =head1 ATTRIBUTES
 
-L<Mojolicious::Command::daemon> inherits all attributes from L<Mojo::Command>
-and implements the following new ones.
+L<Mojolicious::Command::daemon> inherits all attributes from
+L<Mojolicious::Command> and implements the following new ones.
 
-=head2 C<description>
+=head2 description
 
   my $description = $daemon->description;
   $daemon         = $daemon->description('Foo!');
 
 Short description of this command, used for the command list.
 
-=head2 C<usage>
+=head2 usage
 
   my $usage = $daemon->usage;
   $daemon   = $daemon->usage('Foo!');
@@ -92,10 +87,10 @@ Usage information for this command, used for the help screen.
 
 =head1 METHODS
 
-L<Mojolicious::Command::daemon> inherits all methods from L<Mojo::Command>
-and implements the following new ones.
+L<Mojolicious::Command::daemon> inherits all methods from
+L<Mojolicious::Command> and implements the following new ones.
 
-=head2 C<run>
+=head2 run
 
   $daemon->run(@ARGV);
 

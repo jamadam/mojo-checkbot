@@ -1,43 +1,38 @@
 package Mojolicious::Command::eval;
-use Mojo::Base 'Mojo::Command';
+use Mojo::Base 'Mojolicious::Command';
 
-use Getopt::Long qw/GetOptions :config no_auto_abbrev no_ignore_case/;
+use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 
 has description => "Run code against application.\n";
-has usage       => <<"EOF";
+has usage       => <<EOF;
 usage: $0 eval [OPTIONS] CODE
 
   mojo eval 'say app->ua->get("/")->res->body'
   mojo eval -v 'app->home'
+  mojo eval -V 'app->renderer->paths'
 
 These options are available:
   -v, --verbose   Print return value to STDOUT.
+  -V              Print returned data structure to STDOUT.
 EOF
 
-# "It worked!
-#  Gravity normal.
-#  Air pressure returning.
-#  Terror replaced by cautious optimism."
 sub run {
-  my $self = shift;
+  my ($self, @args) = @_;
 
-  # Options
-  local @ARGV = @_;
-  my $verbose;
-  GetOptions('v|verbose' => sub { $verbose = 1 });
-  my $code = shift @ARGV || '';
+  GetOptionsFromArray \@args, 'v|verbose' => \my $v1, 'V' => \my $v2;
+  my $code = shift @args || '';
 
   # Run code against application
   my $app = $self->app;
   no warnings;
-  my $result = eval "package main; sub app { \$app }; $code";
-  say $result if $verbose && defined $result;
-  die $@ if $@;
-  return $result;
+  my $result = eval "package main; sub app; local *app = sub { \$app }; $code";
+  return $@ ? die $@ : $result unless defined $result && ($v1 || $v2);
+  $v2 ? print($app->dumper($result)) : say $result;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -48,25 +43,28 @@ Mojolicious::Command::eval - Eval command
   use Mojolicious::Command::eval;
 
   my $eval = Mojolicious::Command::eval->new;
-  $eval->run;
+  $eval->run(@ARGV);
 
 =head1 DESCRIPTION
 
 L<Mojolicious::Command::eval> runs code against applications.
 
+This is a core command, that means it is always enabled and its code a good
+example for learning to build new commands, you're welcome to fork it.
+
 =head1 ATTRIBUTES
 
-L<Mojolicious::Command::eval> inherits all attributes from L<Mojo::Command>
-and implements the following new ones.
+L<Mojolicious::Command::eval> inherits all attributes from
+L<Mojolicious::Command> and implements the following new ones.
 
-=head2 C<description>
+=head2 description
 
   my $description = $eval->description;
   $eval           = $eval->description('Foo!');
 
 Short description of this command, used for the command list.
 
-=head2 C<usage>
+=head2 usage
 
   my $usage = $eval->usage;
   $eval     = $eval->usage('Foo!');
@@ -75,12 +73,12 @@ Usage information for this command, used for the help screen.
 
 =head1 METHODS
 
-L<Mojolicious::Command::eval> inherits all methods from L<Mojo::Command> and
-implements the following new ones.
+L<Mojolicious::Command::eval> inherits all methods from
+L<Mojolicious::Command> and implements the following new ones.
 
-=head2 C<run>
+=head2 run
 
-  $eval->run;
+  $eval->run(@ARGV);
 
 Run this command.
 

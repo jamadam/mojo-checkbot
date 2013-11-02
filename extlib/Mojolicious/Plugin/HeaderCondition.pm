@@ -1,26 +1,16 @@
 package Mojolicious::Plugin::HeaderCondition;
 use Mojo::Base 'Mojolicious::Plugin';
 
-# "You may have to "metaphorically" make a deal with the "devil".
-#  And by "devil", I mean Robot Devil.
-#  And by "metaphorically", I mean get your coat."
 sub register {
   my ($self, $app) = @_;
 
-  # "headers" condition
   $app->routes->add_condition(headers => \&_headers);
-
-  # "agent" condition
   $app->routes->add_condition(
     agent => sub { _headers(@_[0 .. 2], {'User-Agent' => $_[3]}) });
-
-  # "host" condition
   $app->routes->add_condition(
     host => sub { _check($_[1]->req->url->to_abs->host, $_[3]) });
 }
 
-# "Wow, there's a million aliens! I've never seen something so mind-blowing!
-#  Ooh, a reception table with muffins!"
 sub _check {
   my ($value, $pattern) = @_;
   return 1
@@ -29,19 +19,20 @@ sub _check {
 }
 
 sub _headers {
-  my ($r, $c, $captures, $patterns) = @_;
-  return unless $patterns && ref $patterns eq 'HASH' && keys %$patterns;
+  my ($route, $c, $captures, $patterns) = @_;
+  return undef unless $patterns && ref $patterns eq 'HASH' && keys %$patterns;
 
   # All headers need to match
   my $headers = $c->req->headers;
   while (my ($name, $pattern) = each %$patterns) {
-    return unless _check(scalar $headers->header($name), $pattern);
+    return undef unless _check(scalar $headers->header($name), $pattern);
   }
   return 1;
 }
 
 1;
-__END__
+
+=encoding utf8
 
 =head1 NAME
 
@@ -51,7 +42,7 @@ Mojolicious::Plugin::HeaderCondition - Header condition plugin
 
   # Mojolicious
   $self->plugin('HeaderCondition');
-  $self->routes->route('/:controller/:action')
+  $self->routes->get('/:controller/:action')
     ->over(headers => {Referer => qr/example\.com/});
 
   # Mojolicious::Lite
@@ -59,7 +50,7 @@ Mojolicious::Plugin::HeaderCondition - Header condition plugin
   get '/' => (headers => {Referer => qr/example\.com/}) => sub {...};
 
   # All headers need to match
-  $self->routes->route('/:controller/:action')->over(headers => {
+  $self->routes->get('/:controller/:action')->over(headers => {
     'X-Secret-Header' => 'Foo',
     Referer => qr/example\.com/
   });
@@ -72,20 +63,22 @@ Mojolicious::Plugin::HeaderCondition - Header condition plugin
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::HeaderCondition> is a routes condition for header
-based routes. This is a core plugin, that means it is always enabled and its
-code a good example for learning to build new plugins.
+L<Mojolicious::Plugin::HeaderCondition> is a route condition for header based
+routes.
+
+This is a core plugin, that means it is always enabled and its code a good
+example for learning to build new plugins, you're welcome to fork it.
 
 =head1 METHODS
 
 L<Mojolicious::Plugin::HeaderCondition> inherits all methods from
 L<Mojolicious::Plugin> and implements the following new ones.
 
-=head2 C<register>
+=head2 register
 
-  $plugin->register;
+  $plugin->register(Mojolicious->new);
 
-Register condition in L<Mojolicious> application.
+Register conditions in L<Mojolicious> application.
 
 =head1 SEE ALSO
 

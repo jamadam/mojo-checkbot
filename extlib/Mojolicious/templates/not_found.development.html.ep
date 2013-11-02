@@ -2,24 +2,21 @@
 <html>
   <head>
     <title>Page not found</title>
-    %= stylesheet '/css/prettify-mojo.css'
-    %= javascript '/js/prettify.js'
     %= stylesheet begin
       body {
-        background-color: #f5f6f8;
+        background: url(<%= url_for '/mojo/pinstripe-light.png' %>);
         color: #445555;
         font: 0.9em 'Helvetica Neue', Helvetica, sans-serif;
         font-weight: normal;
-        line-height: 1.5;
+        line-height: 1.5em;
         margin: 0;
       }
       code {
         background-color: #eef9ff;
         border: solid #cce4ff 1px;
-        -moz-border-radius: 5px;
         border-radius: 5px;
         color: #333;
-        font: 0.8em Consolas, Menlo, Monaco, Courier, monospace;
+        font: 0.9em Consolas, Menlo, Monaco, Courier, monospace;
         padding: 0.4em;
       }
       h1 {
@@ -28,7 +25,7 @@
         margin: 0;
       }
       pre {
-        font: 0.8em Consolas, Menlo, Monaco, Courier, monospace;
+        font: 0.9em Consolas, Menlo, Monaco, Courier, monospace;
         margin: 0;
         white-space: pre-wrap;
       }
@@ -55,17 +52,13 @@
       }
       #routes {
         background-color: #fff;
-        -moz-border-radius-bottomleft: 5px;
         border-bottom-left-radius: 5px;
-        -moz-border-radius-bottomright: 5px;
         border-bottom-right-radius: 5px;
-        -moz-box-shadow: 0px 0px 2px #ccc;
-        -webkit-box-shadow: 0px 0px 2px #ccc;
-        box-shadow: 0px 0px 2px #ccc;
+        box-shadow: 0px 0px 2px #999;
         margin-left: 5em;
         margin-right: 5em;
         padding: 1em;
-        padding-top: 7em;
+        padding-top: 70px;
       }
       #wrapperlicious {
         max-width: 1000px;
@@ -73,8 +66,8 @@
       }
     % end
   </head>
-  <body onload="prettyPrint()">
-    %= include inline => $Mojolicious::Controller::MOJOBAR
+  <body>
+    %= include inline => app->renderer->_bundled('mojobar')
     <div id="wrapperlicious">
       <div id="routes">
         <h1>Page not found... yet!</h1>
@@ -84,22 +77,24 @@
           <code><%= $self->req->url->path %></code>, maybe you need to add a
           new one?
         </p>
-        % my $walk;
-        % $walk = begin
-          % my ($node, $depth) = @_;
+        % my $walk = begin
+          % my ($walk, $route, $depth) = @_;
           <tr>
             <td>
-              % my $pattern = $node->pattern->pattern || '/';
+              % my $pattern = $route->pattern->pattern || '/';
               % $pattern = "+$pattern" if $depth;
               <pre><%= '  ' x $depth %><%= $pattern %></pre>
             </td>
             <td>
-              <pre><%= uc(join ',', @{$node->via || []}) || '*' %></pre>
+              <pre><%= uc(join ',', @{$route->via || []}) || '*' %></pre>
             </td>
-            <td><pre><%= $node->name %></pre></td>
+            <td>
+              % my $name = $route->name;
+              <pre><%= $route->has_custom_name ? qq{"$name"} : $name %></pre>
+            </td>
           </tr>
           % $depth++;
-          %= $walk->($_, $depth) for @{$node->children};
+          %= $walk->($walk, $_, $depth) for @{$route->children};
           % $depth--;
         % end
         <table>
@@ -108,13 +103,13 @@
             <th>Methods</th>
             <th>Name</th>
           </tr>
-          %= $walk->($_, 0) for @{app->routes->children};
+          %= $walk->($walk, $_, 0) for @{app->routes->children};
         </table>
       </div>
     </div>
     <div id="footer">
       %= link_to 'http://mojolicio.us' => begin
-        %= image '/mojolicious-black.png', alt => 'Mojolicious logo'
+        %= image '/mojo/logo-black.png', alt => 'Mojolicious logo'
       % end
     </div>
   </body>

@@ -1,4 +1,6 @@
 
+=encoding utf8
+
 =head1 NAME
 
 Mojolicious::Guides - Mojolicious guide to the galaxy
@@ -13,11 +15,12 @@ latest updates.
 =head1 LEARNING PERL
 
 If you are new to Perl, we recommend
-L<Learn Perl in 2 hours 30 minutes|http://qntm.org/files/perl/perl.html> for
-a quick introduction, or the
-L<Modern Perl|http://onyxneon.com/books/modern_perl/> book, freely available
-in many formats. Both are excellent introductions to the language. For more
-books and documentation, check out L<learn.perl.org|http://learn.perl.org/>.
+L<Learn Perl in 2 hours 30 minutes|http://qntm.org/files/perl/perl.html> for a
+quick introduction, or the
+L<Modern Perl book|http://modernperlbooks.com/books/modern_perl/>, freely
+available in many formats. Both are excellent introductions to the language.
+For more books and documentation, check out
+L<learn.perl.org|http://learn.perl.org/>.
 
 =head1 TUTORIAL
 
@@ -25,10 +28,12 @@ books and documentation, check out L<learn.perl.org|http://learn.perl.org/>.
 
 =item L<Mojolicious::Lite>
 
-A really fast and fun way to get started developing web applications with
-Mojolicious is the L<Mojolicious::Lite> tutorial. Almost everything you learn
-there can also be applied to normal L<Mojolicious> applications and is
-considered a prerequisite for the guides. You should definitely take a look!
+A fast and fun way to get started developing web applications with Mojolicious
+is the L<Mojolicious::Lite> tutorial. This micro web framework is only a thin
+wrapper around the normal web framework, so almost everything you learn here
+also applies to full L<Mojolicious> applications. The simplified notation
+introduced in the tutorial is commonly used throughout the guides and is
+therefore considered a prerequisite, you should definitely take a look!
 
 =back
 
@@ -53,14 +58,13 @@ Generating content with the L<Mojolicious> renderer.
 
 Cooking with L<Mojolicious>, recipes for every taste.
 
+=item L<Mojolicious::Guides::Contributing>
+
+Become a part of the ongoing L<Mojolicious> development.
+
 =item L<Mojolicious::Guides::FAQ>
 
-Frequently asked questions with the right answers.
-
-=item L<Mojolicious::Guides::CodingGuidelines>
-
-Coding guidelines and mission statement. A must read for developers and
-contributors!
+Answers to the most frequently asked questions.
 
 =back
 
@@ -74,11 +78,11 @@ ones.
 
 =item L<Mojo::UserAgent>
 
-Full featured non-blocking I/O HTTP 1.1 and WebSocket user agent.
+Full featured non-blocking I/O HTTP and WebSocket user agent.
 
 =item L<Mojo::DOM>
 
-Very fun and minimalistic HTML5/XML DOM parser with CSS3 selector support.
+Very fun and minimalistic HTML/XML DOM parser with CSS selector support.
 
 =item L<Mojo::JSON>
 
@@ -86,31 +90,27 @@ Minimalistic JSON implementation that just works.
 
 =item L<Mojo::Server::Daemon>
 
-Highly portable non-blocking I/O HTTP 1.1 and WebSocket server with
-self-restart support through L<Mojo::Server::Morbo>, perfect for development
-and testing.
+Full featured, highly portable non-blocking I/O HTTP and WebSocket server,
+with self-restart support through L<Mojo::Server::Morbo>, perfect for
+development and testing.
 
-=item L<Mojo::Server::Hypnotoad>
+=item L<Mojo::Server::Prefork>
 
-Full featured UNIX optimized preforking non-blocking I/O HTTP 1.1 and
-WebSocket server with support for zero downtime software upgrades
-(hot deployment).
+Full featured, UNIX optimized, preforking non-blocking I/O HTTP and WebSocket
+server with support for zero downtime software upgrades (hot deployment)
+through L<Mojo::Server::Hypnotoad>.
 
 =item L<Mojo::Server::CGI>, L<Mojo::Server::PSGI>
 
 Transparent CGI and L<PSGI> support out of the box.
 
+=item L<Mojo::IOLoop>
+
+A minimalistic event loop with support for multiple reactor backends.
+
 =item L<Mojo::Template>
 
 Very Perl-ish and minimalistic template system.
-
-=item L<Mojo::ByteStream>
-
-Countless portable and very convenient bytestream manipulation methods.
-
-=item L<Mojolicious::Commands>
-
-Pluggable command line system and the backbone of the L<mojo> script.
 
 =item L<Test::Mojo>
 
@@ -118,13 +118,33 @@ Test driven development toolkit for web applications.
 
 =item L<ojo>
 
-Fun oneliners using everything above.
+Fun one-liners using everything above.
+
+=back
+
+=head1 SPIN-OFFS
+
+These modules are not part of the L<Mojolicious> distribution, but have been
+designed to be used with it and are being developed under the same umbrella.
+
+=over 2
+
+=item L<Mango>
+
+Pure-Perl non-blocking I/O MongoDB driver.
 
 =back
 
 =head1 MORE
 
 A lot more documentation and examples by many different authors can be found
-in the Mojolicious wiki at L<http://github.com/kraih/mojo/wiki>.
+in the L<Mojolicious wiki|http://github.com/kraih/mojo/wiki>.
+
+=head1 SUPPORT
+
+If you have any questions the documentation might not yet answer, don't
+hesitate to ask on the
+L<mailing-list|http://groups.google.com/group/mojolicious> or the official IRC
+channel C<#mojo> on C<irc.perl.org>.
 
 =cut
