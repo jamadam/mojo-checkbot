@@ -583,8 +583,12 @@ our $VERSION = '0.37';
         if ($temp->scheme) {
             return $temp;
         }
-        $new->path($temp->path->to_string);
-        $new->path->canonicalize;
+        
+        if ($temp->path->to_string) {
+            $new->path($temp->path->to_string);
+            $new->path->canonicalize;
+        }
+        
         if ($temp->host) {
             $new->host($temp->host);
         }
