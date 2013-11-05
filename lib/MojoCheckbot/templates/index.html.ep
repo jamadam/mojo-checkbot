@@ -9,9 +9,9 @@
         <link type="text/css" rel="stylesheet" href="/yui-reset.css" />
         <link type="text/css" rel="stylesheet" href="/yui-fonts.css" />
         <link type="text/css" rel="stylesheet" href="/main.css" />
-        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script type="text/javascript" src="/jquery.customEventTrigger.js"></script>
-        <script type="text/javascript" src="/jquery.lightbox.js"></script>
+        <script type="text/javascript" src="/jquery.jmdmbox.js"></script>
         <script type="text/javascript" src="/main.js"></script>
     </head>
     <body>
