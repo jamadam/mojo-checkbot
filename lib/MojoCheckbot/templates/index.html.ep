@@ -38,7 +38,6 @@
                 <thead>
                     <tr>
                         <th>Context</th>
-                        <th>URI(Literal)</th>
                         <th>URI(Resolved)</th>
                         <th>Status</th>
                         <th>Referer</th>

@@ -95,8 +95,7 @@ our $VERSION = '0.37';
         my ($queue) = @_;
         my $context = $queue->{$QUEUE_KEY_CONTEXT};
         my $method  = $queue->{$QUEUE_KEY_METHOD} || '';
-        my $url     =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
-                        $queue->{$QUEUE_KEY_LITERAL_URI};
+        my $url     =   $queue->{$QUEUE_KEY_RESOLVED_URI};
         if ($context eq '*FORM*') {
             my @names =
                 sort {$a cmp $b}
@@ -176,6 +175,7 @@ our $VERSION = '0.37';
             $QUEUE_KEY_REFERER      => 'N/A',
             $QUEUE_KEY_CONTEXT      => 'N/A',
             $QUEUE_KEY_LITERAL_URI  => $options{start},
+            $QUEUE_KEY_RESOLVED_URI => $options{start},
             $QUEUE_KEY_DEPTH        => 1,
             $QUEUE_KEY_PARENT       => undef,
         };
@@ -195,8 +195,7 @@ our $VERSION = '0.37';
                 if ($@) {
                     $queue->{$QUEUE_KEY_ERROR} = $@;
                 } else {
-                    my $referer =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
-                                    $queue->{$QUEUE_KEY_LITERAL_URI};
+                    my $referer =   $queue->{$QUEUE_KEY_RESOLVED_URI};
                     for (@{$res->{queue}}, @{$res->{dialog}}) {
                         $_->{$QUEUE_KEY_REFERER} = $referer;
                         $_->{$QUEUE_KEY_PARENT} = scalar @$result;
@@ -286,8 +285,7 @@ our $VERSION = '0.37';
     ### ---
     sub check {
         my ($ua, $queue) = @_;
-        my $url =   $queue->{$QUEUE_KEY_RESOLVED_URI} ||
-                    $queue->{$QUEUE_KEY_LITERAL_URI};
+        my $url = $queue->{$QUEUE_KEY_RESOLVED_URI};
         my $method = $queue->{$QUEUE_KEY_METHOD};
         my $param = $queue->{$QUEUE_KEY_PARAM};
         my @new_queues;
@@ -440,9 +438,9 @@ our $VERSION = '0.37';
             if (! _match_for_check($rurl)) {
                 next;
             }
-            if ($entry->{$QUEUE_KEY_LITERAL_URI} ne $rurl) {
-                $entry->{$QUEUE_KEY_RESOLVED_URI} = $rurl;
-            }
+            
+            $entry->{$QUEUE_KEY_RESOLVED_URI} = $rurl;
+            
             my $md5 = fix_key($entry);
             if (! exists $fix->{$md5}) {
                 $fix->{$md5} = undef;
