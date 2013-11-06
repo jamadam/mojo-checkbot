@@ -1,52 +1,57 @@
 @charset "utf-8";
 
-table,
-tr,
-th,
-td {
-    border-collapse: collapse;
-}
-table {
-    width:100%;
-}
-    th,
-    td {
-        border:1px solid #eee;
-        padding:5px;
-        border-top:none;
-        border-bottom:none;
-    }
-    tr:nth-child(odd) {
-        background-color:#f5f5ff;
-    }
-    th {
-        background-color:#dde;
-        font-family:helvetica,arial,freesans,clean,sans-serif;
-        font-weight:bold;
-        text-align:center;
-        color:#4183c4;
-        text-shadow: 0 1px 0 #FFFFFF;
-    }
-    td {
-        overflow:hidden;
-        height:1.5em;
-    }
 html {
     height:100%;
 }
 body {
     position:relative;
     height:100%;
+    background-color: #e0e0e5;
 }
+    table,
+    tr,
+    th,
+    td {
+        border-collapse: collapse;
+    }
+    table {
+        width:100%;
+    }
+        tr:nth-child(odd) {
+            background-color:#f5f8f5;
+        }
+        tr:nth-child(even) {
+            background-color:#fff;
+        }
+        th,
+        td {
+            padding:5px;
+        }
+        th {
+            border:1px solid #888;
+            font-family:monospace,helvetica,arial,freesans,clean,sans-serif;
+            text-align:center;
+            color:#4183c4;
+        }
+        td {
+            border:1px solid #f5f8f5;
+            overflow:hidden;
+            height:1.5em;
+        }
     #header {
         position:relative;
         top:0;
         left:0;
         padding:10px 10px;
-        background-color:#0f0;
-        background:-moz-linear-gradient(center top, #8ac, #eee);
-        background:-webkit-gradient(linear, left top, left bottom, from(#86a), to(#eee));
+        background-color:#fff;
+        box-shadow:1px 1px 3px #aaa inset;
     }
+        #header:after {
+            content:'';
+            display:block;
+            height:0;
+            clear:both;
+        }
         h1 {
             font-weight:bold;
             float:left;
@@ -60,20 +65,15 @@ body {
                 margin-right:20px;
             }
             #summary input {
-                /*display:none;*/
                 margin-right:5px;
             }
-                #summary input:checked + p {
-                    background-color:#f00;
-                }
             #summary .name {
-                text-shadow:0px 0px 1px #fff;
             }
-        #header:after {content:''; display:block; height:0; clear:both;}
     #container {
         min-height:100%;
     }
         #container table {
+            box-shadow: 1px 1px 5px rgba(0,0,0,0.3);
         }
             #container th:first-child,
             #container td:first-child {
@@ -84,8 +84,8 @@ body {
                 border-right:none;
             }
             #container th {
-                background:-moz-linear-gradient(center top, #eef, #aac);
-                background:-webkit-gradient(linear, left top, left bottom, from(#eef), to(#aac));
+                background-color:#555;
+                color:#fff;
             }
             #container td {
                 white-space:nowrap;
@@ -104,7 +104,7 @@ body {
                 color:#f00;
             }
             #container tr:hover {
-                background-color:#efa;
+                background-color:#eea;
             }
             #container tr.hd {
                 display:none;
@@ -132,29 +132,12 @@ body {
         background-repeat:no-repeat;
         background-position:center;
     }
-    .lightboxMask {
-        position:fixed;
-        top:0;
-        left:0;
-        z-index:400;
-        width:100%;
-        height:100%;
-        opacity:0.3;
-        filter: alpha(opacity=30);
-        background-color:#000;
-    }
     .lightbox {
-        position:fixed;
         padding:20px;
-        z-index:401;
         background-color:#fff;
         border-radius:8px;
-        -moz-border-radius:8px;
-        -webkit-border-radius:8px;
-        -webkit-box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
-        -moz-box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
         box-shadow: 1px 1px 10px rgba(0,0,0,0.6);
-        border:3px solid #00a;
+        border:3px solid #223;
         width:auto;
         max-width:80%;
         max-height:90%;
