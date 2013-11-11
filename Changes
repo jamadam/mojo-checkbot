@@ -1,5 +1,7 @@
 Revision history for mojo-checkbot
 
+0.38 2013/11/12
+
 0.37 2013/11/12
   - Updated bundled Mojolicious to v4.41.
   - Marquee is adopted for application layer framework.
