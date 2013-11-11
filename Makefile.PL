@@ -1,17 +1,41 @@
-#!/usr/bin/env perl
-
 use strict;
 use warnings;
-
 use ExtUtils::MakeMaker;
 
-WriteMakefile(
-    NAME         => 'MojoCheckbot',
-    VERSION_FROM => 'lib/MojoCheckbot.pm',
-    AUTHOR       => 'jamadam <sugama@jamadam.com>',
-    PREREQ_PM    => {
-        'Mojolicious'   => '2.51',
+my %params = (
+    NAME            => 'MojoCheckbot',
+    VERSION_FROM    => 'lib/MojoCheckbot.pm',
+    ABSTRACT_FROM   => 'lib/MojoCheckbot.pm',
+    LICENSE         => 'perl',
+    AUTHOR          => 'jamadam <sugama@jamadam.com>',
+    PREREQ_PM       => {
+    },
+    BUILD_REQUIRES => {
+        'Mojolicious'   => '4.41',
         'Clone::PP'     => '1.02',
     },
-    test         => {TESTS => 't/*.t'}
 );
+
+my $eumm = $ExtUtils::MakeMaker::VERSION;
+delete $params{LICENSE}          if $eumm < 6.31;
+delete $params{MIN_PERL_VERSION} if $eumm < 6.48;
+delete $params{META_MERGE}       if $eumm < 6.46;
+delete $params{META_ADD}         if $eumm < 6.46;
+delete $params{LICENSE}          if $eumm < 6.31;
+
+if ($eumm < 6.52 && $params{CONFIGURE_REQUIRES}) {
+    $params{PREREQ_PM} = {
+        %{ $params{PREREQ_PM}          || {} },
+        %{ $params{CONFIGURE_REQUIRES} },
+    };
+    delete $params{CONFIGURE_REQUIRES};
+}
+if ($eumm < 6.5503 && $params{BUILD_REQUIRES}) {
+    $params{PREREQ_PM} = {
+        %{ $params{PREREQ_PM}      || {} },
+        %{ $params{BUILD_REQUIRES} },
+    };
+    delete $params{BUILD_REQUIRES};
+}
+
+WriteMakefile(%params);
