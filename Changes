@@ -1,8 +1,9 @@
 Revision history for mojo-checkbot
 
-0.37 2011/02/20
-  - Mojolicious v2.76 is bundled.
-  - Moved configuration from hypnotoad to myapp.conf
+0.37 2013/11/12
+  - Updated bundled Mojolicious to v4.41.
+  - Marquee is adopted for application layer framework.
+  - Improved design.
 
 0.36 2011/12/16
   - Fixed a bug that this hasn't been working without Clone.pm
