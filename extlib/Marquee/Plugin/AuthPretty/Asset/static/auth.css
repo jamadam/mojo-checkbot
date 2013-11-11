@@ -1,0 +1,37 @@
+@charset "UTF-8";
+
+html,
+body {
+	height:100%;
+	background-color: #fff;
+}
+#wrapper {
+	position:absolute;
+	top:50%;
+	left:0;
+	width:100%;
+	padding:2em 0;
+	margin-top:-7.25em;
+	text-align: center;
+	font-size:1em;
+	background-color: #ccddee;
+	box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+	text-shadow: 1px 1px 3px rgba(255,255,255,1.0);
+	font-family: Consolas,Menlo,Monaco,Courier,monospace;
+}
+		#realm {
+			display: block;
+			font-size:2em;
+			line-height:1.5em;
+			margin-bottom: 10px;
+		}
+		#message {
+			margin: auto;
+			text-align: left;
+			font-size:1.5em;
+			line-height:1.5em;
+		}
+			#message th,
+			#message td {
+				padding: 2px 5px;
+			}

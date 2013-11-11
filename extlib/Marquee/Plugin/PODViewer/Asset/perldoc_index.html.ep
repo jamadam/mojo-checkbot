@@ -1,0 +1,24 @@
+<%
+	my $c 			= shift;
+	my $static_dir 	= stash('static_dir');
+=%>
+<%= extends '/base.html' => begin %>
+	<% override 'title' => begin %>
+		<title>Index of Modules - Pod viewer</title>
+	<% end %>
+	<% override 'additionalHead' => begin %>
+		<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/pod_viewer/site_perldoc_index.css") %>" />
+	<% end %>
+	<% override 'h1AdditionalContent' => begin %>
+	<% end %>
+	<% override 'mainContent' => begin %>
+		<h2>
+			INDEX OF MODULES
+		</h2>
+		<%= iter $modules => begin %>
+			<% my $module = shift; %>
+			<% my $path = $module; $path =~ s{::}{/}g; %>
+			<a href='./<%= $path %>'><%= $module %></a>
+		<% end %>
+	<% end %>
+<% end %>

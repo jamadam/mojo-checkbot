@@ -1,0 +1,26 @@
+<%
+	my $c 			= shift;
+	my $static_dir 	= stash('static_dir');
+=%>
+<%= extends '/base.html' => begin %>
+	<% override 'title' => begin %>
+		<title><%= stash('title') %> - Markdown viewer</title>
+	<% end %>
+	<% override 'additionalHead' => begin %>
+		<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/markdown/site_markdown_index.css") %>" />
+		<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/css/prettify-mojo.css") %>" />
+		<script type="text/javascript" src="<%= url_for("$static_dir/js/prettify.js") %>"></script>
+	<% end %>
+	<%= override 'h1AdditionalContent' => begin %>
+	Markdown Viewer
+	<% end %>
+	<% override 'mainContent' => begin %>
+		<h2>
+			INDEX OF MARKDOWN FILES
+		</h2>
+		<%= iter $files => begin %>
+			<% my $file = shift; %>
+			<a href='./<%= $file %>'><%= $file %></a>
+		<% end %>
+	<% end %>
+<% end %>

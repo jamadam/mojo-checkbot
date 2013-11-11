@@ -10,7 +10,7 @@ use Mojo::URL;
 use Mojo::UserAgent::CookieJar;
 use Mojo::Cookie::Response;
 use Mojo::Util qw{md5_sum xml_escape};
-use Mojo::Base 'Mojolicious';
+use Mojo::Base 'Marquee';
 use Mojo::Parameters;
 use Mojo::JSON;
 use Encode;
@@ -107,17 +107,15 @@ our $VERSION = '0.37';
     }
 
     ### ---
-    ### startup for Mojolicious app
+    ### Marquee app constructer
     ### ---
-    sub startup {
-        my $self = shift;
+    sub new {
+        my $self = shift->SUPER::new(@_);
         
-        $self->app->secret(time());
-        $self->plugin(Config => {file => $self->home->rel_file('myapp.conf')});
-        
-        $self->home->parse(File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot'));
-        $self->static->paths([$self->home->rel_dir('public')]);
-        $self->renderer->paths([$self->home->rel_dir('templates')]);
+        $self->secret(time());
+        $self->document_root(
+            File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot', 'public'));
+        $self->default_file('index.html');
         
         GetOptionsFromArray(\@ARGV, \%options,
             'match=s@',
@@ -223,9 +221,10 @@ our $VERSION = '0.37';
             });
         }
         
-        my $r = $self->routes;
-        $r->route('/diff')->to(cb => sub {
-            my $c           = shift;
+        my $r = $self->route;
+        
+        $r->route(qr'^/diff.json')->to(sub {
+            my $c = Marquee->c;
             my $offset      = $c->req->param('offset');
             my $offset_d    = $c->req->param('offset_d');
             my $last        = scalar @$result;
@@ -238,23 +237,28 @@ our $VERSION = '0.37';
             }
             my @diff    = @$result[$offset .. $last - 1];
             my @diff_d  = @$dialog[$offset_d .. $last_d - 1];
-            $c->render(json => {
+            $c->res->code(200);
+            $c->res->body(Mojo::JSON->new->encode({
                 queues  => scalar @$queues,
                 fixed   => scalar @$result,
                 result  => \@diff,
                 dialog  => \@diff_d,
-            });
+            }));
         });
-        $r->route('/html_validator')->to(cb => sub {
-            my $c = shift;
+        
+        $r->route(qr'^/html_validator.json')->to(sub {
+            my $c = Marquee->c;
             my $res = $ua->get($c->req->param('url'))->res;
             my $encode = guess_encoding($res) || 'utf-8';
             my $body    = Encode::decode($encode, $res->body);
             my $error = Encode::decode($encode, validate_html($body));
-            $c->render(json => {result => xml_escape($error)});
+            $c->res->code(200);
+            $c->res->body(
+                    Mojo::JSON->new->encode({result => xml_escape($error)}));
         });
-        $r->route('/auth')->to(cb => sub {
-            my $c = shift;
+        
+        $r->route(qr'^/auth.json')->to(sub {
+            my $c = Marquee->c;
             my $url = Mojo::URL->new($c->req->param('url'));
             my $un  = $c->req->param('username');
             my $pw  = $c->req->param('password');
@@ -262,22 +266,23 @@ our $VERSION = '0.37';
             push(@$queues, {
                 $QUEUE_KEY_RESOLVED_URI => "$url"
             });
-            $c->render(json => {result => 'success'});
+            $c->res->code(200);
+            $c->res->body(Mojo::JSON->new->encode({result => 'success'}));
         });
-        $r->route('/form')->to(cb => sub {
-            my $c = shift;
+        
+        $r->route(qr'^/form.json')->to(sub {
+            my $c = Marquee->c;
             my $url = Mojo::URL->new($c->req->param($QUEUE_KEY_RESOLVED_URI));
             my $queue = {};
             for my $key (@QUEUE_KEYS) {
                 $queue->{$key} = $c->req->param('key_'. $key);
             }
             append_queues($queue->{$QUEUE_KEY_REFERER}, $queues, [$queue]);
-            $c->render(json => {result => 'success'});
+            $c->res->code(200);
+            $c->res->body(Mojo::JSON->new->encode({result => 'success'}));
         });
-        $r->route('/')->to(cb => sub {
-            my $c = shift;
-            $c->render('index');
-        });
+        
+        return $self;
     }
     
     ### ---

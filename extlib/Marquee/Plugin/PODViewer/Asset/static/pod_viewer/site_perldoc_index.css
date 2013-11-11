@@ -1,0 +1,20 @@
+@charset "UTF-8";
+
+#wrapper {
+}
+	#wrapper h2 {
+		border-bottom: 2px solid #DDDDDD;
+		display: block;
+		padding: 5px 0;
+		font-size:1.5em;
+		margin-bottom: 20px;
+		font-family: 'Helvetica Neue',Helvetica,sans-serif;
+		font-weight: bold;
+	}
+	#wrapper a {
+		display: block;
+	}
+	#wrapper a:hover {
+		background-color:#ffa;
+		cursor: pointer;
+	}

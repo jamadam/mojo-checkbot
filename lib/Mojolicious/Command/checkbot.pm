@@ -119,7 +119,8 @@ EOF
 #  Cause it has no pigment."
 sub run {
   my $self   = shift;
-  my $daemon = Mojo::Server::Daemon->new(app => MojoCheckbot->new);
+  my $app    = MojoCheckbot->new;
+  my $daemon = Mojo::Server::Daemon->new(app => $app);
 
   # Options
   local @ARGV = @_;
@@ -136,6 +137,8 @@ sub run {
     'user=s'      => sub { $daemon->user($_[1]) },
     'websocket=i' => sub { $daemon->websocket_timeout($_[1]) }
   );
+  
+  $app->document_root || $app->document_root('./');
 
   # Start
   $daemon->listen(\@listen) if @listen;
