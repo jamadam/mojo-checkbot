@@ -178,7 +178,8 @@ sub new {
         $QUEUE_KEY_PARENT       => undef,
     };
     
-    my $ua = MojoCheckbot::UserAgent->new->name($options{ua});
+    my $ua = MojoCheckbot::UserAgent->new;
+    $ua->transactor->name($options{ua});
     $ua->inactivity_timeout($options{timeout});
     
     if ($options{cookie}) {
