@@ -1,6 +1,8 @@
 Revision history for mojo-checkbot
 
 0.38 2013/11/12
+  - Updated bundled Mojolicious to v4.57.
+  - Set timeout default back to 15.
 
 0.37 2013/11/12
   - Updated bundled Mojolicious to v4.41.
