@@ -57,7 +57,7 @@ my %options = (
     sleep               => 1,
     ua                  =>
         "mojo-checkbot/$VERSION (+https://github.com/jamadam/mojo-checkbot)",
-    timeout             => 0,
+    timeout             => 15,
     evacuate            => 30,
     'validator-nu-url'  => 'http://html5.validator.nu/',
 );
