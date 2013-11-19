@@ -1,5 +1,7 @@
 Revision history for mojo-checkbot
 
+0.40 2013/11/19
+
 0.39 2013/11/19
   - Fixed a bug that html validation hasn't worked propery.
   - Fixed a bug on sending post requests.
