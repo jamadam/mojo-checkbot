@@ -301,7 +301,7 @@ sub check {
     my $tx;
     if ($method && $method =~ /post/i) {
         my $body_data = Mojo::Parameters->new($param)->to_hash;
-        $tx  = $ua->max_redirects(0)->post_form($url, $body_data);
+        $tx  = $ua->max_redirects(0)->post($url, form => $body_data);
     } else {
         my $url = Mojo::URL->new($url);
         if ($param) {
