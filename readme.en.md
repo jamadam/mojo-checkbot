@@ -3,7 +3,12 @@ mojo-checkbot beta
 
 ## SYNOPSIS
     
-    mojo checkbot [--start start URL] [--match match string] [--sleep seconds]
+    mojo checkbot [--start start URL] [--match-for-check match string]
+        [--match-for-check match string]
+        [--match-for-crawlmatch string]
+        [--not-match-for-check match string]
+        [--not-match-for-crawlmatch string]
+        [--sleep seconds]
         [--ua useragent header] [--cookie cookie string] [--timeout seconds]
         [--evacuate second] [--noevacuate] [--resume]
 
@@ -24,8 +29,6 @@ These options are available:
     Crawler options
     
     --start <URL>           Set start URL for crawling.
-    --match <regexp>        [Deprecated]Set regexp to judge whether or not the
-                            URL should be checked.
     --match-for-check <regexp> Set regexp to judge whether or not the URL should be
                             checked.
     --match-for-crawl <regexp> Set regexp to judge whether or not the URL should be
@@ -62,7 +65,7 @@ These options are available:
 
 ### EXAMPLE1
 
-    $ mojo checkbot --start http://example.com --match http://example.com/ --sleep 2
+    $ mojo checkbot --start http://example.com --match-for-check http://example.com/ --sleep 2
     [Mon Oct 17 23:18:35 2011] [info] Server listening (http://*:3000)
     Server available at http://127.0.0.1:3000.
 

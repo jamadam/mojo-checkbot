@@ -73,7 +73,6 @@ my $json_parser = Mojo::JSON->new;
 sub cache_id {
     return md5_sum($json_parser->encode([
         $options{start},
-        $options{match},
         $options{ua},
         $options{cookie},
         $options{timeout},
@@ -118,7 +117,6 @@ sub new {
     $self->default_file('index.html');
     
     GetOptionsFromArray(\@ARGV, \%options,
-        'match=s@',
         'match-for-check=s@',
         'match-for-crawl=s@',
         'not-match-for-check=s@',
@@ -414,13 +412,6 @@ sub _match_for_check {
     if ($options{'not-match-for-check'}) {
         for my $regexp (@{$options{'not-match-for-check'}}) {
             if ($url =~ /$regexp/) {
-                return 0;
-            }
-        }
-    }
-    if ($options{'match'}) {
-        for my $regexp (@{$options{'match'}}) {
-            if ($url !~ /$regexp/) {
                 return 0;
             }
         }

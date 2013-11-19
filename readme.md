@@ -3,7 +3,12 @@ mojo-checkbot beta
 
 ## SYNOPSIS
     
-    mojo checkbot [--start start URL] [--match match string] [--sleep seconds]
+    mojo checkbot [--start start URL] [--match-for-check match string]
+        [--match-for-check match string]
+        [--match-for-crawlmatch string]
+        [--not-match-for-check match string]
+        [--not-match-for-crawlmatch string]
+        [--sleep seconds]
         [--ua useragent header] [--cookie cookie string] [--timeout seconds]
         [--evacuate second] [--noevacuate] [--resume]
 
@@ -11,7 +16,7 @@ mojo-checkbot beta
 
 ウェブサイトのリンクチェッカー兼HTMLバリデーターです。コマンドラインで開始URLを指定してデーモンを起動し、
 ブラウザでhttp://127.0.0.1:3000 を開くとチェック状況が逐一報告されます。
-リンクの収集とステータスコードの収集は再帰的に延々続きますので、matchオプションでURLフィルタをかけておくと、
+リンクの収集とステータスコードの収集は再帰的に延々続きますので、match-for-check等オプションでURLフィルタをかけておくと、
 そのうち止まるかもしれません。
 
 Perl v5.10.1以上が必要です。もし古い場合は、アップグレードするか、perlbrewでググってください。
@@ -23,7 +28,6 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
     クローラーオプション
     
     --start <URL>           クロールをスタートするURLを指定します。
-    --match <regexp>        [Deprecated]チェック対象のURLを正規表現で指定します。
     --match-for-check <regexp> チェック対象のURLを正規表現で指定します。
     --match-for-crawl <regexp> 再帰的なクロールの対象のURLを正規表現で指定します。
     --not-match-for-check <regexp> チェック対象としないURLの正規表現を指定します。
@@ -58,7 +62,7 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
 
 ### EXAMPLE1
 
-    $ mojo checkbot --start http://example.com --match http://example.com/ --sleep 2
+    $ mojo checkbot --start http://example.com --match-for-check http://example.com/ --sleep 2
     [Mon Oct 17 23:18:35 2011] [info] Server listening (http://*:3000)
     Server available at http://127.0.0.1:3000.
 

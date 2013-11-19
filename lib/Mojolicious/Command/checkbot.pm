@@ -31,7 +31,6 @@ hoge usage: $0 daemon [OPTIONS]
   クローラーオプション
   
   --start <URL>           クロールをスタートするURLを指定します。
-  --match <regexp>        [Deprecated]チェック対象のURLを正規表現で指定します。
   --match-for-check <regexp> チェック対象のURLを正規表現で指定します。
   --match-for-crawl <regexp> 再帰的なクロールの対象のURLを正規表現で指定します。
   --not-match-for-check <regexp> チェック対象としないURLの正規表現を指定します。
@@ -76,8 +75,6 @@ These options are available:
   Crawler options
   
   --start <URL>           Set start URL for crawling.
-  --match <regexp>        [Deprecated]Set regexp to judge whether or not the URL
-                          should be checked.
   --match-for-check <regexp> Set regexp to judge whether or not the URL should be
                           checked.
   --match-for-crawl <regexp> Set regexp to judge whether or not the URL should be
