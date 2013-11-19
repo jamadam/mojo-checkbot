@@ -93,8 +93,8 @@ body {
                 max-width:200px;
                 padding:2px 5px;
             }
-                #container td:nth-child(4),
-                #container td:nth-child(6) {
+                #container td:nth-child(3),
+                #container td:nth-child(5) {
                     text-align:center;
                 }
             #container tr.r4 {
