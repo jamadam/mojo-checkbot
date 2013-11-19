@@ -249,11 +249,10 @@ sub new {
         my $c = Marquee->c;
         my $res = $ua->get($c->req->param('url'))->res;
         my $encode = guess_encoding($res) || 'utf-8';
-        my $body    = Encode::decode($encode, $res->body);
-        my $error = Encode::decode($encode, validate_html($body));
+        my $body   = Encode::decode($encode, $res->body);
+        my $error  = Encode::decode($encode, validate_html($body));
         $c->res->code(200);
-        $c->res->body(
-                Mojo::JSON->new->encode({result => xml_escape($error)}));
+        $c->res->body(Mojo::JSON->new->encode({result => xml_escape($error)}));
     });
     
     $r->route(qr'^/auth.json')->to(sub {
@@ -297,6 +296,7 @@ sub check {
     my $html_error;
     my $auth;
     my $tx;
+    
     if ($method && $method =~ /post/i) {
         my $body_data = Mojo::Parameters->new($param)->to_hash;
         $tx  = $ua->max_redirects(0)->post($url, form => $body_data);
@@ -307,50 +307,53 @@ sub check {
         }
         $tx  = $ua->max_redirects(0)->get($url);
     }
+    
     my $res     = $tx->res;
     my $code    = $res->code;
     my $type    = $res->headers->content_type;
     my $base    = $tx->req->url->userinfo(undef);
+    
     if (! $code) {
         die $tx->error || 'Unknown error';
     }
+    
     if (my $location = $tx->res->headers->header('location')) {
         append_queues($base, \@new_queues, [{
             $QUEUE_KEY_CONTEXT      => '*Redirected by server configuration*',
             $QUEUE_KEY_LITERAL_URI  => $location,
         }]);
     }
+    
     if ($code == 200 && _match_for_crawl($url)) {
-        my $recursion = 0;
-        if (! $options{'depth'}) {
-            $recursion = 1;
-        } elsif (($queue->{$QUEUE_KEY_DEPTH} || 0) < $options{'depth'}) {
-            $recursion = 1;
-        }
+        my $recursion =
+            ! $options{'depth'} || $queue->{$QUEUE_KEY_DEPTH} < $options{'depth'};
+        
         if ($type && $type =~ qr{text/(html|xml)}) {
-            my $encode = guess_encoding($res) || 'utf-8';
-            my $body    = Encode::decode($encode, $res->body);
-            my $dom     = Mojo::DOM->new($body);
-            if (my $base_tag = $dom->at('base')) {
-                $base = Mojo::URL->new($base_tag->attr('href'));
-            }
+            my $body =
+                    Encode::decode(guess_encoding($res) || 'utf-8', $res->body);
+            
             if ($recursion) {
+                my $dom     = Mojo::DOM->new($body);
+                
+                if (my $base_tag = $dom->at('base')) {
+                    $base = Mojo::URL->new($base_tag->attr('href'));
+                }
+                
                 my @a       = collect_urls($dom);
                 my @q       = grep {! $_->{$QUEUE_KEY_DIALOG}} @a;
                 my @dialog  = grep {$_->{$QUEUE_KEY_DIALOG}} @a;
                 append_queues($base, \@new_queues, \@q);
                 append_queues($base, \@dialogs, \@dialog);
             }
+            
             if ($options{'html-validate'}) {
                 $html_error = validate_html($body) ? 'ng' : 'ok';
             }
-        } elsif ($type && $type =~ qr{text/(text|css)}) {
-            if ($recursion) {
-                my $encode  = guess_encoding_css($res) || 'utf-8';
-                my $body    = Encode::decode($encode, $res->body);
-                my @urls    = collect_urls_from_css($body);
-                append_queues($base, \@new_queues, \@urls);
-            }
+        } elsif ($type && $type =~ qr{text/(text|css)} && $recursion) {
+            my $encode  = guess_encoding_css($res) || 'utf-8';
+            my $body    = Encode::decode($encode, $res->body);
+            my @urls    = collect_urls_from_css($body);
+            append_queues($base, \@new_queues, \@urls);
         }
     } elsif ($code == 401) {
         my $dialog = clone($queue);
@@ -366,9 +369,11 @@ sub check {
     $queue->{$QUEUE_KEY_RES}        = $code;
     $queue->{$QUEUE_KEY_MIMETYPE}   = $type;
     $queue->{$QUEUE_KEY_SIZE}       = $res->body_size;
+    
     if ($html_error) {
         $queue->{$QUEUE_KEY_HTML_ERROR} = $html_error;
     }
+    
     return {
         queue   => \@new_queues,
         dialog  => \@dialogs,
@@ -380,20 +385,8 @@ sub check {
 ### ---
 sub _match_for_crawl {
     my ($url) = @_;
-    if ($options{'match-for-crawl'}) {
-        for my $regexp (@{$options{'match-for-crawl'}}) {
-            if ($url !~ /$regexp/) {
-                return 0;
-            }
-        }
-    }
-    if ($options{'not-match-for-crawl'}) {
-        for my $regexp (@{$options{'not-match-for-crawl'}}) {
-            if ($url =~ /$regexp/) {
-                return 0;
-            }
-        }
-    }
+    map {$url !~ /$_/ || return} @{$options{'match-for-crawl'} || []};
+    map {$url =~ /$_/ || return} @{$options{'not-match-for-crawl'} || []};
     return 1;
 }
 
@@ -402,20 +395,8 @@ sub _match_for_crawl {
 ### ---
 sub _match_for_check {
     my ($url) = @_;
-    if ($options{'match-for-check'}) {
-        for my $regexp (@{$options{'match-for-check'}}) {
-            if ($url !~ /$regexp/) {
-                return 0;
-            }
-        }
-    }
-    if ($options{'not-match-for-check'}) {
-        for my $regexp (@{$options{'not-match-for-check'}}) {
-            if ($url =~ /$regexp/) {
-                return 0;
-            }
-        }
-    }
+    map {$url !~ /$_/ || return} @{$options{'match-for-check'} || []};
+    map {$url =~ /$_/ || return} @{$options{'not-match-for-check'} || []};
     return 1;
 }
 
@@ -439,6 +420,7 @@ sub append_queues {
         $entry->{$QUEUE_KEY_RESOLVED_URI} = $rurl;
         
         my $md5 = fix_key($entry);
+        
         if (! exists $fix->{$md5}) {
             $fix->{$md5} = undef;
             push(@$append_to, $entry);
@@ -476,6 +458,7 @@ sub _analize_form_dom {
     my $dom = shift;
     if (my $href = $dom->{action}) {
         my @names;
+        
         $dom->find('[name]')->each(sub {
             my $dom = shift;
             my $a = {name => $dom->attr('name')};
@@ -484,7 +467,9 @@ sub _analize_form_dom {
             }
             push(@names, $a);
         });
+        
         @names = do { my %h; grep { !$h{$_->{name}}++ } @names};
+        
         return {
             $QUEUE_KEY_CONTEXT      => '*FORM*',
             $QUEUE_KEY_LITERAL_URI  => $href,
