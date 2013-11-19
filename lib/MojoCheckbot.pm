@@ -435,7 +435,7 @@ sub append_queues {
     my ($base, $append_to, $urls) = @_;
     for my $entry (@$urls) {
         if ($entry->{$QUEUE_KEY_LITERAL_URI} =~ qr{^(\w+):}) {
-            if (! ( $1 ~~ [qw(http https ftp ws wss)])) {
+            if (! grep {$_ eq $1} qw(http https ftp ws wss)) {
                 next;
             }
         }
