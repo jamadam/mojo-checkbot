@@ -635,7 +635,7 @@ sub validate_html {
         return 'html5 validation is not available';
     } else {
         my $valid = eval {
-            XML::LibXML->load_xml(string => shift)->validate();
+            XML::LibXML->load_xml(string => $html)->validate();
         };
         return $valid ? undef : $@;
     }
