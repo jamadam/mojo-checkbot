@@ -64,10 +64,14 @@ body {
                 float:left;
                 margin-right:20px;
             }
-            #summary input {
+            #summary #statusCodes > * {
+                float:left;
+                margin-right:20px;
+            }
+            #summary #statusCodes input {
                 margin-right:5px;
             }
-            #summary .name {
+            #summary #statusCodes .name {
             }
     #container {
         min-height:100%;
@@ -192,8 +196,8 @@ body {
         #notifierContainer .notifier {
             width:250px;
             height:auto;
-            background-color:#000;
-            opacity:0.8;
+            background-color:rgba(0, 0, 0, 0.8);
+            border:3px solid rgba(0, 0, 0, 0);
             border-radius:10px;
             color:#fff;
             padding:8px 12px;
@@ -201,9 +205,9 @@ body {
             margin-bottom:5px;
             box-shadow:1px 1px 3px #888;
         }
-        #notifierContainer .notifier:hover {
-            opacity:1;
-        }
+            #notifierContainer .notifier:hover {
+                border:3px solid rgba(255, 128, 128, 1);
+            }
             #notifierContainer .notifier .context,
             #notifierContainer .notifier .uri {
                 white-space:nowrap;
