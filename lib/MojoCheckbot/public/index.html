@@ -21,15 +21,26 @@
             </h1>
             <form action="#dummy" id="form1">
                 <div id="summary">
-                    <p id="fixed">
+                    <div id="fixed">
                         <span class="label">Resutlts</span>: <span class="data">0</span>
-                    </p>
-                    <p id="queues">
+                    </div>
+                    <div id="queues">
                         <span class="label">Queues</span>: <span class="data">0</span>
-                    </p>
-                    <p id="reported">
+                    </div>
+                    <div id="reported">
                         <span class="label">Resutlts(reported)</span>: <span class="data">0</span>
-                    </p>
+                    </div>
+                    <div id="statusCodes">
+                        
+                    </div>
+                </div>
+                <div id="discard200">
+                    <input type="button" value="Discard 2xx OK results">
+                    <script type="text/javascript">
+                        $("#discard200 input").on("click", function() {
+                            $("#result tr.r2").remove();
+                        });
+                    </script>
                 </div>
             </form>
         </div>
