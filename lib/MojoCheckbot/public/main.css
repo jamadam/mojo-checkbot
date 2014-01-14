@@ -192,8 +192,8 @@ body {
         #notifierContainer .notifier {
             width:250px;
             height:auto;
-            background-color:#000;
-            opacity:0.8;
+            background-color:rgba(0, 0, 0, 0.8);
+            border:3px solid rgba(0, 0, 0, 0);
             border-radius:10px;
             color:#fff;
             padding:8px 12px;
@@ -202,7 +202,7 @@ body {
             box-shadow:1px 1px 3px #888;
         }
         #notifierContainer .notifier:hover {
-            opacity:1;
+            border:3px solid rgba(255, 128, 128, 1);
         }
             #notifierContainer .notifier .context,
             #notifierContainer .notifier .uri {
