@@ -378,7 +378,7 @@ is scalar @{Mojo::IOLoop->stream($tx->connection)->subscribers('read')}, 1,
 like $req, qr!^GET / .*whatever$!s,      'right request';
 like $res, qr|^HTTP/.*200 OK.*works!$|s, 'right response';
 $ua->unsubscribe(start => $start);
-ok !$ua->has_subscribers('start'), 'unsubscribed successfully';
+#ok !$ua->has_subscribers('start'), 'unsubscribed successfully';
 
 # Stream with drain callback and compressed response
 $tx = $ua->build_tx(GET => '/echo');
