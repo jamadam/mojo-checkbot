@@ -260,7 +260,7 @@ sub new {
         my $url = Mojo::URL->new($c->req->param('url'));
         my $un  = $c->req->param('username');
         my $pw  = $c->req->param('password');
-        $ua->userinfo->{$url->scheme. '://'. $url->host} = "$un:$pw";
+        $ua->credentials->{$url->scheme. '://'. $url->host} = "$un:$pw";
         push(@$queues, {
             $QUEUE_KEY_RESOLVED_URI => "$url"
         });

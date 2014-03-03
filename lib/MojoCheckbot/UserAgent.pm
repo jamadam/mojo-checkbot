@@ -3,7 +3,8 @@ use strict;
 use warnings;
 use Mojo::Base 'Mojo::UserAgent';
 
-has userinfo        => sub {{}};
+has credentials => sub {{}};
+has keep_credentials => 1;
 
 sub new {
     my $class = shift;
@@ -11,16 +12,12 @@ sub new {
     $self->on(start => sub {
         my ($self, $tx) = @_;
         my $url = $tx->req->url;
-        if ($url->is_abs) {
-            my $scheme_n_host = $url->scheme. '://'. $url->host;
-            if ($url->port) {
-               $scheme_n_host .= ':'. $url->port;
-            }
-            my $userinfo;
-            if ($userinfo = $url->userinfo) {
-                $self->userinfo->{$scheme_n_host} = "$userinfo";
-            } elsif ($userinfo = $self->userinfo->{$scheme_n_host}) {
-                $url->userinfo($userinfo);
+        if ($self->keep_credentials && $url->is_abs) {
+            my $key = $url->scheme. '://'. $url->host. ':'. ($url->port || 80);
+            if ($url->userinfo) {
+                $self->credentials->{$key} = $url->userinfo;
+            } else {
+                $url->userinfo($self->credentials->{$key});
             }
         }
     });

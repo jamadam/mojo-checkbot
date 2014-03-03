@@ -31,7 +31,7 @@ my $port3;
         });
     });
     
-    $ua->userinfo->{"http://localhost:$port"} = "a:b";
+    $ua->credentials->{"http://localhost:$port"} = "a:b";
     $ua->get("http://localhost:$port/file1");
 
     $port2 = Mojo::IOLoop->generate_port;
