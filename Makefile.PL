@@ -11,7 +11,7 @@ my %params = (
     PREREQ_PM       => {
     },
     BUILD_REQUIRES => {
-        'Mojolicious'   => '4.41',
+        'Mojolicious'   => '4.67',
         'Clone::PP'     => '1.02',
     },
 );

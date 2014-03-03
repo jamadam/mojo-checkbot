@@ -6,7 +6,6 @@ BEGIN {
 }
 
 use Test::More;
-use Mojo::IOLoop;
 use MojoCheckbot::IOLoop;
 use Mojo::IOLoop::Client;
 use Mojo::IOLoop::Delay;
@@ -137,7 +136,7 @@ $id = MojoCheckbot::IOLoop->stream($stream);
 $stream->on(close => sub { MojoCheckbot::IOLoop->stop });
 $stream->on(read => sub { $buffer .= pop });
 $stream->write('hello');
-ok(MojoCheckbot::IOLoop->stream($id), 'stream exists');
+ok !!MojoCheckbot::IOLoop->stream($id), 'stream exists';
 is $stream->timeout, 16, 'right timeout';
 MojoCheckbot::IOLoop->start;
 MojoCheckbot::IOLoop->timer(0.25 => sub { MojoCheckbot::IOLoop->stop });
@@ -257,6 +256,16 @@ $loop->timer(3 => sub { shift->stop; $err = 'failed' });
 $loop->start;
 ok !$err, 'no error';
 is $loop->max_accepts, 1, 'right value';
+
+# Exception in timer
+{
+  local *STDERR;
+  open STDERR, '>', \my $err;
+  my $loop = MojoCheckbot::IOLoop->new;
+  $loop->timer(0 => sub { die 'Bye!' });
+  $loop->start;
+  like $err, qr/^MyReactor:.*Bye!/, 'right error';
+}
 
 # Defaults
 is(
