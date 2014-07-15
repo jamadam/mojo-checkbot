@@ -22,15 +22,16 @@ sub run {
 
   # Response headers
   my $res     = $tx->res->fix_headers;
-  my $headers = $res->content->headers;
+  my $headers = $res->headers;
   my @headers;
-  for my $name (@{$headers->names}) {
-    push @headers, $name => $_ for map {@$_} $headers->header($name);
+  my $hash = $headers->to_hash(1);
+  for my $name (keys %$hash) {
+    push @headers, map { $name => $_ } @{$hash->{$name}};
   }
 
   # PSGI response
   my $io = Mojo::Server::PSGI::_IO->new(tx => $tx, empty => $tx->is_empty);
-  return [$res->code || 404, \@headers, $io];
+  return [defined $res->code ? $res->code : 404, \@headers, $io];
 }
 
 sub to_psgi_app {
@@ -97,14 +98,18 @@ Mojo::Server::PSGI - PSGI server
 
 =head1 DESCRIPTION
 
-L<Mojo::Server::PSGI> allows L<Mojo> applications to run on all PSGI
+L<Mojo::Server::PSGI> allows L<Mojolicious> applications to run on all L<PSGI>
 compatible servers.
 
-See L<Mojolicious::Guides::Cookbook> for more.
+See L<Mojolicious::Guides::Cookbook/"DEPLOYMENT"> for more.
 
 =head1 EVENTS
 
 L<Mojo::Server::PSGI> inherits all events from L<Mojo::Server>.
+
+=head1 ATTRIBUTES
+
+L<Mojo::Server::PSGI> inherits all attributes from L<Mojo::Server>.
 
 =head1 METHODS
 

@@ -12,34 +12,22 @@ use MojoCheckbot;
 
 use Test::More tests => 65;
 
-my $html;
-
-$html = <<EOF;
-<html>
-<body>
-<a href="http://example.com">example.com</a>
-<a href="/foo.html">foo.html</a>
-</body>
-</html>
-EOF
-
 my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
-my $port;
-
-$port = Mojo::IOLoop->generate_port;
-Mojo::IOLoop->server(port => $port, sub {
-    my ($loop, $stream) = @_;
-    $stream->on(read => sub {
-        my ($stream, $chunk) = @_;
-        $stream->write(
-            "HTTP/1.1 404 OK\x0d\x0a"
-                . "Content-Type: text/html\x0d\x0a\x0d\x0aNot Found",
-            sub { shift->close }
-        );
-    });
-});
+my $daemon = Mojo::Server::Daemon->new(
+    ioloop => Mojo::IOLoop->singleton,
+    silent => 1
+);
+my $port = Mojo::IOLoop::Server->generate_port;
+$daemon->listen(["http://127.0.0.1:$port"])->start;
 
 {
+    $daemon->on(request => sub {
+        my ($daemon, $tx) = @_;
+        $tx->res->code(404);
+        $tx->res->headers->content_type('text/html');
+        $tx->res->body('Not Found');
+        $tx->resume;
+    });
     my $queue = {
         $MojoCheckbot::QUEUE_KEY_RESOLVED_URI => "http://localhost:$port/",
     };
@@ -47,20 +35,22 @@ Mojo::IOLoop->server(port => $port, sub {
     is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 404, 'right status code';
 }
 
-$port = Mojo::IOLoop->generate_port;
-Mojo::IOLoop->server(port => $port, sub {
-    my ($loop, $stream) = @_;
-    $stream->on(read => sub {
-        my ($stream, $chunk) = @_;
-        $stream->write(
-            "HTTP/1.1 200 OK\x0d\x0a"
-                . "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-            sub { shift->close }
-        );
-    });
-});
-
 {
+    my $html = <<EOF;
+<html>
+<body>
+<a href="http://example.com">example.com</a>
+<a href="/foo.html">foo.html</a>
+</body>
+</html>
+EOF
+    $daemon->on(request => sub {
+        my ($daemon, $tx) = @_;
+        $tx->res->code(200);
+        $tx->res->headers->content_type('text/html');
+        $tx->res->body($html);
+        $tx->resume;
+    });
     my $queue = {
         $MojoCheckbot::QUEUE_KEY_RESOLVED_URI => "http://localhost:$port/",
     };
@@ -68,7 +58,8 @@ Mojo::IOLoop->server(port => $port, sub {
     is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 200, 'right status code';
 }
 
-$html = <<EOF;
+{
+    my $html = <<EOF;
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="css1.css" />
@@ -135,21 +126,14 @@ $html = <<EOF;
 </body>
 </html>
 EOF
-
-{
-    $port = Mojo::IOLoop->generate_port;
-    Mojo::IOLoop->server(port => $port, sub {
-        my ($loop, $stream) = @_;
-        $stream->on(read => sub {
-            my ($stream, $chunk) = @_;
-            $stream->write(
-                "HTTP/1.1 200 OK\x0d\x0a"
-                    . "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-                sub {shift->close }
-            );
-        });
-    });
     
+    $daemon->on(request => sub {
+        my ($daemon, $tx) = @_;
+        $tx->res->code(200);
+        $tx->res->headers->content_type('text/html');
+        $tx->res->body($html);
+        $tx->resume;
+    });
     my $queue = {
         $MojoCheckbot::QUEUE_KEY_RESOLVED_URI=> "http://a:b\@localhost:$port/",
     };
@@ -157,10 +141,10 @@ EOF
     is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 200, 'right status code';
     is scalar @{$res->{queue}}, 12, 'right queue number';
     is keys %{$res->{queue}->[0]}, 3, 'right key number';
-    is $res->{queue}->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;', 'right context';
+    is $res->{queue}->[0]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot;&gt;', 'right context';
     is $res->{queue}->[0]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/css1.css", 'right resolved uri';
     is $res->{queue}->[0]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'css1.css', 'right literal uri';
-    is $res->{queue}->[1]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;', 'right context';
+    is $res->{queue}->[1]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot;&gt;', 'right context';
     is $res->{queue}->[1]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/css2.css", 'right resolved uri';
     is $res->{queue}->[1]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'css2.css', 'right literal uri';
     is $res->{queue}->[2]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;', 'right context';
@@ -181,7 +165,7 @@ EOF
     is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, 'F', 'right context';
     is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/", 'right resolved uri';
     is $res->{queue}->[7]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, '#a:b', 'right literal uri';
-    is $res->{queue}->[8]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;embed src=&quot;../images/embed1.swf&quot; /&gt;', 'right context';
+    is $res->{queue}->[8]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;embed src=&quot;../images/embed1.swf&quot;&gt;', 'right context';
     is $res->{queue}->[8]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/images/embed1.swf", 'right resolved uri';
     is $res->{queue}->[8]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, '../images/embed1.swf', 'right literal uri';
     is $res->{queue}->[9]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;frame src=&quot;frame1.html&quot;&gt;&lt;/frame&gt;', 'right context';
@@ -190,7 +174,7 @@ EOF
     is $res->{queue}->[10]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;iframe src=&quot;iframe1.html&quot;&gt;&lt;/iframe&gt;', 'right context';
     is $res->{queue}->[10]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/iframe1.html", 'right resolved uri';
     is $res->{queue}->[10]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'iframe1.html', 'right literal uri';
-    is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;input src=&quot;input.gif&quot; /&gt;', 'right context';
+    is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_CONTEXT}, '&lt;input src=&quot;input.gif&quot;&gt;', 'right context';
     is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_RESOLVED_URI}, "http://localhost:$port/input.gif", 'right resolved uri';
     is $res->{queue}->[11]->{$MojoCheckbot::QUEUE_KEY_LITERAL_URI}, 'input.gif', 'right literal uri';
 
@@ -243,24 +227,19 @@ EOF
 }
 
 {
-    $port = Mojo::IOLoop->generate_port;
-    Mojo::IOLoop->server(port => $port, sub {
-        my ($loop, $stream) = @_;
-        $stream->on(read => sub {
-            my ($stream, $chunk) = @_;
-            like $chunk, qr{^GET /\?a=b&c=d}, 'right request';
-            $stream->write(
-                "HTTP/1.1 200 OK\x0d\x0a"
-                    . "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-                sub { shift->close }
-            );
-        });
+    $daemon->on(request => sub {
+        my ($daemon, $tx) = @_;
+        is $tx->req->params, 'a=b&c=d', 'right request';
+        $tx->res->code(200);
+        $tx->res->headers->content_type('text/html');
+        $tx->res->body('');
+        $tx->resume;
     });
     
     my $queue = {
-        $MojoCheckbot::QUEUE_KEY_RESOLVED_URI 	=> "http://localhost:$port/",
-        $MojoCheckbot::QUEUE_KEY_METHOD			=> 'get',
-        $MojoCheckbot::QUEUE_KEY_PARAM 			=> 'a=b&c=d'
+        $MojoCheckbot::QUEUE_KEY_RESOLVED_URI   => "http://localhost:$port/",
+        $MojoCheckbot::QUEUE_KEY_METHOD         => 'get',
+        $MojoCheckbot::QUEUE_KEY_PARAM          => 'a=b&c=d'
     };
     my $res = MojoCheckbot::check($ua, $queue);
 }

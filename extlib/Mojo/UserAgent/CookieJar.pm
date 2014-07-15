@@ -138,8 +138,9 @@ Mojo::UserAgent::CookieJar - Cookie jar for HTTP user agents
 
 =head1 DESCRIPTION
 
-L<Mojo::UserAgent::CookieJar> is a minimalistic and relaxed cookie jar based
-on L<RFC 6265|http://tools.ietf.org/search/rfc6265> for L<Mojo::UserAgent>.
+L<Mojo::UserAgent::CookieJar> is a minimalistic and relaxed cookie jar used by
+L<Mojo::UserAgent> and based on
+L<RFC 6265|http://tools.ietf.org/html/rfc6265>.
 
 =head1 ATTRIBUTES
 
@@ -150,7 +151,7 @@ L<Mojo::UserAgent::CookieJar> implements the following attributes.
   my $size = $jar->max_cookie_size;
   $jar     = $jar->max_cookie_size(4096);
 
-Maximum cookie size in bytes, defaults to C<4096>.
+Maximum cookie size in bytes, defaults to C<4096> (4KB).
 
 =head1 METHODS
 

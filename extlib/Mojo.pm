@@ -18,10 +18,14 @@ has ua   => sub {
   my $ua = Mojo::UserAgent->new;
   weaken $ua->server->app($self)->{app};
   weaken $self;
-  $ua->on(error => sub { $self->log->error($_[1]) });
-
-  return $ua;
+  return $ua->catch(sub { $self->log->error($_[1]) });
 };
+
+sub build_tx { Mojo::Transaction::HTTP->new }
+
+sub config { shift->_dict(config => @_) }
+
+sub handler { croak 'Method "handler" not implemented in subclass' }
 
 sub new {
   my $self = shift->SUPER::new(@_);
@@ -34,12 +38,6 @@ sub new {
 
   return $self;
 }
-
-sub build_tx { Mojo::Transaction::HTTP->new }
-
-sub config { shift->_dict(config => @_) }
-
-sub handler { croak 'Method "handler" not implemented in subclass' }
 
 sub _dict {
   my ($self, $name) = (shift, shift);
@@ -90,10 +88,9 @@ Mojo - Duct tape for the HTML5 web!
 
 =head1 DESCRIPTION
 
-Mojo provides a flexible runtime environment for Perl real-time web
-frameworks. It provides all the basic tools and helpers needed to write
-simple web applications and higher level web frameworks, such as
-L<Mojolicious>.
+A flexible runtime environment for Perl real-time web frameworks, with all the
+basic tools and helpers needed to write simple web applications and higher
+level web frameworks, such as L<Mojolicious>.
 
 See L<Mojolicious::Guides> for more!
 
@@ -128,9 +125,7 @@ The logging layer of your application, defaults to a L<Mojo::Log> object.
   $app   = $app->ua(Mojo::UserAgent->new);
 
 A full featured HTTP user agent for use in your applications, defaults to a
-L<Mojo::UserAgent> object. Note that this user agent should not be used in
-plugins, since non-blocking requests that are already in progress will
-interfere with new blocking ones.
+L<Mojo::UserAgent> object.
 
   # Perform blocking request
   say $app->ua->get('example.com')->res->body;
@@ -139,14 +134,6 @@ interfere with new blocking ones.
 
 L<Mojo> inherits all methods from L<Mojo::Base> and implements the following
 new ones.
-
-=head2 new
-
-  my $app = Mojo->new;
-
-Construct a new L<Mojo> application. Will automatically detect your home
-directory if necessary and set up logging to C<log/mojo.log> if there's a
-C<log> directory.
 
 =head2 build_tx
 
@@ -180,6 +167,14 @@ be overloaded in a subclass.
     my ($self, $tx) = @_;
     ...
   }
+
+=head2 new
+
+  my $app = Mojo->new;
+
+Construct a new L<Mojo> application. Will automatically detect your home
+directory if necessary and set up logging to C<log/mojo.log> if there's a
+C<log> directory.
 
 =head1 SEE ALSO
 

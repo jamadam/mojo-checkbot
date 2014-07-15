@@ -28,8 +28,8 @@ is ref $loop->reactor, 'MyReactor', 'right class';
 
 # Double start
 my $err;
-MojoCheckbot::IOLoop->timer(
-  0 => sub {
+MojoCheckbot::IOLoop->next_tick(
+  sub {
     eval { MojoCheckbot::IOLoop->start };
     $err = $@;
     MojoCheckbot::IOLoop->stop;
@@ -76,22 +76,34 @@ $loop->remove($id);
 ok $count > 1, 'more than one recurring event';
 ok $count < 10, 'less than ten recurring events';
 
-# Handle
-my $port = MojoCheckbot::IOLoop->generate_port;
+# Handle and reset
 my ($handle, $handle2);
 $id = MojoCheckbot::IOLoop->server(
-  (address => '127.0.0.1', port => $port) => sub {
+  (address => '127.0.0.1') => sub {
     my ($loop, $stream) = @_;
     $handle = $stream->handle;
     MojoCheckbot::IOLoop->stop;
   }
 );
+my $port = MojoCheckbot::IOLoop->acceptor($id)->handle->sockport;
 MojoCheckbot::IOLoop->acceptor($id)->on(accept => sub { $handle2 = pop });
 $id2
   = MojoCheckbot::IOLoop->client((address => 'localhost', port => $port) => sub { });
 MojoCheckbot::IOLoop->start;
-MojoCheckbot::IOLoop->remove($id);
-MojoCheckbot::IOLoop->remove($id2);
+$count = 0;
+MojoCheckbot::IOLoop->recurring(10 => sub { $timer++ });
+my $running;
+MojoCheckbot::IOLoop->next_tick(
+  sub {
+    MojoCheckbot::IOLoop->reset;
+    $running = MojoCheckbot::IOLoop->is_running;
+  }
+);
+MojoCheckbot::IOLoop->start;
+ok !$running, 'not running';
+is $count, 0, 'no recurring events';
+ok !MojoCheckbot::IOLoop->acceptor($id), 'acceptor has been removed';
+ok !MojoCheckbot::IOLoop->stream($id2),  'stream has been removed';
 is $handle, $handle2, 'handles are equal';
 isa_ok $handle, 'IO::Socket', 'right reference';
 
@@ -99,14 +111,14 @@ isa_ok $handle, 'IO::Socket', 'right reference';
 my $time = time;
 MojoCheckbot::IOLoop->start;
 MojoCheckbot::IOLoop->one_tick;
+MojoCheckbot::IOLoop->reset;
 ok time < ($time + 10), 'stopped automatically';
 
 # Stream
-$port = MojoCheckbot::IOLoop->generate_port;
 my $buffer = '';
-MojoCheckbot::IOLoop->server(
-  (address => '127.0.0.1', port => $port) => sub {
-    my ($loop, $stream, $id) = @_;
+$id = MojoCheckbot::IOLoop->server(
+  (address => '127.0.0.1') => sub {
+    my ($loop, $stream) = @_;
     $buffer .= 'accepted';
     $stream->on(
       read => sub {
@@ -118,17 +130,20 @@ MojoCheckbot::IOLoop->server(
     );
   }
 );
+$port = MojoCheckbot::IOLoop->acceptor($id)->handle->sockport;
 my $delay = MojoCheckbot::IOLoop->delay;
-my $end   = $delay->begin(0);
+my $end   = $delay->begin;
+$handle = undef;
 MojoCheckbot::IOLoop->client(
   {port => $port} => sub {
     my ($loop, $err, $stream) = @_;
-    $end->($stream);
+    $handle = $stream->steal_handle;
+    $end->();
     $stream->on(close => sub { $buffer .= 'should not happen' });
     $stream->on(error => sub { $buffer .= 'should not happen either' });
   }
 );
-$handle = $delay->wait->steal_handle;
+$delay->wait;
 my $stream = Mojo::IOLoop::Stream->new($handle);
 is $stream->timeout, 15, 'right default';
 is $stream->timeout(16)->timeout, 16, 'right timeout';
@@ -145,8 +160,8 @@ ok !MojoCheckbot::IOLoop->stream($id), 'stream does not exist anymore';
 is $buffer, 'acceptedhelloworld', 'right result';
 
 # Removed listen socket
-$port = MojoCheckbot::IOLoop->generate_port;
-$id = $loop->server({address => '127.0.0.1', port => $port} => sub { });
+$id = $loop->server({address => '127.0.0.1'} => sub { });
+$port = $loop->acceptor($id)->handle->sockport;
 my $connected;
 $loop->client(
   {port => $port} => sub {
@@ -156,31 +171,25 @@ $loop->client(
     $connected = 1;
   }
 );
-like $ENV{MOJO_REUSE}, qr/(?:^|\,)${port}:/, 'file descriptor can be reused';
+like $ENV{MOJO_REUSE}, qr/(?:^|\,)127\.0\.0\.1:${port}:/,
+  'file descriptor can be reused';
 $loop->start;
-unlike $ENV{MOJO_REUSE}, qr/(?:^|\,)${port}:/, 'environment is clean';
+unlike $ENV{MOJO_REUSE}, qr/(?:^|\,)127\.0\.0\.1:${port}:/,
+  'environment is clean';
 ok $connected, 'connected';
-$err = undef;
-$loop->client(
-  (port => $port) => sub {
-    shift->stop;
-    $err = shift;
-  }
-);
-$loop->start;
-ok $err, 'has error';
+ok !$loop->acceptor($id), 'acceptor has been removed';
 
 # Removed connection (with delay)
 my $removed;
 $delay = MojoCheckbot::IOLoop->delay(sub { $removed++ });
-$port  = MojoCheckbot::IOLoop->generate_port;
 $end   = $delay->begin;
-MojoCheckbot::IOLoop->server(
-  (address => '127.0.0.1', port => $port) => sub {
+$id    = MojoCheckbot::IOLoop->server(
+  (address => '127.0.0.1') => sub {
     my ($loop, $stream) = @_;
     $stream->on(close => $end);
   }
 );
+$port = MojoCheckbot::IOLoop->acceptor($id)->handle->sockport;
 my $end2 = $delay->begin;
 $id = MojoCheckbot::IOLoop->client(
   (port => $port) => sub {
@@ -193,10 +202,9 @@ $delay->wait;
 is $removed, 1, 'connection has been removed';
 
 # Stream throttling
-$port = MojoCheckbot::IOLoop->generate_port;
 my ($client, $server, $client_after, $server_before, $server_after);
-MojoCheckbot::IOLoop->server(
-  {address => '127.0.0.1', port => $port} => sub {
+$id = MojoCheckbot::IOLoop->server(
+  {address => '127.0.0.1'} => sub {
     my ($loop, $stream) = @_;
     $stream->timeout(0)->on(
       read => sub {
@@ -221,6 +229,7 @@ MojoCheckbot::IOLoop->server(
     );
   }
 );
+$port = MojoCheckbot::IOLoop->acceptor($id)->handle->sockport;
 MojoCheckbot::IOLoop->client(
   {port => $port} => sub {
     my ($loop, $err, $stream) = @_;
@@ -239,7 +248,8 @@ is $client, 'works!', 'full message has been written';
 # Graceful shutdown (max_connections)
 $err = '';
 $loop = MojoCheckbot::IOLoop->new(max_connections => 0);
-$loop->remove($loop->client({port => $loop->generate_port} => sub { }));
+$loop->remove(
+  $loop->client({port => Mojo::IOLoop::Server->generate_port} => sub { }));
 $loop->timer(3 => sub { shift->stop; $err = 'failed' });
 $loop->start;
 ok !$err, 'no error';
@@ -248,9 +258,8 @@ is $loop->max_connections, 0, 'right value';
 # Graceful shutdown (max_accepts)
 $err  = '';
 $loop = MojoCheckbot::IOLoop->new(max_accepts => 1);
-$port = $loop->generate_port;
-$loop->server(
-  {address => '127.0.0.1', port => $port} => sub { shift; shift->close });
+$id   = $loop->server({address => '127.0.0.1'} => sub { shift; shift->close });
+$port = $loop->acceptor($id)->handle->sockport;
 $loop->client({port => $port} => sub { });
 $loop->timer(3 => sub { shift->stop; $err = 'failed' });
 $loop->start;

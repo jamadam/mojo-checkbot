@@ -15,7 +15,7 @@ use Test::More tests => 1;
 my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
 $ua->inactivity_timeout(1);
 my $port;
-$port = Mojo::IOLoop->generate_port;
+$port = Mojo::IOLoop::Server->generate_port;
 Mojo::IOLoop->server(port => $port, sub {
     my ($loop, $stream) = @_;
     $stream->on(read => sub {

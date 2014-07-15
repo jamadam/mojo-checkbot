@@ -7,8 +7,6 @@ use Mojo::Util 'spurt';
 has 'auto_upgrade';
 has max_memory_size => sub { $ENV{MOJO_MAX_MEMORY_SIZE} || 262144 };
 
-sub new { shift->SUPER::new(@_, content => '') }
-
 sub add_chunk {
   my ($self, $chunk) = @_;
 
@@ -48,6 +46,8 @@ sub move_to {
   spurt $self->{content}, $to;
   return $self;
 }
+
+sub new { shift->SUPER::new(@_, content => '') }
 
 sub size { length shift->{content} }
 
@@ -112,18 +112,12 @@ automatically upgrade to a L<Mojo::Asset::File> object.
 
 Maximum size in bytes of data to keep in memory before automatically upgrading
 to a L<Mojo::Asset::File> object, defaults to the value of the
-MOJO_MAX_MEMORY_SIZE environment variable or C<262144>.
+C<MOJO_MAX_MEMORY_SIZE> environment variable or C<262144> (256KB).
 
 =head1 METHODS
 
 L<Mojo::Asset::Memory> inherits all methods from L<Mojo::Asset> and implements
 the following new ones.
-
-=head2 new
-
-  my $mem = Mojo::Asset::Memory->new;
-
-Construct a new L<Mojo::Asset::Memory> object.
 
 =head2 add_chunk
 
@@ -144,13 +138,19 @@ Check if asset contains a specific string.
   my $bytes = $mem->get_chunk($offset, $max);
 
 Get chunk of data starting from a specific position, defaults to a maximum
-chunk size of C<131072> bytes.
+chunk size of C<131072> bytes (128KB).
 
 =head2 move_to
 
   $mem = $mem->move_to('/home/sri/foo.txt');
 
 Move asset data into a specific file.
+
+=head2 new
+
+  my $mem = Mojo::Asset::Memory->new;
+
+Construct a new L<Mojo::Asset::Memory> object.
 
 =head2 size
 

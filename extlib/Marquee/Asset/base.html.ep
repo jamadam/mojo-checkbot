@@ -1,33 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
-<head>
-	<%= placeholder 'title' => begin %>
-	<% end %>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta http-equiv="Content-Script-Type" content="text/javascript" />
-	<meta http-equiv="Content-Style-Type" content="text/css" />
-	<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-reset.css") %>" />
-	<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-fonts.css") %>" />
-	<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/site_main.css") %>" />
-	<link rel="shortcut icon" href="<%= url_for("$static_dir/favicon.ico") %>" />
-    <script type="text/javascript" src="<%= url_for("$static_dir/jquery.1.7.1.js") %>"></script>
-	<%= placeholder 'additionalHead' => begin %>
-	<% end %>
-</head>
-<body>
-    <h1>
-		<a href="http://mrqe.biz/" class="poweredBy">Marquee</a>
-		<%= placeholder 'h1AdditionalContent' => begin %>
-		<% end %>
-    </h1>
-    <div id="wrapper">
-		<%= placeholder 'mainContent' => begin %>
-		<% end %>
-    </div>
-	<div id="footer">
-		<%= placeholder 'footerContent' => begin %>
-		<% end %>
-	</div>
-</body>
-</html>
+<!DOCTYPE html>
+<%= placeholder 'title' => begin %><% end %>
+<meta charset="UTF-8" />
+<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-reset.css") %>" />
+<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-fonts.css") %>" />
+<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/site_main.css") %>" />
+<link rel="shortcut icon" href="<%= url_for("$static_dir/favicon.ico") %>" />
+<script type="text/javascript" src="<%= url_for("$static_dir/jquery.1.7.1.js") %>"></script>
+<%= placeholder 'additionalHead' => begin %>
+<% end %>
+
+<h1>
+    <a href="http://mrqe.biz/" class="poweredBy">Marquee</a>
+    <%= placeholder 'h1AdditionalContent' => begin %>
+    <% end %>
+</h1>
+<div id="wrapper">
+    <%= placeholder 'mainContent' => begin %>
+    <% end %>
+</div>
+<div id="footer">
+    <%= placeholder 'footerContent' => begin %>
+    <% end %>
+</div>

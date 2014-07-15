@@ -1,6 +1,9 @@
 package Mojo::Collection;
 use Mojo::Base -strict;
-use overload bool => sub {1}, '""' => sub { shift->join("\n") }, fallback => 1;
+use overload
+  bool     => sub { !!@{shift()} },
+  '""'     => sub { shift->join("\n") },
+  fallback => 1;
 
 use Carp 'croak';
 use Exporter 'import';
@@ -12,22 +15,13 @@ our @EXPORT_OK = ('c');
 
 sub AUTOLOAD {
   my $self = shift;
-
   my ($package, $method) = split /::(\w+)$/, our $AUTOLOAD;
   croak "Undefined subroutine &${package}::$method called"
     unless blessed $self && $self->isa(__PACKAGE__);
-
-  croak qq{Can't locate object method "$method" via package "$package"}
-    unless @$self;
   return $self->pluck($method, @_);
 }
 
 sub DESTROY { }
-
-sub new {
-  my $class = shift;
-  return bless [@_], ref $class || $class;
-}
 
 sub c { __PACKAGE__->new(@_) }
 
@@ -60,9 +54,16 @@ sub grep {
 
 sub join { Mojo::ByteStream->new(join defined $_[1] ? $_[1] : '', map({"$_"} @{$_[0]})) }
 
+sub last { shift->[-1] }
+
 sub map {
   my ($self, $cb) = @_;
   return $self->new(map { $_->$cb } @$self);
+}
+
+sub new {
+  my $class = shift;
+  return bless [@_], ref $class || $class;
 }
 
 sub pluck {
@@ -89,16 +90,15 @@ sub sort {
 sub tap { shift->Mojo::Base::tap(@_) }
 
 sub uniq {
-  my $self = shift;
   my %seen;
-  return $self->grep(sub { !$seen{$_}++ });
+  return shift->grep(sub { !$seen{$_}++ });
 }
 
 sub _flatten {
   map { _ref($_) ? _flatten(@$_) : $_ } @_;
 }
 
-sub _ref { ref $_[0] eq 'ARRAY' || (blessed $_[0] && $_[0]->isa(__PACKAGE__)) }
+sub _ref { ref $_[0] eq 'ARRAY' || blessed $_[0] && $_[0]->isa(__PACKAGE__) }
 
 1;
 
@@ -132,11 +132,17 @@ Mojo::Collection - Collection
 
 =head1 DESCRIPTION
 
-L<Mojo::Collection> is a container for collections.
+L<Mojo::Collection> is an array-based container for collections.
+
+  # Access array directly to manipulate collection
+  my $collection = Mojo::Collection->new(1 .. 25);
+  $collection->[23] += 100;
+  say for @$collection;
 
 =head1 FUNCTIONS
 
-L<Mojo::Collection> implements the following functions.
+L<Mojo::Collection> implements the following functions, which can be imported
+individually.
 
 =head2 c
 
@@ -147,12 +153,6 @@ Construct a new array-based L<Mojo::Collection> object.
 =head1 METHODS
 
 L<Mojo::Collection> implements the following methods.
-
-=head2 new
-
-  my $collection = Mojo::Collection->new(1, 2, 3);
-
-Construct a new array-based L<Mojo::Collection> object.
 
 =head2 compact
 
@@ -216,6 +216,12 @@ Turn collection into L<Mojo::ByteStream>.
 
   $collection->join("\n")->say;
 
+=head2 last
+
+  my $last = $collection->last;
+
+Return the last element in collection.
+
 =head2 map
 
   my $new = $collection->map(sub {...});
@@ -225,6 +231,12 @@ from the results. The element will be the first argument passed to the
 callback and is also available as C<$_>.
 
   my $doubled = $collection->map(sub { $_ * 2 });
+
+=head2 new
+
+  my $collection = Mojo::Collection->new(1, 2, 3);
+
+Construct a new array-based L<Mojo::Collection> object.
 
 =head2 pluck
 
@@ -283,21 +295,30 @@ Alias for L<Mojo::Base/"tap">.
 
 Create a new collection without duplicate elements.
 
-=head1 ELEMENT METHODS
+=head1 AUTOLOAD
 
-In addition to the methods above, you can also call methods provided by all
-elements in the collection directly and create a new collection from the
+In addition to the L</"METHODS"> above, you can also call methods provided by
+all elements in the collection directly and create a new collection from the
 results, similar to L</"pluck">.
 
   push @$collection, Mojo::DOM->new("<div><h1>$_</h1></div>") for 1 .. 9;
   say $collection->find('h1')->type('h2')->prepend_content('Test ')->root;
 
-=head1 ELEMENTS
+=head1 OPERATORS
 
-Direct array reference access to elements is also possible.
+L<Mojo::Collection> overloads the following operators.
 
-  say $collection->[23];
-  say for @$collection;
+=head2 bool
+
+  my $bool = !!$collection;
+
+True or false, depending on if the collection is empty.
+
+=head2 stringify
+
+  my $str = "$collection";
+
+Stringify elements in collection and L</"join"> them with newlines.
 
 =head1 SEE ALSO
 

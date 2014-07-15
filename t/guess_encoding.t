@@ -5,10 +5,8 @@ use lib './lib', './extlib';
 use Test::More;
 use Test::Mojo;
 use utf8;
-use Data::Dumper;
-use Mojo::IOLoop;
-use Mojolicious::Lite;
 use MojoCheckbot;
+use Mojo::Message::Response;
 
 use Test::More tests => 4;
 
@@ -35,79 +33,32 @@ EOF
 
 utf8::encode($html2);
 
-my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
-
-my $port;
-$port = Mojo::IOLoop->generate_port;
-Mojo::IOLoop->server(port => $port, sub {
-	my ($loop, $stream) = @_;
-	$stream->on(read => sub {
-		my ($stream, $chunk) = @_;
-		$stream->write(
-			"HTTP/1.1 200 OK\x0d\x0a"
-				. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html,
-			sub {shift->close }
-		);
-	});
-});
-
 {
-	my $tx = $ua->get("http://localhost:$port/");
-	is MojoCheckbot::guess_encoding($tx->res), undef, 'right encoding';
+    my $res = Mojo::Message::Response->new;
+    $res->body($html);
+    $res->headers->content_type('text/html');
+    is MojoCheckbot::guess_encoding($res), undef, 'right encoding';
 }
 
-$port = Mojo::IOLoop->generate_port;
-Mojo::IOLoop->server(port => $port, sub {
-	my ($loop, $stream) = @_;
-	$stream->on(read => sub {
-		my ($stream, $chunk) = @_;
-		$stream->write(
-			"HTTP/1.1 200 OK\x0d\x0a"
-				. "Content-Type: text/html\x0d\x0a\x0d\x0a". $html2,
-			sub {shift->close }
-		);
-	});
-});
-
 {
-	my $tx = $ua->get("http://localhost:$port/");
-	is MojoCheckbot::guess_encoding($tx->res), 'cp932', 'right encoding';
+    my $res = Mojo::Message::Response->new;
+    $res->body($html2);
+    $res->headers->content_type('text/html');
+    is MojoCheckbot::guess_encoding($res), 'cp932', 'right encoding';
 }
 
-$port = Mojo::IOLoop->generate_port;
-Mojo::IOLoop->server(port => $port, sub {
-	my ($loop, $stream) = @_;
-	$stream->on(read => sub {
-		my ($stream, $chunk) = @_;
-		$stream->write(
-			"HTTP/1.1 200 OK\x0d\x0a"
-				. "Content-Type: text/html; charset=cp932\x0d\x0a\x0d\x0a". $html,
-			sub {shift->close }
-		);
-	});
-});
-
 {
-	my $tx = $ua->get("http://localhost:$port/");
-	is MojoCheckbot::guess_encoding($tx->res), 'cp932', 'right encoding';
+    my $res = Mojo::Message::Response->new;
+    $res->body($html);
+    $res->headers->content_type('text/html; charset=cp932');
+    is MojoCheckbot::guess_encoding($res), 'cp932', 'right encoding';
 }
 
-$port = Mojo::IOLoop->generate_port;
-Mojo::IOLoop->server(port => $port, sub {
-	my ($loop, $stream) = @_;
-	$stream->on(read => sub {
-		my ($stream, $chunk) = @_;
-		$stream->write(
-			"HTTP/1.1 200 OK\x0d\x0a"
-				. "Content-Type: text/html; charset=cp932; hoge\x0d\x0a\x0d\x0a". $html,
-			sub {shift->close }
-		);
-	});
-});
-
 {
-	my $tx = $ua->get("http://localhost:$port/");
-	is MojoCheckbot::guess_encoding($tx->res), 'cp932', 'right encoding';
+    my $res = Mojo::Message::Response->new;
+    $res->body($html);
+    $res->headers->content_type('text/html; charset=cp932; hoge');
+    is MojoCheckbot::guess_encoding($res), 'cp932', 'right encoding';
 }
 
 1;

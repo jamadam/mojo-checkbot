@@ -7,6 +7,7 @@ use Test::Mojo;
 use utf8;
 use Data::Dumper;
 use Mojo::IOLoop;
+use Mojo::IOLoop::Server;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
@@ -15,7 +16,7 @@ use Test::More tests => 3;
 my $ua = Mojo::UserAgent->new(ioloop => Mojo::IOLoop->singleton);
 my $port;
 
-$port = Mojo::IOLoop->generate_port;
+$port = Mojo::IOLoop::Server->generate_port;
 Mojo::IOLoop->server(port => $port, sub {
     my ($loop, $stream, $id) = @_;
     $stream->on(read => sub {
@@ -31,7 +32,7 @@ Mojo::IOLoop->server(port => $port, sub {
 
 {
     my $queue = {
-        $MojoCheckbot::QUEUE_KEY_RESOLVED_URI 	=> "http://localhost:$port/",
+        $MojoCheckbot::QUEUE_KEY_RESOLVED_URI => "http://localhost:$port/",
     };
     my $res = MojoCheckbot::check($ua, $queue);
     is $queue->{$MojoCheckbot::QUEUE_KEY_RES}, 401, 'right status';

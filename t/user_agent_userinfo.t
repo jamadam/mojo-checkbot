@@ -17,7 +17,7 @@ my $port2;
 my $port3;
 
 {
-    $port = Mojo::IOLoop->generate_port;
+    $port = Mojo::IOLoop::Server->generate_port;
     Mojo::IOLoop->server(port => $port, sub {
         my ($loop, $stream) = @_;
         $stream->on(read => sub {
@@ -34,7 +34,7 @@ my $port3;
     $ua->credentials->{"http://localhost:$port"} = "a:b";
     $ua->get("http://localhost:$port/file1");
 
-    $port2 = Mojo::IOLoop->generate_port;
+    $port2 = Mojo::IOLoop::Server->generate_port;
     Mojo::IOLoop->server(port => $port2, sub {
         my ($loop, $stream) = @_;
         $stream->on(read => sub {
@@ -50,7 +50,7 @@ my $port3;
     $ua->get("http://localhost:$port2/file2");
     $ua->get("http://localhost:$port/file3");
 
-    $port3 = Mojo::IOLoop->generate_port;
+    $port3 = Mojo::IOLoop::Server->generate_port;
     Mojo::IOLoop->server(port => $port3, sub {
         my ($loop, $stream) = @_;
         $stream->on(read => sub {

@@ -12,7 +12,7 @@ sub parse {
   my $config = $json->decode($self->render($content, $file, $conf, $app));
   my $err    = $json->error;
   die qq{Couldn't parse config "$file": $err} if !$config && $err;
-  die qq{Invalid config "$file".} if !$config || ref $config ne 'HASH';
+  die qq{Invalid config "$file"} if !$config || ref $config ne 'HASH';
 
   return $config;
 }
@@ -72,12 +72,15 @@ L<Mojolicious::Plugin::JSONConfig> is a JSON configuration plugin that
 preprocesses its input with L<Mojo::Template>.
 
 The application object can be accessed via C<$app> or the C<app> function. You
-can extend the normal config file C<myapp.json> with C<mode> specific ones
-like C<myapp.$mode.json>. A default configuration filename will be generated
-from the value of L<Mojolicious/"moniker">.
+can extend the normal configuration file C<$moniker.json> with C<mode>
+specific ones like C<$moniker.$mode.json>. A default configuration filename
+will be generated from the value of L<Mojolicious/"moniker">.
 
 The code of this plugin is a good example for learning to build new plugins,
 you're welcome to fork it.
+
+See L<Mojolicious::Plugins/"PLUGINS"> for a list of plugins that are available
+by default.
 
 =head1 OPTIONS
 

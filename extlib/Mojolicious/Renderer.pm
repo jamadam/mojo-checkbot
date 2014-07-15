@@ -3,7 +3,7 @@ use Mojo::Base -base;
 
 use File::Spec::Functions 'catfile';
 use Mojo::Cache;
-use Mojo::JSON;
+use Mojo::JSON 'encode_json';
 use Mojo::Home;
 use Mojo::Loader;
 use Mojo::Util qw(decamelize encode slurp);
@@ -17,7 +17,7 @@ has handlers => sub {
   {
     data => sub { ${$_[2]} = $_[3]{data} },
     text => sub { ${$_[2]} = $_[3]{text} },
-    json => sub { ${$_[2]} = Mojo::JSON->new->encode($_[3]{json}) }
+    json => sub { ${$_[2]} = encode_json($_[3]{json}) }
   };
 };
 has helpers => sub { {} };
@@ -28,6 +28,24 @@ my $HOME = Mojo::Home->new;
 $HOME->parse(
   $HOME->parse($HOME->mojo_lib_dir)->rel_dir('Mojolicious/templates'));
 my %TEMPLATES = map { $_ => slurp $HOME->rel_file($_) } @{$HOME->list_files};
+
+sub accepts {
+  my ($self, $c) = (shift, shift);
+
+  # List representations
+  my $req = $c->req;
+  my @exts = @{$c->app->types->detect($req->headers->accept, $req->is_xhr)};
+  if (!@exts && (my $format = $c->stash->{format} || $req->param('format'))) {
+    push @exts, $format;
+  }
+  return \@exts unless @_;
+
+  # Find best representation
+  for my $ext (@exts) {
+    return $ext if grep { $ext eq $_ } @_;
+  }
+  return @exts ? undef : shift;
+}
 
 sub add_handler { shift->_add(handlers => @_) }
 sub add_helper  { shift->_add(helpers  => @_) }
@@ -57,15 +75,19 @@ sub render {
   my $stash = $c->stash;
   local $stash->{layout}  = $stash->{layout}  if exists $stash->{layout};
   local $stash->{extends} = $stash->{extends} if exists $stash->{extends};
-  delete @{$stash}{qw(layout extends)} if my $partial = $args->{partial};
+
+  # Rendering to string
+  local @{$stash}{keys %$args} if my $ts = delete $args->{'mojo.to_string'};
+  delete @{$stash}{qw(layout extends)} if $ts;
 
   # Merge stash and arguments
-  @{$stash}{keys %$args} = values %$args;
+  %$stash = (%$stash, %$args);
 
   my $options = {
     encoding => $self->encoding,
     handler  => $stash->{handler},
-    template => delete $stash->{template}
+    template => delete $stash->{template},
+    variant  => $stash->{variant}
   };
   my $inline = $options->{inline} = delete $stash->{inline};
   $options->{handler} = defined $options->{handler} ? $options->{handler} : $self->default_handler if defined $inline;
@@ -79,7 +101,8 @@ sub render {
   }
 
   # JSON
-  elsif (my $json = delete $stash->{json}) {
+  elsif (exists $stash->{json}) {
+    my $json = delete $stash->{json};
     $self->handlers->{json}->($self, $c, \$output, {json => $json});
     return $output, 'json';
   }
@@ -91,7 +114,7 @@ sub render {
 
   # Template or templateless handler
   else {
-    $options->{template} ||= $self->_generate_template($c);
+    $options->{template} ||= $self->template_for($c);
     return unless $self->_render_template($c, \$output, $options);
   }
 
@@ -99,9 +122,8 @@ sub render {
   my $content = $stash->{'mojo.content'} ||= {};
   local $content->{content} = $output if $stash->{extends} || $stash->{layout};
   while ((my $extends = $self->_extends($stash)) && !defined $inline) {
-    $options->{handler}  = $stash->{handler};
-    $options->{format}   = $stash->{format} || $self->default_format;
-    $options->{template} = $extends;
+    @$options{qw(handler template)} = ($stash->{handler}, $extends);
+    $options->{format} = $stash->{format} || $self->default_format;
     $self->_render_template($c, \$output, $options);
     $content->{content} = $output
       if $content->{content} !~ /\S/ && $output =~ /\S/;
@@ -109,17 +131,49 @@ sub render {
 
   # Encoding
   $output = encode $options->{encoding}, $output
-    if !$partial && $options->{encoding} && $output;
+    if !$ts && $options->{encoding} && $output;
 
   return $output, $options->{format};
 }
 
+sub template_for {
+  my ($self, $c) = @_;
+
+  # Normal default template
+  my $stash = $c->stash;
+  my ($controller, $action) = @$stash{qw(controller action)};
+  return join '/', split('-', decamelize($controller)), $action
+    if $controller && $action;
+
+  # Try the route name if we don't have controller and action
+  return undef unless my $endpoint = $c->match->endpoint;
+  return $endpoint->name;
+}
+
+sub template_handler {
+  my ($self, $options) = @_;
+  return undef unless my $file = $self->template_name($options);
+  return $self->default_handler unless my $handlers = $self->_handlers($file);
+  return $handlers->[0];
+}
+
 sub template_name {
   my ($self, $options) = @_;
+
   return undef unless my $template = $options->{template};
   return undef unless my $format   = $options->{format};
+  $template .= ".$format";
+
+  # Variants
   my $handler = $options->{handler};
-  return defined $handler ? "$template.$format.$handler" : "$template.$format";
+  if (defined(my $variant = $options->{variant})) {
+    $variant = "$template+$variant";
+    my $handlers = do {my $tmp = $self->_handlers($variant); defined $tmp ? $tmp : []};
+    $template = $variant
+      if @$handlers && !defined $handler || grep { $_ eq $handler } @$handlers;
+  }
+
+  return defined $handler ? "$template.$handler" : $template;
 }
 
 sub template_path {
@@ -134,8 +188,7 @@ sub template_path {
     return $file if -r $file;
   }
 
-  # Fall back to first path
-  return catfile($self->paths->[0], split '/', $name);
+  return undef;
 }
 
 sub _add {
@@ -146,29 +199,6 @@ sub _add {
 
 sub _bundled { $TEMPLATES{"@{[pop]}.html.ep"} }
 
-sub _detect_handler {
-  my ($self, $options) = @_;
-
-  # Templates
-  return undef unless my $file = $self->template_name($options);
-  unless ($self->{templates}) {
-    s/\.(\w+)$// and $self->{templates}{$_} ||= $1
-      for map { sort @{Mojo::Home->new($_)->list_files} } @{$self->paths};
-  }
-  return $self->{templates}{$file} if exists $self->{templates}{$file};
-
-  # DATA templates
-  unless ($self->{data}) {
-    my $loader = Mojo::Loader->new;
-    my @templates = map { sort keys %{$loader->data($_)} } @{$self->classes};
-    s/\.(\w+)$// and $self->{data}{$_} ||= $1 for @templates;
-  }
-  return $self->{data}{$file} if exists $self->{data}{$file};
-
-  # Nothing
-  return undef;
-}
-
 sub _extends {
   my ($self, $stash) = @_;
   my $layout = delete $stash->{layout};
@@ -176,27 +206,30 @@ sub _extends {
   return delete $stash->{extends};
 }
 
-sub _generate_template {
-  my ($self, $c) = @_;
+sub _handlers {
+  my ($self, $file) = @_;
 
-  # Normal default template
-  my $stash      = $c->stash;
-  my $controller = $stash->{controller};
-  my $action     = $stash->{action};
-  return join '/', split(/-/, decamelize($controller)), $action
-    if $controller && $action;
+  unless ($self->{templates}) {
 
-  # Try the route name if we don't have controller and action
-  return undef unless my $endpoint = $c->match->endpoint;
-  return $endpoint->name;
+    # Templates
+    s/\.(\w+)$// and push @{$self->{templates}{$_}}, $1
+      for map { sort @{Mojo::Home->new($_)->list_files} } @{$self->paths};
+
+    # DATA templates
+    my $loader = Mojo::Loader->new;
+    s/\.(\w+)$// and push @{$self->{templates}{$_}}, $1
+      for map { sort keys %{$loader->data($_)} } @{$self->classes};
+  }
+
+  return $self->{templates}{$file};
 }
 
 sub _render_template {
   my ($self, $c, $output, $options) = @_;
 
   # Find handler and render
-  my $handler = $options->{handler} || $self->_detect_handler($options);
-  $options->{handler} = $handler ||= $self->default_handler;
+  my $handler = $options->{handler} ||= $self->template_handler($options);
+  return undef unless $handler;
   if (my $renderer = $self->handlers->{$handler}) {
     return 1 if $renderer->($self, $c, $output, $options);
   }
@@ -220,7 +253,7 @@ Mojolicious::Renderer - Generate dynamic content
 
   my $renderer = Mojolicious::Renderer->new;
   push @{$renderer->classes}, 'MyApp::Foo';
-  push @{renderer->paths}, '/home/sri/templates';
+  push @{$renderer->paths}, '/home/sri/templates';
 
 =head1 DESCRIPTION
 
@@ -304,6 +337,19 @@ Directories to look for templates in, first one has the highest precedence.
 L<Mojolicious::Renderer> inherits all methods from L<Mojo::Base> and
 implements the following new ones.
 
+=head2 accepts
+
+  my $all  = $renderer->accepts(Mojolicious::Controller->new);
+  my $best = $renderer->accepts(Mojolicious::Controller->new, 'html', 'json');
+
+Select best possible representation for L<Mojolicious::Controller> object from
+C<Accept> request header, C<format> stash value or C<format> C<GET>/C<POST>
+parameter, defaults to returning the first extension if no preference could be
+detected. Since browsers often don't really know what they actually want,
+unspecific C<Accept> request headers with more than one MIME type will be
+ignored, unless the C<X-Requested-With> header is set to the value
+C<XMLHttpRequest>.
+
 =head2 add_handler
 
   $renderer = $renderer->add_handler(epl => sub {...});
@@ -336,6 +382,22 @@ Get a C<DATA> section template by name, usually used by handlers.
 
 Render output through one of the renderers. See
 L<Mojolicious::Controller/"render"> for a more user-friendly interface.
+
+=head2 template_for
+
+  my $name = $renderer->template_for(Mojolicious::Controller->new);
+
+Generate default template name for L<Mojolicious::Controller> object.
+
+=head2 template_handler
+
+  my $handler = $renderer->template_handler({
+    template => 'foo/bar',
+    format   => 'html'
+  });
+
+Detect handler based on an options hash reference with C<template> and
+C<format>.
 
 =head2 template_name
 

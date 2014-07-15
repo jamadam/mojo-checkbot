@@ -8,7 +8,7 @@ This document contains some recipes to develop Marquee application.
 
 =head1 INSTALLATION
 
-	$ curl http://get.mrqe.biz/ | sh
+    $ curl http://get.mrqe.biz/ | sh
 
 =head1 GETTING STARTED
 
@@ -44,7 +44,7 @@ The following shows how practical application class look like.
         $self->log_file($self->home->rel_dir('mojo_log/Marquee.log'));
         $self->default_file('index.html');
         $self->under_development(1);
-        $self->secret('g4ioaseut84937');
+        $self->secrets(['g4ioaseut84937']);
         
         return $self;
     }

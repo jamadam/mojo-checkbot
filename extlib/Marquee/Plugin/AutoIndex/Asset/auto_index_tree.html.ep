@@ -1,44 +1,44 @@
 <%
-	my $c 			= shift;
-	my $dir 		= $c->stash->{dir};
-	my $static_dir 	= $c->stash->{static_dir};
-	my $tree_depth	= $c->stash->{tree_depth};
+    my $c           = shift;
+    my $dir         = $c->stash->{dir};
+    my $static_dir  = $c->stash->{static_dir};
+    my $tree_depth  = $c->stash->{tree_depth};
 =%>
 <%= extends '/base.html' => begin %>
-	<% override 'title' => begin %>
-	    <title>Index of <%= $dir %></title>
-	<% end %>
-	<% override 'additionalHead' => begin %>
-		<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/site_file_tree.css") %>" />
-		<script type="text/javascript" src="<%= url_for("$static_dir/site_file_list.js") %>"></script>
-	<% end %>
-	<%= override 'h1AdditionalContent' => begin %>
+    <% override 'title' => begin %>
+        <title>Index of <%= $dir %></title>
+    <% end %>
+    <% override 'additionalHead' => begin %>
+        <link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/site_file_tree.css") %>" />
+        <script type="text/javascript" src="<%= url_for("$static_dir/site_file_list.js") %>"></script>
+    <% end %>
+    <%= override 'h1AdditionalContent' => begin %>
         Index of <code><%= $dir %></code>
-	<% end %>
-	<% override 'mainContent' => begin %>
-		% use File::Basename 'basename';
-		% my $depth = 0;
-		% my $dir_block;
-		% $dir_block = begin
-			<ul>
-				<%= iter filelist(shift) => begin %>
-					% my $name = shift;
-					% if ($depth != 0 && $name->{name} =~ qr/\.\./) {
-					%	return '';
-					% }
-					% if ($name->{type} eq 'dir') {
-						<li class="dir"><a class="dir" href="<%= $name->{name} %>/?mode=tree"><%= basename $name->{name} %></a></li>
-						% if ($depth < $tree_depth && $name->{name} !~ qr/\.\./) {
-							% $depth++;
-							<li><%= $dir_block->($name->{name}) %></li>
-							% $depth--;
-						% }
-					%} else {
-						<li class="file <%= $name->{type} %>"><a href="<%= $name->{name} %>"><%= basename $name->{name} %></a></li>
-					%}
-				<% end %>
-			</ul>
-		% end
-		<%= $dir_block->() %>
-	<% end %>
+    <% end %>
+    <% override 'mainContent' => begin %>
+        % use File::Basename 'basename';
+        % my $depth = 0;
+        % my $dir_block;
+        % $dir_block = begin
+            <ul>
+                <%= iter filelist(shift) => begin %>
+                    % my $name = shift;
+                    % if ($depth != 0 && $name->{name} =~ qr/\.\./) {
+                    %   return '';
+                    % }
+                    % if ($name->{type} eq 'dir') {
+                        <li class="dir"><a class="dir" href="<%= $name->{name} %>/?mode=tree"><%= basename $name->{name} %></a></li>
+                        % if ($depth < $tree_depth && $name->{name} !~ qr/\.\./) {
+                            % $depth++;
+                            <li><%= $dir_block->($name->{name}) %></li>
+                            % $depth--;
+                        % }
+                    %} else {
+                        <li class="file <%= $name->{type} %>"><a href="<%= $name->{name} %>"><%= basename $name->{name} %></a></li>
+                    %}
+                <% end %>
+            </ul>
+        % end
+        <%= $dir_block->() %>
+    <% end %>
 <% end %>

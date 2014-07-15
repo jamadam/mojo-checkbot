@@ -22,7 +22,7 @@ sub register {
         
         for my $entry (@{$self->route->aggregate->data}) {
             my ($regex, $cond, $cb) = @$entry;
-            map {$_->() || next} @$cond;
+            map {$_->($c) || next} @$cond;
             if (my @captures = ($path =~ $regex)) {
                 $cb->($#+ ? @captures : ());
                 

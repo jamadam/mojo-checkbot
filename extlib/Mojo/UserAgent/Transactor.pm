@@ -6,12 +6,12 @@ use Mojo::Asset::File;
 use Mojo::Asset::Memory;
 use Mojo::Content::MultiPart;
 use Mojo::Content::Single;
-use Mojo::JSON;
+use Mojo::JSON 'encode_json';
 use Mojo::Parameters;
 use Mojo::Transaction::HTTP;
 use Mojo::Transaction::WebSocket;
 use Mojo::URL;
-use Mojo::Util 'encode';
+use Mojo::Util qw(encode url_escape);
 
 has generators => sub { {form => \&_form, json => \&_json} };
 has name => 'Mojolicious (Perl)';
@@ -34,7 +34,7 @@ sub endpoint {
 
   # Proxy for normal HTTP requests
   return $self->_proxy($tx, $proto, $host, $port)
-    if $proto eq 'http' && lc(defined $req->headers->upgrade ? $req->headers->upgrade : '') ne 'websocket';
+    if $proto eq 'http' && !$req->is_handshake;
 
   return $proto, $host, $port;
 }
@@ -56,12 +56,12 @@ sub proxy_connect {
 
   # WebSocket and/or HTTPS
   my $url = $req->url;
-  my $upgrade = lc(defined $req->headers->upgrade ? $req->headers->upgrade : '');
-  return undef unless $upgrade eq 'websocket' || $url->protocol eq 'https';
+  return undef unless $req->is_handshake || $url->protocol eq 'https';
 
-  # CONNECT request
+  # CONNECT request (expect a bad response)
   my $new = $self->tx(CONNECT => $url->clone->userinfo(undef));
   $new->req->proxy($proxy);
+  $new->res->content->auto_relax(0)->headers->connection('keep-alive');
 
   return $new;
 }
@@ -71,25 +71,29 @@ sub redirect {
 
   # Commonly used codes
   my $res = $old->res;
-  my $code = defined $res->code ? $res->code : '';
-  return undef unless grep { $_ eq $code } 301, 302, 303, 307, 308;
+  my $code = defined $res->code ? $res->code : 0;
+  return undef unless grep { $_ == $code } 301, 302, 303, 307, 308;
 
-  # Fix broken location without authority and/or scheme
+  # Fix location without authority and/or scheme
   return unless my $location = $res->headers->location;
   $location = Mojo::URL->new($location);
   $location = $location->base($old->req->url)->to_abs unless $location->is_abs;
 
   # Clone request if necessary
-  my $new    = Mojo::Transaction::HTTP->new;
-  my $req    = $old->req;
-  my $method = uc $req->method;
-  if ($code eq 301 || $code eq 307 || $code eq 308) {
-    return undef unless my $req = $req->clone;
-    $new->req($req);
-    $req->headers->remove('Host')->remove('Cookie')->remove('Referer');
+  my $new = Mojo::Transaction::HTTP->new;
+  my $req = $old->req;
+  if ($code == 307 || $code == 308) {
+    return undef unless my $clone = $req->clone;
+    $new->req($clone);
   }
-  elsif ($method ne 'HEAD') { $method = 'GET' }
-  $new->req->method($method)->url($location);
+  else {
+    my $method = uc $req->method;
+    my $headers = $new->req->method($method eq 'POST' ? 'GET' : $method)
+      ->content->headers($req->headers->clone)->headers;
+    $headers->remove($_) for grep {/^content-/i} @{$headers->names};
+  }
+  my $headers = $new->req->url($location)->headers;
+  $headers->remove($_) for qw(Authorization Cookie Host Referer);
   return $new->previous($old);
 }
 
@@ -123,8 +127,8 @@ sub tx {
 
 sub upgrade {
   my ($self, $tx) = @_;
-  my $code = defined $tx->res->code ? $tx->res->code : '';
-  return undef unless $tx->req->headers->upgrade && $code eq '101';
+  my $code = defined $tx->res->code ? $tx->res->code : 0;
+  return undef unless $tx->req->is_handshake && $code == 101;
   my $ws = Mojo::Transaction::WebSocket->new(handshake => $tx, masked => 1);
   return $ws->client_challenge ? $ws : undef;
 }
@@ -181,8 +185,7 @@ sub _form {
 
 sub _json {
   my ($self, $tx, $data) = @_;
-  $tx->req->body(Mojo::JSON->new->encode($data));
-  my $headers = $tx->req->headers;
+  my $headers = $tx->req->body(encode_json($data))->headers;
   $headers->content_type('application/json') unless $headers->content_type;
   return $tx;
 }
@@ -205,7 +208,7 @@ sub _multipart {
         if (my $file = delete $value->{file}) {
           $file = Mojo::Asset::File->new(path => $file) unless ref $file;
           $part->asset($file);
-          $value->{filename} ||= basename $file->path
+          $value->{filename} = defined $value->{filename} ? $value->{filename} : basename $file->path
             if $file->isa('Mojo::Asset::File');
         }
 
@@ -215,7 +218,7 @@ sub _multipart {
         }
 
         # Filename and headers
-        $filename = delete $value->{filename} || $name;
+        $filename = url_escape do {my $tmp = delete $value->{filename}; defined $tmp ? $tmp : $name}, '"';
         $filename = encode $charset, $filename if $charset;
         $headers->from_hash($value);
       }
@@ -227,9 +230,10 @@ sub _multipart {
       }
 
       # Content-Disposition
+      $name = url_escape $name, '"';
       $name = encode $charset, $name if $charset;
       my $disposition = qq{form-data; name="$name"};
-      $disposition .= qq{; filename="$filename"} if $filename;
+      $disposition .= qq{; filename="$filename"} if defined $filename;
       $headers->content_disposition($disposition);
     }
   }
@@ -327,7 +331,7 @@ Actual peer for transaction.
 
   my $tx = $t->proxy_connect(Mojo::Transaction::HTTP->new);
 
-Build L<Mojo::Transaction::HTTP> proxy connect request for transaction if
+Build L<Mojo::Transaction::HTTP> proxy C<CONNECT> request for transaction if
 possible.
 
 =head2 redirect
@@ -380,9 +384,9 @@ requests, with support for content generators.
   my $tx = $t->tx(
     POST => 'http://example.com' => form => {a => 'b', c => 'd'});
 
-  # PUT request with UTF-8 encoded form values
+  # PUT request with Shift_JIS encoded form values
   my $tx = $t->tx(
-    PUT => 'http://example.com' => form => {a => 'b'} => charset => 'UTF-8');
+    PUT => 'example.com' => form => {a => 'b'} => charset => 'Shift_JIS');
 
   # POST request with form values sharing the same name
   my $tx = $t->tx(POST => 'http://example.com' => form => {a => [qw(b c d)]});
@@ -416,9 +420,9 @@ requests, with support for content generators.
   });
 
 The C<form> content generator will automatically use query parameters for
-GET/HEAD requests and the "application/x-www-form-urlencoded" content type for
-everything else. Both get upgraded automatically to using the
-"multipart/form-data" content type when necessary or when the header has been
+C<GET>/C<HEAD> requests and the C<application/x-www-form-urlencoded> content
+type for everything else. Both get upgraded automatically to using the
+C<multipart/form-data> content type when necessary or when the header has been
 set manually.
 
   # Force "multipart/form-data"

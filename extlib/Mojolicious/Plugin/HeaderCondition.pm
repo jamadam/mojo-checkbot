@@ -24,9 +24,8 @@ sub _headers {
 
   # All headers need to match
   my $headers = $c->req->headers;
-  while (my ($name, $pattern) = each %$patterns) {
-    return undef unless _check(scalar $headers->header($name), $pattern);
-  }
+  _check(scalar $headers->header($_), $patterns->{$_}) || return undef
+    for keys %$patterns;
   return 1;
 }
 
@@ -68,6 +67,9 @@ routes.
 
 This is a core plugin, that means it is always enabled and its code a good
 example for learning to build new plugins, you're welcome to fork it.
+
+See L<Mojolicious::Plugins/"PLUGINS"> for a list of plugins that are available
+by default.
 
 =head1 METHODS
 

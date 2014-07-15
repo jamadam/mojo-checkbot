@@ -30,8 +30,8 @@ sub to {
 sub via {
     my ($self, @methods) = @_;
     unshift(@{$self->aggregate->current->[1]}, sub {
-        my $c = Marquee->c;
-        scalar grep {uc $_ eq uc $c->req->method} @methods;
+        my $c = shift;
+        return !! scalar grep{uc $_ eq uc $c->req->method} @methods;
     });
     return $self;
 }
@@ -41,8 +41,8 @@ sub viax {
     $self->via(@methods);
     $self->aggregate->add([$self->aggregate->current->[0]]);
     unshift(@{$self->aggregate->current->[1]}, sub {
-        my $c = Marquee->c;
-        scalar grep {uc $_ ne uc $c->req->method} @methods;
+        my $c = shift;
+        return ! scalar grep {uc $_ eq uc $c->req->method} @methods;
     });
     $self->aggregate->current->[2] = sub {
         my $c = Marquee->c;
@@ -184,8 +184,8 @@ Filters route by HTTP method.
 
 =head2 viax
 
-Filters route by HTTP method exclusively. The method adds two rutes at once,
-the one is same as via method, the other routes non-post requests to 404.
+Filters route by HTTP method exclusively. The method adds two routes at once
+which restricts the HTTP method to given one.
 
     $r->route(qr{^/receptor})->viax('POST')->to(sub {...});
     

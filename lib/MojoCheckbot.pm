@@ -111,7 +111,7 @@ sub fix_key {
 sub new {
     my $self = shift->SUPER::new(@_);
     
-    $self->secret(time());
+    $self->secrets(time());
     $self->document_root(
         File::Spec->catdir(dirname(__FILE__), 'MojoCheckbot', 'public'));
     $self->default_file('index.html');
@@ -189,6 +189,7 @@ sub new {
     $loop_id = MojoCheckbot::IOLoop->blocked_recurring($options{sleep} => sub {
         if (my $queue = shift @$queues) {
             my $res = eval {check($ua, $queue)};
+            
             if ($@) {
                 $queue->{$QUEUE_KEY_ERROR} = $@;
             } else {
@@ -314,7 +315,7 @@ sub check {
     my $base    = $tx->req->url->userinfo(undef);
     
     if (! $code) {
-        die $tx->error || 'Unknown error';
+        die($tx->error->{message} || 'Unknown error');
     }
     
     if (my $location = $tx->res->headers->header('location')) {
@@ -436,10 +437,10 @@ sub _analize_dom {
     if (my $href = $dom->{href} || $dom->{src} ||
         $dom->{content} && ($dom->{content} =~ qr{URL=(.+)}i)[0]) {
         my $context =
-                $dom->content_xml
+                $dom->content
                 || $dom->{alt}
                 || $dom->{title}
-                || $dom->to_xml
+                || $dom->to_string
                 || '';
         if (length($context) > 300) {
             $context = substr($context, 0, 300). '...';
@@ -498,7 +499,7 @@ sub collect_urls {
     });
     $dom->find('style')->each(sub {
         my $dom = shift;
-        if (my $c = $dom->content_xml) {
+        if (my $c = $dom->content) {
             push(@array, collect_urls_from_css($c));
         }
     });

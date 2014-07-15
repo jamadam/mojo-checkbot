@@ -1,64 +1,64 @@
 <%
-	my $c 			= shift;
-	my $static_dir 	= stash('static_dir');
+    my $c           = shift;
+    my $static_dir  = stash('static_dir');
 =%>
 <%= extends '/base.html' => begin %>
-	<% override 'title' => begin %>
-		<title><%= stash('title') %> - Pod viewer</title>
-	<% end %>
-	<% override 'additionalHead' => begin %>
-		<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/pod_viewer/site_perldoc.css") %>" />
-		<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/css/prettify-mojo.css") %>" />
-		<script type="text/javascript" src="<%= url_for("$static_dir/js/prettify.js") %>"></script>
-		<script type="text/javascript">
-		//<![CDATA[
-		$(window).load(function() {
-			prettyPrint()
-		});
-		//]]>
-		</script>
-	<% end %>
-	<%= override 'h1AdditionalContent' => begin %>
-		<code><%= stash('title') %></code>
-	<% end %>
-	<% override 'mainContent' => begin %>
-		% my $link = begin
-			<% my ($ancher, $url) = @_; %>
-			<a href="<%= $url %>" class="mojoscroll"><%= $ancher %></a>
-		% end
-		<h1>
-			<a id="toc">TABLE OF CONTENTS</a>
-		</h1>
-		<ul>
-			% for my $part (@$parts) {
-				<li>
-					%= $link->(splice @$part, 0, 2)
-					% if (@$part) {
-						<ul>
-							% while (@$part) {
-								<li><%= $link->(splice @$part, 0, 2) %></li>
-							% }
-						</ul>
-					% }
-				</li>
-			% }
-		</ul>
-		<%== stash('perldoc') %>
-	<% end %>
-	<% override 'footerContent' => begin %>
-		<% if (scalar $see_also) { %>
-			<div id="auto_detected_see_also">
-				<h2>
-					AUTO DETECTED SEE ALSO
-				</h2>
-				<%= iter $see_also => begin %>
-					% my ($module, $idx) = @_;
-					% my $path = $module;
-					% $path =~ s{::}{/}g;
-					<%= $idx ? ', ' : '' %>
-					<a href="/perldoc/<%= $path %>"><%= $module %></a>
-				<% end %>
-			</div>
-		<% } %>
-	<% end %>
+    <% override 'title' => begin %>
+        <title><%= stash('title') %> - Pod viewer</title>
+    <% end %>
+    <% override 'additionalHead' => begin %>
+        <link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/pod_viewer/site_perldoc.css") %>" />
+        <link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/css/prettify-mojo.css") %>" />
+        <script type="text/javascript" src="<%= url_for("$static_dir/js/prettify.js") %>"></script>
+        <script type="text/javascript">
+        //<![CDATA[
+        $(window).load(function() {
+            prettyPrint()
+        });
+        //]]>
+        </script>
+    <% end %>
+    <%= override 'h1AdditionalContent' => begin %>
+        <code><%= stash('title') %></code>
+    <% end %>
+    <% override 'mainContent' => begin %>
+        % my $link = begin
+            <% my ($ancher, $url) = @_; %>
+            <a href="<%= $url %>" class="mojoscroll"><%= $ancher %></a>
+        % end
+        <h1>
+            <a id="toc">TABLE OF CONTENTS</a>
+        </h1>
+        <ul>
+            % for my $part (@$parts) {
+                <li>
+                    %= $link->(splice @$part, 0, 2)
+                    % if (@$part) {
+                        <ul>
+                            % while (@$part) {
+                                <li><%= $link->(splice @$part, 0, 2) %></li>
+                            % }
+                        </ul>
+                    % }
+                </li>
+            % }
+        </ul>
+        <%== stash('perldoc') %>
+    <% end %>
+    <% override 'footerContent' => begin %>
+        <% if (scalar $see_also) { %>
+            <div id="auto_detected_see_also">
+                <h2>
+                    AUTO DETECTED SEE ALSO
+                </h2>
+                <%= iter $see_also => begin %>
+                    % my ($module, $idx) = @_;
+                    % my $path = $module;
+                    % $path =~ s{::}{/}g;
+                    <%= $idx ? ', ' : '' %>
+                    <a href="/perldoc/<%= $path %>"><%= $module %></a>
+                <% end %>
+            </div>
+        <% } %>
+    <% end %>
 <% end %>
