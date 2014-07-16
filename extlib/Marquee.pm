@@ -18,7 +18,7 @@ use Marquee::SSIHandler::EPL;
 use Marquee::Stash;
 use Marquee::Static;
 use Marquee::Types;
-our $VERSION = '0.28';
+our $VERSION = '0.31';
 
 our $CONTEXT;
 
@@ -32,7 +32,7 @@ __PACKAGE__->attr('route' => sub {
     my $router = $_[0]->plugin(Router => sub {});
     return $router->route;
 });
-__PACKAGE__->attr(secret => sub {md5_hex($^T. $$. rand(1000000))});
+__PACKAGE__->attr(secrets => sub {[md5_hex($^T. $$. rand(1000000))]});
 __PACKAGE__->attr(stash => sub {Marquee::Stash->new});
 __PACKAGE__->attr(static => sub {Marquee::Static->new});
 __PACKAGE__->attr(types => sub { Marquee::Types->new });
@@ -103,10 +103,6 @@ sub dispatch {
     
     my $path = $CONTEXT->req->url->path->clone->canonicalize;
     
-    if (@{$path->parts}[0] && @{$path->parts}[0] eq '..') {
-        return;
-    }
-    
     if (! $CONTEXT->served) {
         if ($path =~ $self->dynamic->handler_re) {
             $self->error_document->serve(403);
@@ -115,9 +111,7 @@ sub dispatch {
     }
     
     if (! $CONTEXT->served) {
-        my $path = _auto_fill_filename($path->clone, $self->default_file);
-        $path->leading_slash(0);
-        $self->serve($path->to_string);
+        $self->serve();
     }
     
     if (! $CONTEXT->served) {
@@ -219,6 +213,19 @@ sub plugin {
 ### --
 sub serve {
     my ($self, $path) = @_;
+    
+    if (! defined $path) {
+        $path = $CONTEXT->req->url->path->clone->canonicalize;
+        if (@{$path->parts}[0] && @{$path->parts}[0] eq '..') {
+            $self->error_document->serve(400);
+            my $path = $CONTEXT->req->url->path;
+            $self->log->fatal(qq{Bad request path "$path", possible directory traversal attempt.});
+            return;
+        }
+        $path = _auto_fill_filename($path->clone, $self->default_file);
+        $path->leading_slash(0);
+    }
+    
     if (my $try1 = $self->static->search($path)) {
         $self->hooks->emit_chain('around_static', $try1);
     } elsif (my $try2 = $self->dynamic->search($path)) {
@@ -329,13 +336,13 @@ Inherited application.
     
     sub new {
         my $self = shift->SUPER::new(@_);
-		
+        
         $self->document_root($self->home->rel_dir('public_html'));
         $self->log_file($self->home->rel_dir('mojo_log/Marquee.log'));
         $self->default_file('index.html');
         $self->under_development(1);
-        $self->secret('g3y3nheher');
-		
+        $self->secrets(['g3y3nheher']);
+        
         return $self;
     }
     
@@ -395,13 +402,21 @@ copy, and followed by bundle directories for Marquee core and plugins.
 
     push(@{$app->roots}, 'path/to/additional_dir')
 
-=head2 C<secret>
+=head2 C<secrets>
 
-A secret passphrase used for signed cookies and the like, defaults to random
+A secret passphrases used for signed cookies and the like, defaults to random
 string. By changing this, you can expire all signed cookies at once.
 
-    my $secret = $app->secret;
-    $app       = $app->secret('passw0rd');
+    my $secrets = $app->secrets;
+    $app       = $app->secrets(['passw0rd']);
+
+Only the first passphrase is used to create new signatures, but all of them for
+verification. So you can increase security without invalidating all your
+existing signed cookies by rotating passphrases, just add new ones to the
+front and remove old ones from the back.
+
+  # Rotate passphrases
+  $app->secrets(['new_passw0rd', 'old_passw0rd', 'very_old_passw0rd']);
 
 =head2 C<stash>
 

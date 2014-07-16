@@ -179,7 +179,7 @@ implements the following new ones.
   my $bool = $file->cleanup;
   $file    = $file->cleanup($bool);
 
-Delete file automatically once it's not used anymore.
+Delete L</"path"> automatically once the file is not used anymore.
 
 =head2 handle
 
@@ -202,7 +202,7 @@ necessary.
   $file      = $file->tmpdir('/tmp');
 
 Temporary directory used to generate L</"path">, defaults to the value of the
-MOJO_TMPDIR environment variable or auto detection.
+C<MOJO_TMPDIR> environment variable or auto detection.
 
 =head1 METHODS
 
@@ -227,7 +227,7 @@ Check if asset contains a specific string.
   my $bytes = $file->get_chunk($offset, $max);
 
 Get chunk of data starting from a specific position, defaults to a maximum
-chunk size of C<131072> bytes.
+chunk size of C<131072> bytes (128KB).
 
 =head2 is_file
 

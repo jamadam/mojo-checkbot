@@ -3,11 +3,10 @@ use Mojo::Base 'Mojo::Message';
 
 use Mojo::Cookie::Response;
 use Mojo::Date;
-use Mojo::Util 'get_line';
 
 has [qw(code message)];
 
-# Umarked codes are from RFC 2616
+# Umarked codes are from RFC 7231
 my %MESSAGES = (
   100 => 'Continue',
   101 => 'Switching Protocols',
@@ -29,7 +28,7 @@ my %MESSAGES = (
   304 => 'Not Modified',
   305 => 'Use Proxy',
   307 => 'Temporary Redirect',
-  308 => 'Permanent Redirect',                 # Draft
+  308 => 'Permanent Redirect',                 # RFC 7238
   400 => 'Bad Request',
   401 => 'Unauthorized',
   402 => 'Payment Required',
@@ -48,7 +47,7 @@ my %MESSAGES = (
   415 => 'Unsupported Media Type',
   416 => 'Request Range Not Satisfiable',
   417 => 'Expectation Failed',
-  418 => "I'm a teapot",                       # :)
+  418 => "I'm a teapot",                       # RFC 2324 :)
   422 => 'Unprocessable Entity',               # RFC 2518 (WebDAV)
   423 => 'Locked',                             # RFC 2518 (WebDAV)
   424 => 'Failed Dependency',                  # RFC 2518 (WebDAV)
@@ -89,17 +88,21 @@ sub cookies {
   return $self;
 }
 
-sub default_message { $MESSAGES{$_[1] || $_[0]->code || 404} || '' }
+sub default_message { $MESSAGES{$_[1] || defined $_[0]->code ? $_[0]->code : 404} || '' }
 
 sub extract_start_line {
   my ($self, $bufref) = @_;
 
   # We have a full response line
-  return undef unless defined(my $line = get_line $bufref);
-  $self->error('Bad response start line') and return undef
-    unless $line =~ m!^\s*HTTP/(\d\.\d)\s+(\d\d\d)\s*(.+)?$!;
-  $self->content->skip_body(1) if $self->code($2)->is_empty;
-  return !!$self->version($1)->message($3)->content->auto_relax(1);
+  return undef unless $$bufref =~ s/^(.*?)\x0d?\x0a//;
+  $self->error({message => 'Bad response start line'}) and return undef
+    unless $1 =~ m!^\s*HTTP/(\d\.\d)\s+(\d\d\d)\s*(.+)?$!;
+
+  my $content = $self->content;
+  $content->skip_body(1) if $self->code($2)->is_empty;
+  $content->auto_relax(1) unless defined $content->auto_relax;
+  $content->expect_close(1) if $1 eq '1.0';
+  return !!$self->version($1)->message($3);
 }
 
 sub fix_headers {
@@ -129,7 +132,7 @@ sub get_start_line_chunk {
 sub is_empty {
   my $self = shift;
   return undef unless my $code = $self->code;
-  return $self->is_status_class(100) || $code eq 204 || $code eq 304;
+  return $self->is_status_class(100) || $code == 204 || $code == 304;
 }
 
 sub is_status_class {
@@ -169,8 +172,9 @@ Mojo::Message::Response - HTTP response
 
 =head1 DESCRIPTION
 
-L<Mojo::Message::Response> is a container for HTTP responses as described in
-L<RFC 2616|http://tools.ietf.org/search/rfc2616>.
+L<Mojo::Message::Response> is a container for HTTP responses based on
+L<RFC 7230|http://tools.ietf.org/html/rfc7230> and
+L<RFC 7231|http://tools.ietf.org/html/rfc7231>.
 
 =head1 EVENTS
 

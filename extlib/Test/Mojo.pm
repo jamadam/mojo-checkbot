@@ -9,7 +9,7 @@ use Mojo::Base -base;
 #  Bender: You're better off dead, I'm telling you, dude.
 #  Fry: Santa Claus is gunning you down!"
 use Mojo::IOLoop;
-use Mojo::JSON;
+use Mojo::JSON 'j';
 use Mojo::JSON::Pointer;
 use Mojo::Server;
 use Mojo::UserAgent;
@@ -21,12 +21,6 @@ has ua => sub { Mojo::UserAgent->new->ioloop(Mojo::IOLoop->singleton) };
 
 # Silent or loud tests
 $ENV{MOJO_LOG_LEVEL} ||= $ENV{HARNESS_IS_VERBOSE} ? 'debug' : 'fatal';
-
-sub new {
-  my $self = shift->SUPER::new;
-  return $self unless my $app = shift;
-  return $self->app(ref $app ? $app : Mojo::Server->new->build_app($app));
-}
 
 sub app {
   my ($self, $app) = @_;
@@ -87,7 +81,7 @@ sub content_type_unlike {
     $regex, $desc);
 }
 
-sub delete_ok { shift->_request_ok(delete => @_) }
+sub delete_ok { shift->_build_ok(DELETE => @_) }
 
 sub element_exists {
   my ($self, $selector, $desc) = @_;
@@ -116,8 +110,8 @@ sub finished_ok {
   return $self->_test('ok', $ok, "WebSocket closed with status $code");
 }
 
-sub get_ok  { shift->_request_ok(get  => @_) }
-sub head_ok { shift->_request_ok(head => @_) }
+sub get_ok  { shift->_build_ok(GET  => @_) }
+sub head_ok { shift->_build_ok(HEAD => @_) }
 
 sub header_is {
   my ($self, $name, $value, $desc) = @_;
@@ -148,41 +142,41 @@ sub header_unlike {
 
 sub json_has {
   my ($self, $p, $desc) = @_;
-  $desc ||= qq{has value for JSON Pointer "$p"};
+  $desc ||= encode 'UTF-8', qq{has value for JSON Pointer "$p"};
   return $self->_test('ok',
-    !!Mojo::JSON::Pointer->new->contains($self->tx->res->json, $p), $desc);
+    !!Mojo::JSON::Pointer->new($self->tx->res->json)->contains($p), $desc);
 }
 
 sub json_hasnt {
   my ($self, $p, $desc) = @_;
-  $desc ||= qq{has no value for JSON Pointer "$p"};
+  $desc ||= encode 'UTF-8', qq{has no value for JSON Pointer "$p"};
   return $self->_test('ok',
-    !Mojo::JSON::Pointer->new->contains($self->tx->res->json, $p), $desc);
+    !Mojo::JSON::Pointer->new($self->tx->res->json)->contains($p), $desc);
 }
 
 sub json_is {
   my $self = shift;
-  my ($p, $data) = ref $_[0] ? ('', shift) : (shift, shift);
-  my $desc = shift || qq{exact match for JSON Pointer "$p"};
+  my ($p, $data) = @_ > 1 ? (shift, shift) : ('', shift);
+  my $desc = encode 'UTF-8', shift || qq{exact match for JSON Pointer "$p"};
   return $self->_test('is_deeply', $self->tx->res->json($p), $data, $desc);
 }
 
 sub json_message_has {
   my ($self, $p, $desc) = @_;
-  $desc ||= qq{has value for JSON Pointer "$p"};
+  $desc ||= encode 'UTF-8', qq{has value for JSON Pointer "$p"};
   return $self->_test('ok', $self->_json(contains => $p), $desc);
 }
 
 sub json_message_hasnt {
   my ($self, $p, $desc) = @_;
-  $desc ||= qq{has no value for JSON Pointer "$p"};
+  $desc ||= encode 'UTF-8', qq{has no value for JSON Pointer "$p"};
   return $self->_test('ok', !$self->_json(contains => $p), $desc);
 }
 
 sub json_message_is {
   my $self = shift;
-  my ($p, $data) = ref $_[0] ? ('', shift) : (shift, shift);
-  my $desc = shift || qq{exact match for JSON Pointer "$p"};
+  my ($p, $data) = @_ > 1 ? (shift, shift) : ('', shift);
+  my $desc = encode 'UTF-8', shift || qq{exact match for JSON Pointer "$p"};
   return $self->_test('is_deeply', $self->_json(get => $p), $data, $desc);
 }
 
@@ -211,7 +205,13 @@ sub message_unlike {
   return $self->_message('unlike', $regex, $desc || 'message is not similar');
 }
 
-sub options_ok { shift->_request_ok(options => @_) }
+sub new {
+  my $self = shift->SUPER::new;
+  return $self unless my $app = shift;
+  return $self->app(ref $app ? $app : Mojo::Server->new->build_app($app));
+}
+
+sub options_ok { shift->_build_ok(OPTIONS => @_) }
 
 sub or {
   my ($self, $cb) = @_;
@@ -219,15 +219,11 @@ sub or {
   return $self;
 }
 
-sub patch_ok { shift->_request_ok(patch => @_) }
-sub post_ok  { shift->_request_ok(post  => @_) }
-sub put_ok   { shift->_request_ok(put   => @_) }
+sub patch_ok { shift->_build_ok(PATCH => @_) }
+sub post_ok  { shift->_build_ok(POST  => @_) }
+sub put_ok   { shift->_build_ok(PUT   => @_) }
 
-sub request_ok {
-  my $self = shift;
-  my $tx   = $self->tx($self->ua->start(shift))->tx;
-  return $self->_test('ok', $tx->is_finished, shift || 'perform request');
-}
+sub request_ok { shift->_request_ok($_[0], $_[0]->req->url->to_string) }
 
 sub reset_session {
   my $self = shift;
@@ -280,37 +276,25 @@ sub text_unlike {
 }
 
 sub websocket_ok {
-  my ($self, $url) = (shift, shift);
+  my $self = shift;
+  return $self->_request_ok($self->ua->build_websocket_tx(@_), $_[0]);
+}
 
-  # Establish WebSocket connection
-  $self->{messages} = [];
-  $self->{finished} = undef;
-  $self->ua->websocket(
-    $url => @_ => sub {
-      my ($ua, $tx) = @_;
-      $self->tx($tx);
-      $tx->on(finish => sub { shift; $self->{finished} = [@_] });
-      $tx->on(binary => sub { push @{$self->{messages}}, [binary => pop] });
-      $tx->on(text   => sub { push @{$self->{messages}}, [text   => pop] });
-      Mojo::IOLoop->stop;
-    }
-  );
-  Mojo::IOLoop->start;
-
-  my $desc = encode 'UTF-8', "WebSocket $url";
-  return $self->_test('ok', $self->tx->is_websocket, $desc);
+sub _build_ok {
+  my ($self, $method, $url) = (shift, shift, shift);
+  local $Test::Builder::Level = $Test::Builder::Level + 1;
+  return $self->_request_ok($self->ua->build_tx($method, $url, @_), $url);
 }
 
 sub _json {
   my ($self, $method, $p) = @_;
-  return Mojo::JSON::Pointer->new->$method(
-    Mojo::JSON->new->decode(@{$self->message}[1]), $p);
+  return Mojo::JSON::Pointer->new(j(@{defined $self->message ? $self->message : []}[1]))->$method($p);
 }
 
 sub _message {
   my ($self, $name, $value, $desc) = @_;
   local $Test::Builder::Level = $Test::Builder::Level + 1;
-  my ($type, $msg) = @{$self->message};
+  my ($type, $msg) = @{defined $self->message ? $self->message : []};
 
   # Type check
   if (ref $value eq 'HASH') {
@@ -326,14 +310,36 @@ sub _message {
 }
 
 sub _request_ok {
-  my ($self, $method, $url) = (shift, shift, shift);
+  my ($self, $tx, $url) = @_;
 
-  # Perform request against application
-  $self->tx($self->ua->$method($url, @_));
   local $Test::Builder::Level = $Test::Builder::Level + 1;
-  my ($err, $code) = $self->tx->error;
-  Test::More::diag $err if !(my $ok = !$err || $code) && $err;
-  return $self->_test('ok', $ok, encode('UTF-8', "@{[uc $method]} $url"));
+
+  # Establish WebSocket connection
+  if ($tx->req->is_handshake) {
+    @$self{qw(finished messages)} = (undef, []);
+    $self->ua->start(
+      $tx => sub {
+        my ($ua, $tx) = @_;
+        $self->tx($tx);
+        $tx->on(finish => sub { shift; $self->{finished} = [@_] });
+        $tx->on(binary => sub { push @{$self->{messages}}, [binary => pop] });
+        $tx->on(text   => sub { push @{$self->{messages}}, [text   => pop] });
+        Mojo::IOLoop->stop;
+      }
+    );
+    Mojo::IOLoop->start;
+
+    my $desc = encode 'UTF-8', "WebSocket $url";
+    return $self->_test('ok', $self->tx->is_websocket, $desc);
+  }
+
+  # Perform request
+  $self->tx($self->ua->start($tx));
+  my $err = $self->tx->error;
+  Test::More::diag $err->{message}
+    if !(my $ok = !$err->{message} || $err->{code}) && $err;
+  my $desc = encode 'UTF-8', "@{[uc $tx->req->method]} $url";
+  return $self->_test('ok', $ok, $desc);
 }
 
 sub _test {
@@ -469,20 +475,12 @@ User agent used for testing, defaults to a L<Mojo::UserAgent> object.
 L<Test::Mojo> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
-=head2 new
-
-  my $t = Test::Mojo->new;
-  my $t = Test::Mojo->new('MyApp');
-  my $t = Test::Mojo->new(MyApp->new);
-
-Construct a new L<Test::Mojo> object.
-
 =head2 app
 
   my $app = $t->app;
   $t      = $t->app(MyApp->new);
 
-Access application with L<Mojo::UserAgent/"app">.
+Access application with L<Mojo::UserAgent::Server/"app">.
 
   # Change log level
   $t->app->log->level('fatal');
@@ -490,6 +488,10 @@ Access application with L<Mojo::UserAgent/"app">.
   # Test application directly
   is $t->app->defaults->{foo}, 'bar', 'right value';
   ok $t->app->routes->find('echo')->is_websocket, 'WebSocket route';
+  my $c = $t->app->build_controller;
+  ok $c->render(template => 'foo'), 'rendering was successful';
+  is $c->res->status, 200, 'right status';
+  is $c->res->body, 'Foo!', 'right content';
 
   # Change application behavior
   $t->app->hook(before_dispatch => sub {
@@ -567,7 +569,7 @@ Opposite of L</"content_type_like">.
   $t = $t->delete_ok('/foo' => {DNT => 1} => form => {a => 'b'});
   $t = $t->delete_ok('/foo' => {DNT => 1} => json => {a => 'b'});
 
-Perform a DELETE request and check for transport errors, takes the same
+Perform a C<DELETE> request and check for transport errors, takes the same
 arguments as L<Mojo::UserAgent/"delete">, except for the callback.
 
 =head2 element_exists
@@ -576,7 +578,7 @@ arguments as L<Mojo::UserAgent/"delete">, except for the callback.
   $t = $t->element_exists('html head title', 'has a title');
 
 Checks for existence of the CSS selectors first matching HTML/XML element with
-L<Mojo::DOM>.
+L<Mojo::DOM/"at">.
 
 =head2 element_exists_not
 
@@ -606,7 +608,7 @@ Wait for WebSocket connection to be closed gracefully and check status.
   $t = $t->get_ok('/foo' => {DNT => 1} => form => {a => 'b'});
   $t = $t->get_ok('/foo' => {DNT => 1} => json => {a => 'b'});
 
-Perform a GET request and check for transport errors, takes the same
+Perform a C<GET> request and check for transport errors, takes the same
 arguments as L<Mojo::UserAgent/"get">, except for the callback.
 
   # Run tests against remote host
@@ -619,7 +621,7 @@ arguments as L<Mojo::UserAgent/"get">, except for the callback.
   $t = $t->head_ok('/foo' => {DNT => 1} => form => {a => 'b'});
   $t = $t->head_ok('/foo' => {DNT => 1} => json => {a => 'b'});
 
-Perform a HEAD request and check for transport errors, takes the same
+Perform a C<HEAD> request and check for transport errors, takes the same
 arguments as L<Mojo::UserAgent/"head">, except for the callback.
 
 =head2 header_is
@@ -668,7 +670,6 @@ Opposite of L</"json_has">.
 =head2 json_is
 
   $t = $t->json_is({foo => [1, 2, 3]});
-  $t = $t->json_is({foo => [1, 2, 3]}, 'right content');
   $t = $t->json_is('/foo' => [1, 2, 3]);
   $t = $t->json_is('/foo/1' => 2, 'right value');
 
@@ -693,7 +694,6 @@ Opposite of L</"json_message_has">.
 =head2 json_message_is
 
   $t = $t->json_message_is({foo => [1, 2, 3]});
-  $t = $t->json_message_is({foo => [1, 2, 3]}, 'right content');
   $t = $t->json_message_is('/foo' => [1, 2, 3]);
   $t = $t->json_message_is('/foo/1' => 2, 'right value');
 
@@ -751,6 +751,14 @@ Wait for next WebSocket message to arrive.
 
 Opposite of L</"message_like">.
 
+=head2 new
+
+  my $t = Test::Mojo->new;
+  my $t = Test::Mojo->new('MyApp');
+  my $t = Test::Mojo->new(MyApp->new);
+
+Construct a new L<Test::Mojo> object.
+
 =head2 options_ok
 
   $t = $t->options_ok('/foo');
@@ -758,7 +766,7 @@ Opposite of L</"message_like">.
   $t = $t->options_ok('/foo' => {DNT => 1} => form => {a => 'b'});
   $t = $t->options_ok('/foo' => {DNT => 1} => json => {a => 'b'});
 
-Perform a OPTIONS request and check for transport errors, takes the same
+Perform a C<OPTIONS> request and check for transport errors, takes the same
 arguments as L<Mojo::UserAgent/"options">, except for the callback.
 
 =head2 or
@@ -778,7 +786,7 @@ Invoke callback if the value of L</"success"> is false.
   $t = $t->patch_ok('/foo' => {DNT => 1} => form => {a => 'b'});
   $t = $t->patch_ok('/foo' => {DNT => 1} => json => {a => 'b'});
 
-Perform a PATCH request and check for transport errors, takes the same
+Perform a C<PATCH> request and check for transport errors, takes the same
 arguments as L<Mojo::UserAgent/"patch">, except for the callback.
 
 =head2 post_ok
@@ -788,7 +796,7 @@ arguments as L<Mojo::UserAgent/"patch">, except for the callback.
   $t = $t->post_ok('/foo' => {DNT => 1} => form => {a => 'b'});
   $t = $t->post_ok('/foo' => {DNT => 1} => json => {a => 'b'});
 
-Perform a POST request and check for transport errors, takes the same
+Perform a C<POST> request and check for transport errors, takes the same
 arguments as L<Mojo::UserAgent/"post">, except for the callback.
 
   # Test file upload
@@ -807,19 +815,23 @@ arguments as L<Mojo::UserAgent/"post">, except for the callback.
   $t = $t->put_ok('/foo' => {DNT => 1} => form => {a => 'b'});
   $t = $t->put_ok('/foo' => {DNT => 1} => json => {a => 'b'});
 
-Perform a PUT request and check for transport errors, takes the same
+Perform a C<PUT> request and check for transport errors, takes the same
 arguments as L<Mojo::UserAgent/"put">, except for the callback.
 
 =head2 request_ok
 
   $t = $t->request_ok(Mojo::Transaction::HTTP->new);
-  $t = $t->request_ok(Mojo::Transaction::HTTP->new, 'request successful');
 
 Perform request and check for transport errors.
 
   # Request with custom method
   my $tx = $t->ua->build_tx(FOO => '/test.json' => json => {foo => 1});
   $t->request_ok($tx)->status_is(200)->json_is({success => 1});
+
+  # Custom WebSocket handshake
+ my $tx = $t->ua->build_websocket_tx('/foo');
+ $tx->req->headers->remove('User-Agent');
+ $t->request_ok($tx)->message_ok->message_is('bar')->finish_ok;
 
 =head2 reset_session
 
@@ -865,7 +877,7 @@ Opposite of L</"status_is">.
   $t = $t->text_is('html head title' => 'Hello!', 'right title');
 
 Checks text content of the CSS selectors first matching HTML/XML element for
-exact match with L<Mojo::DOM>.
+exact match with L<Mojo::DOM/"at">.
 
 =head2 text_isnt
 
@@ -880,7 +892,7 @@ Opposite of L</"text_is">.
   $t = $t->text_like('html head title' => qr/Hello/, 'right title');
 
 Checks text content of the CSS selectors first matching HTML/XML element for
-similar match with L<Mojo::DOM>.
+similar match with L<Mojo::DOM/"at">.
 
 =head2 text_unlike
 
@@ -896,6 +908,13 @@ Opposite of L</"text_like">.
 
 Open a WebSocket connection with transparent handshake, takes the same
 arguments as L<Mojo::UserAgent/"websocket">, except for the callback.
+
+  # WebSocket with permessage-deflate compression
+  $t->websocket('/x' => {'Sec-WebSocket-Extensions' => 'permessage-deflate'})
+    ->send_ok('y' x 50000)
+    ->message_ok
+    ->message_is('z' x 50000)
+    ->finish_ok;
 
 =head1 SEE ALSO
 

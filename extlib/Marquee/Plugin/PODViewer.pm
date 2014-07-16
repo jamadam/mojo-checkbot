@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Mojo::ByteStream 'b';
 use Mojo::DOM;
-use Mojo::Util qw'url_escape encode decode';
+use Mojo::Util qw'url_escape unindent encode decode';
 use Mojo::Base 'Marquee::Plugin';
 use Pod::Simple::HTML;
 use Pod::Simple::Search;
@@ -79,12 +79,13 @@ sub serve_pod {
     });
 
     # Rewrite code blocks for syntax highlighting
-    $dom->find('pre')->each(sub {
-        my $e = shift;
-        my $attr = $e->attr;
-        my $class = $attr->{class};
-        $attr->{class} = defined $class ? "$class prettyprint" : 'prettyprint';
-    });
+    for my $e ($dom->find('pre')->each) {
+        $e->content(my $str = unindent $e->content);
+        next if $str =~ /^\s*(?:\$|Usage:)\s+/m || $str !~ /[\$\@\%]\w|-&gt;\w/m;
+        my $attrs = $e->attr;
+        my $class = $attrs->{class};
+        $attrs->{class} = defined $class ? "$class prettyprint" : 'prettyprint';
+    }
     
     # Rewrite headers
     my (%anchors, @parts);
@@ -99,7 +100,7 @@ sub serve_pod {
         $anchor = $org . $i++ while $anchors{$anchor}++;
         push @parts, [] if $e->type eq 'h1' || !@parts;
         push @{$parts[-1]}, $text, "#$anchor";
-        $e->replace_content(qq{<a name="$anchor">$text</a>});
+        $e->content(qq{<a name="$anchor">$text</a>});
     });
     
     # Try to find a title

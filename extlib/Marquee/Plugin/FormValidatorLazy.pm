@@ -34,7 +34,7 @@ sub register {
             
             my $wrapper = deserialize(unsign(
                 $req->param($schema_key),
-                ($c->session->{$sess_key} || ''). $app->secret
+                ($c->session->{$sess_key} || ''). $app->secrets->[0]
             ));
             
             $req->params->remove($schema_key);
@@ -67,7 +67,7 @@ sub register {
                 $c->res->body,
                 $actions,
                 $schema_key,
-                $sessid. $app->secret,
+                $sessid. $app->secrets->[0],
                 $c->res->content->charset)
             );
         }

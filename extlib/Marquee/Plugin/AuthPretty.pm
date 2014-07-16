@@ -25,7 +25,7 @@ sub register {
         
         my $c       = Marquee->c;
         my $path    = $c->req->url->path->clone->leading_slash(1)->to_string;
-        my $secret  = $c->app->secret;
+        my $secret  = $c->app->secrets->[0];
         
         my @entries = @$entries;
         while (@entries) {

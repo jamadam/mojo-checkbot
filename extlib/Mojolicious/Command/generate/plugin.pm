@@ -4,8 +4,8 @@ use Mojo::Base 'Mojolicious::Command';
 use Mojo::Util qw(camelize class_to_path);
 use Mojolicious;
 
-has description => "Generate Mojolicious plugin directory structure.\n";
-has usage       => "usage: $0 generate plugin [NAME]\n";
+has description => 'Generate Mojolicious plugin directory structure.';
+has usage => sub { shift->extract_usage };
 
 sub run {
   my ($self, $name) = @_;
@@ -15,13 +15,14 @@ sub run {
   my $class = $name =~ /^[a-z]/ ? camelize($name) : $name;
   $class = "Mojolicious::Plugin::$class";
   my $app = class_to_path $class;
-  $self->render_to_rel_file('class', "$name/lib/$app", $class, $name);
+  my $dir = join '-', split '::', $class;
+  $self->render_to_rel_file('class', "$dir/lib/$app", $class, $name);
 
   # Test
-  $self->render_to_rel_file('test', "$name/t/basic.t", $name);
+  $self->render_to_rel_file('test', "$dir/t/basic.t", $name);
 
   # Makefile
-  $self->render_to_rel_file('makefile', "$name/Makefile.PL", $class, $app);
+  $self->render_to_rel_file('makefile', "$dir/Makefile.PL", $class, $app);
 }
 
 1;
@@ -87,8 +88,8 @@ use Test::Mojo;
 plugin '<%= $name %>';
 
 get '/' => sub {
-  my $self = shift;
-  $self->render(text => 'Hello Mojo!');
+  my $c = shift;
+  $c->render(text => 'Hello Mojo!');
 };
 
 my $t = Test::Mojo->new;
@@ -121,10 +122,7 @@ Mojolicious::Command::generate::plugin - Plugin generator command
 
 =head1 SYNOPSIS
 
-  use Mojolicious::Command::generate::plugin;
-
-  my $plugin = Mojolicious::Command::generate::plugin->new;
-  $plugin->run(@ARGV);
+  Usage: APPLICATION generate plugin [NAME]
 
 =head1 DESCRIPTION
 
@@ -133,6 +131,9 @@ fully functional L<Mojolicious> plugins.
 
 This is a core command, that means it is always enabled and its code a good
 example for learning to build new commands, you're welcome to fork it.
+
+See L<Mojolicious::Commands/"COMMANDS"> for a list of commands that are
+available by default.
 
 =head1 ATTRIBUTES
 

@@ -34,8 +34,8 @@ EOF
 
 my $dom = Mojo::DOM->new($html);
 my @array = MojoCheckbot::collect_urls($dom);
-is_deeply shift @array, {2 => 'css1.css', 1 => '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'}, 'right url';
-is_deeply shift @array, {2 => 'css2.css', 1 => '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;'}, 'right url';
+is_deeply shift @array, {2 => 'css1.css', 1 => '&lt;link href=&quot;css1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot;&gt;'}, 'right url';
+is_deeply shift @array, {2 => 'css2.css', 1 => '&lt;link href=&quot;css2.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot;&gt;'}, 'right url';
 is_deeply shift @array, {2 => 'js1.js', 1 => '&lt;script src=&quot;js1.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'}, 'right url';
 is_deeply shift @array, {2 => 'js2.js', 1 => '&lt;script src=&quot;js2.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;'}, 'right url';
 is_deeply shift @array, {2 => 'index1.html', 1 => 'A'}, 'right url';

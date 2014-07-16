@@ -4,13 +4,10 @@ use overload bool => sub {1}, '""' => sub { shift->to_string }, fallback => 1;
 
 use Mojo::Parameters;
 use Mojo::Path;
-use Mojo::Util
-  qw(deprecated punycode_decode punycode_encode url_escape url_unescape);
+use Mojo::Util qw(punycode_decode punycode_encode url_escape url_unescape);
 
 has base => sub { Mojo::URL->new };
 has [qw(fragment host port scheme userinfo)];
-
-sub new { shift->SUPER::new->parse(@_) }
 
 sub authority {
   my $self = shift;
@@ -31,14 +28,16 @@ sub authority {
   }
 
   # Build authority
-  return undef unless defined(my $authority = $self->ihost);
-  if (my $userinfo = $self->userinfo) {
-    $userinfo = url_escape $userinfo, '^A-Za-z0-9\-._~!$&\'()*+,;=:';
-    $authority = $userinfo . '@' . $authority;
-  }
-  if (my $port = $self->port) { $authority .= ":$port" }
+  return undef unless defined(my $authority = $self->host_port);
+  return $authority unless my $info = $self->userinfo;
+  return url_escape($info, '^A-Za-z0-9\-._~!$&\'()*+,;=:') . '@' . $authority;
+}
 
-  return $authority;
+sub host_port {
+  my $self = shift;
+  return undef unless defined(my $host = $self->ihost);
+  return $host unless my $port = $self->port;
+  return "$host:$port";
 }
 
 sub clone {
@@ -46,8 +45,7 @@ sub clone {
 
   my $clone = $self->new;
   $clone->$_($self->$_) for qw(scheme userinfo host port fragment);
-  $clone->path($self->path->clone);
-  $clone->query($self->query->clone);
+  $clone->path($self->path->clone)->query($self->query->clone);
   $clone->base($self->base->clone) if $self->{base};
 
   return $clone;
@@ -73,9 +71,10 @@ sub ihost {
 
 sub is_abs { !!shift->scheme }
 
+sub new { @_ > 1 ? shift->SUPER::new->parse(@_) : shift->SUPER::new }
+
 sub parse {
   my ($self, $url) = @_;
-  return $self unless $url;
 
   # Official regex from RFC 3986
   $url =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!;
@@ -96,7 +95,13 @@ sub path {
   return $self;
 }
 
-sub protocol { lc(do { my $tmp = shift->scheme; defined $tmp ? $tmp : ''} ) }
+sub path_query {
+  my $self  = shift;
+  my $query = $self->query->to_string;
+  return $self->path->to_string . (length $query ? "?$query" : '');
+}
+
+sub protocol { lc(defined $_[0]->scheme ? $_[0]->scheme : '') }
 
 sub query {
   my $self = shift;
@@ -160,35 +165,6 @@ sub to_abs {
   return $abs;
 }
 
-# DEPRECATED in Top Hat!
-sub to_rel {
-  deprecated 'Mojo::URL::to_rel is DEPRECATED';
-  my $self = shift;
-
-  my $rel = $self->clone;
-  return $rel unless $rel->is_abs;
-
-  # Scheme and authority
-  my $base = shift || $rel->base;
-  $rel->base($base)->scheme(undef);
-  $rel->userinfo(undef)->host(undef)->port(undef) if $base->authority;
-
-  # Path
-  my @parts      = @{$rel->path->parts};
-  my $base_path  = $base->path;
-  my @base_parts = @{$base_path->parts};
-  pop @base_parts unless $base_path->trailing_slash;
-  while (@parts && @base_parts && $parts[0] eq $base_parts[0]) {
-    shift @$_ for \@parts, \@base_parts;
-  }
-  my $path = $rel->path(Mojo::Path->new)->path;
-  $path->leading_slash(1) if $rel->authority;
-  $path->parts([('..') x @base_parts, @parts]);
-  $path->trailing_slash(1) if $self->path->trailing_slash;
-
-  return $rel;
-}
-
 sub to_string {
   my $self = shift;
 
@@ -200,12 +176,9 @@ sub to_string {
   my $authority = $self->authority;
   $url .= "//$authority" if defined $authority;
 
-  # Path
-  my $path = $self->path->to_string;
-  $url .= !$authority || $path eq '' || $path =~ m!^/! ? $path : "/$path";
-
-  # Query
-  if (length(my $query = $self->query->to_string)) { $url .= "?$query" }
+  # Path and query
+  my $path = $self->path_query;
+  $url .= !$authority || $path eq '' || $path =~ m!^[/?]! ? $path : "/$path";
 
   # Fragment
   return $url unless defined(my $fragment = $self->fragment);
@@ -249,8 +222,8 @@ Mojo::URL - Uniform Resource Locator
 =head1 DESCRIPTION
 
 L<Mojo::URL> implements a subset of
-L<RFC 3986|http://tools.ietf.org/search/rfc3986> and
-L<RFC 3987|http://tools.ietf.org/search/rfc3987> for Uniform Resource Locators
+L<RFC 3986|http://tools.ietf.org/html/rfc3986> and
+L<RFC 3987|http://tools.ietf.org/html/rfc3987> for Uniform Resource Locators
 with support for IDNA and IRIs.
 
 =head1 ATTRIBUTES
@@ -294,8 +267,8 @@ Scheme part of this URL.
 
 =head2 userinfo
 
-  my $userinfo = $url->userinfo;
-  $url         = $url->userinfo('root:pass%3Bw0rd');
+  my $info = $url->userinfo;
+  $url     = $url->userinfo('root:pass%3Bw0rd');
 
 Userinfo part of this URL.
 
@@ -303,13 +276,6 @@ Userinfo part of this URL.
 
 L<Mojo::URL> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
-
-=head2 new
-
-  my $url = Mojo::URL->new;
-  my $url = Mojo::URL->new('http://127.0.0.1:3000/foo?f=b&baz=2#foo');
-
-Construct a new L<Mojo::URL> object and L</"parse"> URL if necessary.
 
 =head2 authority
 
@@ -323,6 +289,15 @@ Authority part of this URL.
   my $url2 = $url->clone;
 
 Clone this URL.
+
+=head2 host_port
+
+  my $host_port = $url->host_port;
+
+Normalized version of L</"host"> and L</"port">.
+
+  # "xn--da5b0n.net:8080"
+  Mojo::URL->new('http://☃.net:8080/test')->host_port;
 
 =head2 ihost
 
@@ -339,6 +314,13 @@ Host part of this URL in punycode format.
   my $bool = $url->is_abs;
 
 Check if URL is absolute.
+
+=head2 new
+
+  my $url = Mojo::URL->new;
+  my $url = Mojo::URL->new('http://127.0.0.1:3000/foo?f=b&baz=2#foo');
+
+Construct a new L<Mojo::URL> object and L</"parse"> URL if necessary.
 
 =head2 parse
 
@@ -373,6 +355,12 @@ defaults to a L<Mojo::Path> object.
 
   # "http://example.com/perldoc/Mojo/DOM/HTML"
   Mojo::URL->new('http://example.com/perldoc/Mojo/')->path('DOM/HTML');
+
+=head2 path_query
+
+  my $path_query = $url->path_query;
+
+Normalized version of L</"path"> and L</"query">.
 
 =head2 protocol
 
@@ -435,9 +423,24 @@ provided base URL.
 =head2 to_string
 
   my $str = $url->to_string;
-  my $str = "$url";
 
 Turn URL into a string.
+
+=head1 OPERATORS
+
+L<Mojo::URL> overloads the following operators.
+
+=head2 bool
+
+  my $bool = !!$url;
+
+Always true.
+
+=head2 stringify
+
+  my $str = "$url";
+
+Alias for L</to_string>.
 
 =head1 SEE ALSO
 

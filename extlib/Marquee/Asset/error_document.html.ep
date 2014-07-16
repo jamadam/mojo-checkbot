@@ -1,27 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
-<head>
-	<%
-		my $c 			= shift;
-		my $code		= stash('code');
-		my $message		= stash('message');
-		my $static_dir 	= stash('static_dir');
-	%>
-    <title><%= $code %> <%= $message %></title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta http-equiv="Content-Script-Type" content="text/javascript" />
-	<meta http-equiv="Content-Style-Type" content="text/css" />
-	<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-reset.css") %>" />
-	<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-fonts.css") %>" />
-	<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/site_error_document.css") %>" />
-	<link rel="shortcut icon" href="<%= url_for("$static_dir/favicon.ico") %>" />
-    <script type="text/javascript" src="<%= url_for("$static_dir/jquery.1.7.1.js") %>"></script>
-</head>
-<body>
-	<div id="wrapper">
-		<span id="code"><%= $code %></span>
-		<span id="message"><%= $message %></span>
-	</div>
-</body>
-</html>
+<!DOCTYPE html>
+<%
+    my $c           = shift;
+    my $code        = stash('code');
+    my $message     = stash('message');
+    my $static_dir  = stash('static_dir');
+%>
+<title><%= $code %> <%= $message %></title>
+<meta charset="UTF-8" />
+<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-reset.css") %>" />
+<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/yui-fonts.css") %>" />
+<link type="text/css" rel="stylesheet" href="<%= url_for("$static_dir/site_error_document.css") %>" />
+<link rel="shortcut icon" href="<%= url_for("$static_dir/favicon.ico") %>" />
+<script type="text/javascript" src="<%= url_for("$static_dir/jquery.1.7.1.js") %>"></script>
+
+<div id="wrapper">
+    <span id="code"><%= $code %></span>
+    <span id="message"><%= $message %></span>
+</div>

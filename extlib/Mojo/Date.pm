@@ -11,13 +11,10 @@ my @MONTHS = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 my %MONTHS;
 @MONTHS{@MONTHS} = (0 .. 11);
 
-sub new { shift->SUPER::new->parse(@_) }
+sub new { @_ > 1 ? shift->SUPER::new->parse(@_) : shift->SUPER::new }
 
 sub parse {
   my ($self, $date) = @_;
-
-  # Invalid
-  return $self unless defined $date;
 
   # epoch (784111777)
   return $self->epoch($date) if $date =~ /^\d+$/;
@@ -49,7 +46,7 @@ sub parse {
 sub to_string {
   my $self = shift;
 
-  # RFC 2616 (Sun, 06 Nov 1994 08:49:37 GMT)
+  # RFC 7231 (Sun, 06 Nov 1994 08:49:37 GMT)
   my ($s, $m, $h, $mday, $month, $year, $wday) = gmtime(defined $self->epoch ? $self->epoch : time);
   return sprintf '%s, %02d %s %04d %02d:%02d:%02d GMT', $DAYS[$wday], $mday,
     $MONTHS[$month], $year + 1900, $h, $m, $s;
@@ -77,8 +74,9 @@ Mojo::Date - HTTP date
 
 =head1 DESCRIPTION
 
-L<Mojo::Date> implements HTTP date and time functions as described in
-L<RFC 2616|http://tools.ietf.org/search/rfc2616>.
+L<Mojo::Date> implements HTTP date and time functions based on
+L<RFC 7230|http://tools.ietf.org/html/rfc7230> and
+L<RFC 7231|http://tools.ietf.org/html/rfc7231>.
 
   Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
   Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036
@@ -128,9 +126,24 @@ Parse date.
 =head2 to_string
 
   my $str = $date->to_string;
-  my $str = "$date";
 
 Render date suitable for HTTP messages.
+
+=head1 OPERATORS
+
+L<Mojo::Date> overloads the following operators.
+
+=head2 bool
+
+  my $bool = !!$date;
+
+Always true.
+
+=head2 stringify
+
+  my $str = "$date";
+
+Alias for L</to_string>.
 
 =head1 SEE ALSO
 

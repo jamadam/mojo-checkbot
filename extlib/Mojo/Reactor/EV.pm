@@ -10,12 +10,12 @@ sub CLONE { die "EV does not work with ithreads.\n" }
 
 sub DESTROY { undef $EV }
 
-# We have to fall back to Mojo::Reactor::Poll, since EV is unique
-sub new { $EV++ ? Mojo::Reactor::Poll->new : shift->SUPER::new }
-
 sub again { shift->{timers}{shift()}{watcher}->again }
 
 sub is_running { !!EV::depth }
+
+# We have to fall back to Mojo::Reactor::Poll, since EV is unique
+sub new { $EV++ ? Mojo::Reactor::Poll->new : shift->SUPER::new }
 
 sub one_tick { EV::run(EV::RUN_ONCE) }
 
@@ -56,7 +56,7 @@ sub _io {
 
 sub _timer {
   my ($self, $recurring, $after, $cb) = @_;
-  $after ||= '0.0001';
+  $after ||= 0.0001 if $recurring;
 
   my $id = $self->SUPER::_timer(0, 0, $cb);
   weaken $self;
@@ -77,7 +77,7 @@ sub _timer {
 
 =head1 NAME
 
-Mojo::Reactor::EV - Low level event reactor with libev support
+Mojo::Reactor::EV - Low-level event reactor with libev support
 
 =head1 SYNOPSIS
 
@@ -105,7 +105,7 @@ Mojo::Reactor::EV - Low level event reactor with libev support
 
 =head1 DESCRIPTION
 
-L<Mojo::Reactor::EV> is a low level event reactor based on L<EV> (4.0+).
+L<Mojo::Reactor::EV> is a low-level event reactor based on L<EV> (4.0+).
 
 =head1 EVENTS
 
@@ -115,12 +115,6 @@ L<Mojo::Reactor::EV> inherits all events from L<Mojo::Reactor::Poll>.
 
 L<Mojo::Reactor::EV> inherits all methods from L<Mojo::Reactor::Poll> and
 implements the following new ones.
-
-=head2 new
-
-  my $reactor = Mojo::Reactor::EV->new;
-
-Construct a new L<Mojo::Reactor::EV> object.
 
 =head2 again
 
@@ -133,6 +127,12 @@ Restart active timer.
   my $bool = $reactor->is_running;
 
 Check if reactor is running.
+
+=head2 new
+
+  my $reactor = Mojo::Reactor::EV->new;
+
+Construct a new L<Mojo::Reactor::EV> object.
 
 =head2 one_tick
 

@@ -1,0 +1,111 @@
+@charset "UTF-8";
+
+body {
+    background-color: #f5f6f8;
+    color: #445555;
+    font: 0.9em 'Helvetica Neue', Helvetica, sans-serif;
+    font-weight: normal;
+    line-height: 1.5;
+    margin: 0;
+}
+#wrapper {
+    > * {
+        margin-bottom: 20px;
+    }
+    ol,
+    ul {
+        padding-left:40px;
+    }
+    ol li {
+        list-style-type: decimal;
+        list-style-position: outside;
+    }
+    ul li {
+        list-style-type: disc;
+        list-style-position: outside;
+        ul li {
+            list-style-type: circle;
+            ul li {
+                list-style-type: square;
+            }
+        }
+    }
+    a:hover {
+        color: #2a2a2a
+    }
+    a img {
+        border: 0
+    }
+    h1 {
+        position: relative;
+        background-color: inherit;
+        box-shadow: none;
+        text-align: left;
+        height: auto;
+        line-height: 1em;
+    }
+    h1,
+    h2,
+    h3 {
+        color: #2a2a2a;
+        font-size: 1.5em;
+        margin-bottom: 20px;
+        font-family: 'Helvetica Neue',Helvetica,sans-serif;
+        font-weight: bold;
+    }
+    h1 a,
+    h2 a,
+    h3 a { text-decoration: none }
+    h1 a {
+        display: block;
+        padding:5px 0;
+        border-bottom: 2px solid #ddd;
+    }
+    pre {
+        background-color: #eee;
+        background: url(data:image/gif;base64,R0lGODlhGAAMAJEAAA4ODhkZGQAAAAAAACH5BAkKAAIALAAAAAAYAAwAAAIjBGKJedzqFmTyzWuqszl6zIWVRn4dZZ7qKqIuqKXtO8N0fRYAOw==);
+        -moz-border-radius: 5px;
+        border-radius: 5px;
+        color: #eee;
+        font: 0.8em Consolas, Menlo, Monaco, Courier, monospace;
+        text-align: left;
+        text-shadow: #333 0 1px 0;
+        padding: 1.5em;
+        white-space: pre-wrap;
+        margin-bottom: 20px;
+    }
+    p {
+        margin-bottom: 20px;
+    }
+    code {
+        padding:2px 5px;
+        margin:1px;
+        display: inline-block;
+    }
+    > ul:first-of-type a {
+        text-decoration: none
+    }
+}
+#footer {
+    padding-top: 1em;
+    text-align: center;
+    #auto_detected_see_also {
+        background-color: #222;
+        padding:15px;
+        color:#fff;
+        border-radius: 15px;
+        margin:10px;
+        text-align: left;
+        h2 {
+            font-weight: bold;
+        }
+        a {
+            text-decoration: none;
+            color:#fff;
+            &:hover {
+                text-decoration: underline;
+                color:inherit;
+            }
+        }
+    }
+}

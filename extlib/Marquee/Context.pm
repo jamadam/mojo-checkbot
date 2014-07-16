@@ -125,20 +125,18 @@ sub served {
 sub signed_cookie {
     my ($self, $name, $value, $opt) = @_;
   
-    my $secret = $self->{app}->secret;
+    my $secrets = $self->{app}->secrets;
     
     if (defined $value) {
         return $self->cookie($name,
-                        "$value--" . hmac_sha1_sum($value, $secret), $opt);
+                    "$value--" . hmac_sha1_sum($value, $secrets->[0]), $opt);
     }
-  
+    
     my @results;
     
     for my $value ($self->cookie($name)) {
         if ($value =~ s/--([^\-]+)$//) {
-            my $sig = $1;
-      
-            if (secure_compare($sig, hmac_sha1_sum($value, $secret))) {
+            if (_signature($value, $1, @$secrets)) {
                 push(@results, $value);
             } else {
                 $self->{app}->log->debug(
@@ -178,6 +176,16 @@ sub close {
         });
     }
 };
+
+sub _signature {
+    my ($value, $signature, @secrets) = @_;
+    for (@secrets) {
+        if (secure_compare($signature, hmac_sha1_sum($value, $_))) {
+            return 1;
+        }
+    }
+    return;
+}
 
 1;
 

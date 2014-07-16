@@ -1,227 +1,219 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
-    <head>
-        <title>mojo-checkbot</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <meta http-equiv="Content-Script-Type" content="text/javascript" />
-        <meta http-equiv="Content-Style-Type" content="text/css" />
-        <link type="text/css" rel="stylesheet" href="/yui-reset.css" />
-        <link type="text/css" rel="stylesheet" href="/yui-fonts.css" />
-        <link type="text/css" rel="stylesheet" href="/main.css" />
-        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-        <script type="text/javascript" src="/jquery.customEventTrigger.js"></script>
-        <script type="text/javascript" src="/jquery.jmdmbox.js"></script>
-        <script type="text/javascript" src="/main.js"></script>
-    </head>
-    <body>
-        <div id="header">
-            <h1>
-                mojo-checkbot
-            </h1>
-            <form action="#dummy" id="form1">
-                <div id="summary">
-                    <div id="fixed">
-                        <span class="label">Resutlts</span>: <span class="data">0</span>
-                    </div>
-                    <div id="queues">
-                        <span class="label">Queues</span>: <span class="data">0</span>
-                    </div>
-                    <div id="reported">
-                        <span class="label">Resutlts(reported)</span>: <span class="data">0</span>
-                    </div>
-                    <div id="statusCodes">
-                        
-                    </div>
-                </div>
-                <div id="discard200">
-                    <input type="button" value="Discard 2xx OK results">
-                    <script type="text/javascript">
-                        $("#discard200 input").on("click", function() {
-                            $("#result tr.r2").remove();
-                        });
-                    </script>
-                </div>
-            </form>
+<!DOCTYPE html>
+<title>mojo-checkbot</title>
+<meta charset="UTF-8" />
+<link type="text/css" rel="stylesheet" href="/yui-reset.css" />
+<link type="text/css" rel="stylesheet" href="/yui-fonts.css" />
+<link type="text/css" rel="stylesheet" href="/main.css" />
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript" src="/jquery.customEventTrigger.js"></script>
+<script type="text/javascript" src="/jquery.jmdmbox.js"></script>
+<script type="text/javascript" src="/main.js"></script>
+
+<div id="header">
+    <h1>
+        mojo-checkbot
+    </h1>
+    <form action="#dummy" id="form1">
+        <div id="summary">
+            <div id="fixed">
+                <span class="label">Resutlts</span>: <span class="data">0</span>
+            </div>
+            <div id="queues">
+                <span class="label">Queues</span>: <span class="data">0</span>
+            </div>
+            <div id="reported">
+                <span class="label">Resutlts(reported)</span>: <span class="data">0</span>
+            </div>
+            <div id="statusCodes">
+                
+            </div>
         </div>
-        <div id="container">
-            <table id="result">
-                <thead>
-                    <tr>
-                        <th>Context</th>
-                        <th>URI(Resolved)</th>
-                        <th>Status</th>
-                        <th>Referer</th>
-                        <th>Syntax</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="dummy"><td></td></tr>
-                </tbody>
-            </table>
+        <div id="discard200">
+            <input type="button" value="Discard 2xx OK results">
+            <script type="text/javascript">
+                $("#discard200 input").on("click", function() {
+                    $("#result tr.r2").remove();
+                });
+            </script>
         </div>
-        <div id="footer">
-            Copyright &copy; <a href="http://blog2.jamadam.com/">jamadam</a> Alrights Reserved. |
-            Powered by <a href="http://mrqe.biz/">Marquee</a>.
-        </div>
-        <div id="trLightbox" class="lightbox" style="display:none;">
-            <form action="#dummy" class="propetyContainer">
-            </form>
-        </div>
-        <div id="trLightbox401" class="lightbox" style="display:none;">
-            <form action="#dummy" class="propetyContainer">
-            </form>
-            
-            <h2>
-                AUTHENTICATION REQUIRED
-            </h2>
-            
-            <form id="authForm" action="dummy">
-                <table>
-                    <tr>
-                        <th>
-                            Type
-                        </th>
-                        <td class="realm">
-                            
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>
-                            Username
-                        </th>
-                        <td>
-                            <input class="username" type="text" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>
-                            Password
-                        </th>
-                        <td>
-                            <input class="password" type="password" />
-                        </td>
-                    </tr>
-                </table>
-                <div>
-                    <input type="submit" />
-                </div>
-            </form>
-        </div>
-        <div id="trLightboxForm" class="lightbox" style="display:none;">
-            <form action="#dummy" class="propetyContainer">
-            </form>
-            
-            <h2>
-                FORM found
-            </h2>
-            <p>
-                Checkbot can crawl beyond the form. Submit data by the form below.
-            </p>
-            <form id="commonForm" action="dummy">
-                <div class="tableWrapper">
-                    <table>
-                        <tr>
-                            <th>
-                            </th>
-                            <td>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-                <div>
-                    <input type="submit" />
-                </div>
-            </form>
-        </div>
-        
-        <div id="notifierContainer">
-        </div>
-        
-        <table id="propetyTemplate" style="display:none">
+    </form>
+</div>
+<div id="container">
+    <table id="result">
+        <thead>
+            <tr>
+                <th>Context</th>
+                <th>URI(Resolved)</th>
+                <th>Status</th>
+                <th>Referer</th>
+                <th>Syntax</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="dummy"><td></td></tr>
+        </tbody>
+    </table>
+</div>
+<div id="footer">
+    Copyright &copy; <a href="http://blog2.jamadam.com/">jamadam</a> Alrights Reserved. |
+    Powered by <a href="http://mrqe.biz/">Marquee</a>.
+</div>
+<div id="trLightbox" class="lightbox" style="display:none;">
+    <form action="#dummy" class="propetyContainer">
+    </form>
+</div>
+<div id="trLightbox401" class="lightbox" style="display:none;">
+    <form action="#dummy" class="propetyContainer">
+    </form>
+    
+    <h2>
+        AUTHENTICATION REQUIRED
+    </h2>
+    
+    <form id="authForm" action="dummy">
+        <table>
             <tr>
                 <th>
-                    Context
+                    Type
                 </th>
-                <td class="context">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
+                <td class="realm">
+                    
                 </td>
             </tr>
             <tr>
                 <th>
-                    URI(Literal)
+                    Username
                 </th>
-                <td class="literalURI">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
+                <td>
+                    <input class="username" type="text" />
                 </td>
             </tr>
             <tr>
                 <th>
-                    URI(Resolved)
+                    Password
                 </th>
-                <td class="resolvedURI">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <th>
-                    Parameter
-                </th>
-                <td class="parameter">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <th>
-                    Status
-                </th>
-                <td class="statusCode">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <th>
-                    Referer
-                </th>
-                <td class="referer">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <th>
-                    MimeType
-                </th>
-                <td class="mimetype">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <th>
-                    Size
-                </th>
-                <td class="size">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <th>
-                    Depth
-                </th>
-                <td class="depth">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
-                </td>
-            </tr>
-            <tr>
-                <th>
-                    HTML Parse Error
-                </th>
-                <td class="htmlError">
-                    <textarea readonly="readonly" rows="1" cols="10"></textarea>
+                <td>
+                    <input class="password" type="password" />
                 </td>
             </tr>
         </table>
-        
-        <div id="loadingContainer">
+        <div>
+            <input type="submit" />
         </div>
-    </body>
-</html>
+    </form>
+</div>
+<div id="trLightboxForm" class="lightbox" style="display:none;">
+    <form action="#dummy" class="propetyContainer">
+    </form>
+    
+    <h2>
+        FORM found
+    </h2>
+    <p>
+        Checkbot can crawl beyond the form. Submit data by the form below.
+    </p>
+    <form id="commonForm" action="dummy">
+        <div class="tableWrapper">
+            <table>
+                <tr>
+                    <th>
+                    </th>
+                    <td>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div>
+            <input type="submit" />
+        </div>
+    </form>
+</div>
+
+<div id="notifierContainer">
+</div>
+
+<table id="propetyTemplate" style="display:none">
+    <tr>
+        <th>
+            Context
+        </th>
+        <td class="context">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            URI(Literal)
+        </th>
+        <td class="literalURI">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            URI(Resolved)
+        </th>
+        <td class="resolvedURI">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            Parameter
+        </th>
+        <td class="parameter">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            Status
+        </th>
+        <td class="statusCode">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            Referer
+        </th>
+        <td class="referer">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            MimeType
+        </th>
+        <td class="mimetype">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            Size
+        </th>
+        <td class="size">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            Depth
+        </th>
+        <td class="depth">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+    <tr>
+        <th>
+            HTML Parse Error
+        </th>
+        <td class="htmlError">
+            <textarea readonly="readonly" rows="1" cols="10"></textarea>
+        </td>
+    </tr>
+</table>
+
+<div id="loadingContainer">
+</div>
