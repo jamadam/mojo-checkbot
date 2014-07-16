@@ -10,7 +10,7 @@ use Mojo::IOLoop;
 use Mojolicious::Lite;
 use MojoCheckbot;
 
-use Test::More tests => 48;
+use Test::More tests => 50;
 
 my $base;
 my $tmp;
@@ -135,6 +135,11 @@ is $tmp, 'https://example2.com/hoge.html', 'right url';
 $base = Mojo::URL->new('https://example.com/org');
 $tmp = MojoCheckbot::resolve_href($base, '//example2.com:8080/hoge.html');
 is $tmp, 'https://example2.com:8080/hoge.html', 'right url';
+
+$tmp = MojoCheckbot::resolve_href('http://www.eclipse.org/forums/index.php/f/48/', '//www.eclipse.org/forums/');
+is $tmp, 'http://www.eclipse.org/forums/', 'right url';
+$tmp = MojoCheckbot::resolve_href('https://www.eclipse.org/forums/index.php/f/48/', '//www.eclipse.org/forums/');
+is $tmp, 'https://www.eclipse.org/forums/', 'right url';
 
 1;
 

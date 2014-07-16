@@ -336,7 +336,7 @@ sub check {
                 my $dom     = Mojo::DOM->new($body);
                 
                 if (my $base_tag = $dom->at('base')) {
-                    $base = Mojo::URL->new($base_tag->attr('href'));
+                    $base = resolve_href($base, $base_tag->attr('href'));
                 }
                 
                 my @a       = collect_urls($dom);
