@@ -386,8 +386,8 @@ sub check {
 ### ---
 sub _match_for_crawl {
     my ($url) = @_;
-    map {$url !~ /$_/ || return} @{$options{'match-for-crawl'} || []};
-    map {$url =~ /$_/ || return} @{$options{'not-match-for-crawl'} || []};
+    map {$url !~ /$_/ && return} @{$options{'match-for-crawl'} || []};
+    map {$url =~ /$_/ && return} @{$options{'not-match-for-crawl'} || []};
     return 1;
 }
 
@@ -396,8 +396,8 @@ sub _match_for_crawl {
 ### ---
 sub _match_for_check {
     my ($url) = @_;
-    map {$url !~ /$_/ || return} @{$options{'match-for-check'} || []};
-    map {$url =~ /$_/ || return} @{$options{'not-match-for-check'} || []};
+    map {$url !~ /$_/ && return} @{$options{'match-for-check'} || []};
+    map {$url =~ /$_/ && return} @{$options{'not-match-for-check'} || []};
     return 1;
 }
 
