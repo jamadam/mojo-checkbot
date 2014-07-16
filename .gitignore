@@ -1,6 +1,7 @@
 .*
 !.gitignore
 !.perltidyrc
+!.travis.yml
 *~
 blib
 Makefile*
