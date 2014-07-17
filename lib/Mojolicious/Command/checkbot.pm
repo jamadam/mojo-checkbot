@@ -1,6 +1,8 @@
 package Mojolicious::Command::checkbot;
 use strict;
 use warnings;
+use utf8;
+use Mojo::Util qw(encode);
 use Mojo::Base 'Mojolicious::Commands';
 use MojoCheckbot;
 
@@ -8,7 +10,7 @@ use Getopt::Long 'GetOptions';
 use Mojo::Server::Daemon;
 
 my %description;
-$description{'ja_JP'}= <<"EOF";
+$description{'ja_JP'}= encode('UTF-8', <<"EOF");
 mojo-checkbotを開始します。
 EOF
 
@@ -23,8 +25,8 @@ EOF
 }
 
 my %usage;
-$usage{'ja_JP'}= <<"EOF";
-hoge usage: $0 daemon [OPTIONS]
+$usage{'ja_JP'} = encode('UTF-8', <<"EOF");
+Usage: $0 checkbot [OPTIONS]
 
 下記のオプションが利用可能です:
   
