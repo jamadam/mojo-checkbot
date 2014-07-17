@@ -123,6 +123,7 @@ sub new {
         'not-match-for-crawl=s@',
         'start=s',
         'sleep=i',
+        'limit=i',
         'ua=s',
         'cookie=s',
         'timeout=s',
@@ -187,7 +188,7 @@ sub new {
     
     my $loop_id;
     $loop_id = MojoCheckbot::IOLoop->blocked_recurring($options{sleep} => sub {
-        if (my $queue = shift @$queues) {
+        if ((my $queue = shift @$queues) && scalar @$result = $options{limit}) {
             my $res = eval {check($ua, $queue)};
             
             if ($@) {

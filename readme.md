@@ -34,6 +34,7 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
     --not-match-for-crawl <regexp> 再帰的なクロールの対象としないURLを正規表現で指定します。
     --depth <integer>       再帰的なクロール深度の上限を指定します。
     --sleep <seconds>       クロールの間隔を指定します。
+    --limit <number>        クロールするURL数の上限を指定します。
     --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
     --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
     --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。

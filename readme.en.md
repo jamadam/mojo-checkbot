@@ -37,6 +37,7 @@ These options are available:
     --not-match-for-crawl <regexp> Set regexp that matched URL not to be checked recursivly.
     --depth <integer>       Set max depth for recursive crawling.
     --sleep <seconds>       Set interval for crawling.
+    --limit <number>        Set limit of crawling urls.
     --ua <string>           Set user agent name for crawler header
     --cookie <string>       Set cookie string sent to servers
     --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
