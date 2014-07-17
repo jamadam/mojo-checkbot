@@ -15,7 +15,6 @@ use Mojo::Parameters;
 use Mojo::JSON;
 use Encode;
 use utf8;
-use MojoCheckbot::FileCache;
 use MojoCheckbot::IOLoop;
 use MojoCheckbot::UserAgent;
 use Clone::PP qw(clone);
@@ -58,7 +57,6 @@ my %options = (
     ua                  =>
         "mojo-checkbot/$VERSION (+https://github.com/jamadam/mojo-checkbot)",
     timeout             => 15,
-    evacuate            => 30,
     'validator-nu-url'  => 'http://html5.validator.nu/',
 );
 
@@ -66,26 +64,6 @@ my $fix;
 my $xml_parser;
 my $ua = Mojo::UserAgent->new;
 my $json_parser = Mojo::JSON->new;
-
-### ---
-### generate id for regume file name
-### ---
-sub cache_id {
-    return md5_sum($json_parser->encode([
-        $options{start},
-        $options{ua},
-        $options{cookie},
-        $options{timeout},
-        $options{'match-for-check'},
-        $options{'match-for-crawl'},
-        $options{'not-match-for-check'},
-        $options{'not-match-for-crawl'},
-        $options{'depth'},
-        $options{'html-validate'},
-        $options{'validator-nu'},
-        $options{'validator-nu-url'},
-    ]));
-}
 
 ### ---
 ### generate hash key for detecting fixed URLs
@@ -127,9 +105,6 @@ sub new {
         'ua=s',
         'cookie=s',
         'timeout=s',
-        'resume',
-        'noevacuate',
-        'evacuate=i',
         'depth=i',
         'html-validate',
         'validator-nu',
@@ -155,18 +130,6 @@ sub new {
     my $queues = [];
     my $dialog = [];
     my $result = [];
-    
-    my $cache = MojoCheckbot::FileCache->new(cache_id());
-    
-    if ($options{resume} && $cache->exists) {
-        my $resume = $cache->slurp;
-        $queues = $resume->{queues};
-        $result = $resume->{result};
-        $dialog = $resume->{dialog};
-        for my $entry (@$queues, @$result) {
-            $fix->{fix_key($entry)} = undef;
-        }
-    }
     
     $queues->[0] ||= {
         $QUEUE_KEY_REFERER      => 'N/A',
@@ -206,21 +169,6 @@ sub new {
             push(@$result, $queue);
         }
     });
-    
-    if (! $options{noevacuate}) {
-        my $loop_id2;
-        my $interval = $options{evacuate};
-        $loop_id2 = MojoCheckbot::IOLoop->recurring($interval => sub {
-            $cache->store({
-                queues  => $queues,
-                result  => $result,
-                dialog => $dialog,
-            });
-            if (! scalar @$queues) {
-                MojoCheckbot::IOLoop->remove($loop_id2);
-            }
-        });
-    }
     
     my $r = $self->route;
     

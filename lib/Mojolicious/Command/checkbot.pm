@@ -43,9 +43,6 @@ Usage: $0 checkbot [OPTIONS]
   --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
   --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
   --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
-  --evacuate <seconds>    [EXPERIMENTAL]レポートをテンポラリーファイルに出力する間隔を指定します。
-  --noevacuate            [EXPERIMENTAL]resume用のファイル出力を無効化します。
-  --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
   --html-validate         HTMLの構文エラーを検出します。XML::LibXMLが必要です。
   --validator-nu          validator.nuのオンラインバリデーションを有効化します
   --validator-nu-url      validator.nuのURLを指定します。
@@ -90,9 +87,6 @@ These options are available:
   --ua <string>           Set user agent name for crawler header
   --cookie <string>       Set cookie string sent to servers
   --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
-  --evacuate <seconds>    [EXPERIMENTAL]Set interval for temporary file output.
-  --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
-  --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
   --html-validate         Enable HTML validation. This requires XML::LibXML installed.
   --validator-nu          Activate online validation by validator.nu.
   --validator-nu-url      Set validator.nu URL for case you need your own one.

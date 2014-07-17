@@ -41,9 +41,6 @@ These options are available:
     --ua <string>           Set user agent name for crawler header
     --cookie <string>       Set cookie string sent to servers
     --timeout <seconds>     Set keep-alive timeout for crawler, defaults to 15.
-    --evacuate <seconds>    [EXPERIMENTAL]Set interval for temporary file output.
-    --noevacuate            [EXPERIMENTAL]Disables file output for resuming.
-    --resume                [EXPERIMENTAL]Resume previous jobs and continue it.
     --html-validate         Enable HTML validation. This requires XML::LibXML installed.
     --validator-nu          Activate online validation by validator.nu
     --validator-nu-url      Set validator.nu URL for case you need your own one.

@@ -38,9 +38,6 @@ Perl v5.10.1以上が必要です。もし古い場合は、アップグレー�
     --ua <string>           クローラーのHTTPヘッダに設定するユーザーエージェントを指定します。
     --cookie <string>       クローラーがサーバーに送信するクッキーを指定します。
     --timeout <seconds>     クローラーのタイムアウトする秒数を指定します。デフォルトは15です。
-    --evacuate <seconds>    [EXPERIMENTAL]レポートをテンポラリーファイルに出力する間隔を指定します。
-    --noevacuate            [EXPERIMENTAL]resume用のファイル出力を無効化します。
-    --resume                [EXPERIMENTAL]前回の結果を復元し、再開します。
     --html-validate         HTMLの構文エラーを検出します。XML::LibXMLが必要です。
     --validator-nu          validator.nuのオンラインバリデーションを有効化します
     --validator-nu-url      validator.nuのURLを指定します。
