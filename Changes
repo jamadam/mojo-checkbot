@@ -1,5 +1,7 @@
 Revision history for mojo-checkbot
 
+0.41 2014/07/21
+
 0.40 2014/07/21
   - Removed deprecated match option in favor of match-for-check and
     match-for-crawl.
