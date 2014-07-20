@@ -22,6 +22,24 @@ The report will automatically be updated until the jobs queue is empty.
 This requires Perl v5.10.1 or higher. If not, please upgrade, or google
 'perlbrew'.
 
+## INSTALLATION
+
+To install and run it, follow the procedure below.
+
+    curl http://get.mrqe.biz/ | sh
+    git clone https://github.com/jamadam/mojo-checkbot.git
+    cd ./mojo-checkbot
+    perl ./Makefile.PL
+    make
+    make test
+    make install
+    mojo checkbot --start http://example.com
+
+Or you can run it as follows.
+
+    git clone https://github.com/jamadam/mojo-checkbot.git
+    ./mojo-checkbot/mojo checkbot --start http://example.com
+
 ## OPTIONS
 
 These options are available:

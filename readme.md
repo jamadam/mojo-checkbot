@@ -21,6 +21,24 @@ mojo-checkbot beta
 
 Perl v5.10.1以上が必要です。もし古い場合は、アップグレードするか、perlbrewでググってください。
 
+## INSTALLATION
+
+下記の手順でインストールして実行します。
+
+    curl http://get.mrqe.biz/ | sh
+    git clone https://github.com/jamadam/mojo-checkbot.git
+    cd ./mojo-checkbot
+    perl ./Makefile.PL
+    make
+    make test
+    make install
+    mojo checkbot --start http://example.com
+
+または、下記の手順でも実行可能です。
+
+    git clone https://github.com/jamadam/mojo-checkbot.git
+    ./mojo-checkbot/mojo checkbot --start http://example.com
+
 ## OPTIONS
 
 下記のオプションが利用可能です:
