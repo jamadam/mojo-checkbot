@@ -1,10 +1,11 @@
 Revision history for mojo-checkbot
 
-0.40 2014/07/17
+0.40 2014/07/21
   - Removed deprecated match option in favor of match-for-check and
     match-for-crawl.
   - Improved report design.
   - Added discard 2xx button.
+  - Added limit option.
   - Upgraded mojo-legacy to v5.12.
   - Fixed a bug on resolving base tag without scheme
 
