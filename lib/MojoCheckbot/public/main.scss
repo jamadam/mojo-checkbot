@@ -200,19 +200,23 @@ h1 {
     }
 }
 #notifierContainer {
-    position: fixed;
-    top: 10px;
-    right: 10px;
+    position:fixed;
+    top:10px;
+    right:10px;
+    width: 280px;
     .notifier {
+        position:relative;
+        float:left;
         width: 250px;
         height: auto;
+        min-height: 50px;
+        padding: 8px 12px;
+        margin-right:10px;
+        margin-bottom: 5px;
         background-color: rgba(0, 0, 0, 0.8);
         border: 3px solid rgba(0, 0, 0, 0);
         border-radius: 10px;
         color: #fff;
-        padding: 8px 12px;
-        min-height: 50px;
-        margin-bottom: 5px;
         box-shadow: 1px 1px 3px #888;
         &:hover {
             border: 3px solid rgba(255, 128, 128, 1);
@@ -226,6 +230,21 @@ h1 {
         }
         .context {
             margin-bottom: 0.8em;
+        }
+        .closer {
+            position:absolute;
+            top:4px;
+            right:4px;
+            width:16px;
+            height:16px;
+            font-size:16px;
+            font-weight:bold;
+            line-height:16px;
+            text-align:center;
+            cursor:pointer;
+            &:hover {
+                color:#a55;
+            }
         }
     }
 }
