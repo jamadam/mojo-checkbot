@@ -29,11 +29,10 @@ our $QUEUE_KEY_ERROR         = 6;
 our $QUEUE_KEY_DIALOG        = 7;
 our $QUEUE_KEY_METHOD        = 8;
 our $QUEUE_KEY_PARAM         = 9;
-our $QUEUE_KEY_PARENT        = 10;
-our $QUEUE_KEY_DEPTH         = 11;
-our $QUEUE_KEY_HTML_ERROR    = 12;
-our $QUEUE_KEY_MIMETYPE      = 13;
-our $QUEUE_KEY_SIZE          = 14;
+our $QUEUE_KEY_DEPTH         = 10;
+our $QUEUE_KEY_HTML_ERROR    = 11;
+our $QUEUE_KEY_MIMETYPE      = 12;
+our $QUEUE_KEY_SIZE          = 13;
 
 my @QUEUE_KEYS = (
     $QUEUE_KEY_CONTEXT,
@@ -45,7 +44,6 @@ my @QUEUE_KEYS = (
     $QUEUE_KEY_DIALOG,
     $QUEUE_KEY_METHOD,
     $QUEUE_KEY_PARAM,
-    $QUEUE_KEY_PARENT,
     $QUEUE_KEY_DEPTH,
     $QUEUE_KEY_HTML_ERROR,
     $QUEUE_KEY_MIMETYPE,
@@ -137,7 +135,6 @@ sub new {
         $QUEUE_KEY_LITERAL_URI  => $options{start},
         $QUEUE_KEY_RESOLVED_URI => $options{start},
         $QUEUE_KEY_DEPTH        => 1,
-        $QUEUE_KEY_PARENT       => undef,
     };
     
     my $ua = MojoCheckbot::UserAgent->new;
@@ -160,7 +157,6 @@ sub new {
                 my $referer =   $queue->{$QUEUE_KEY_RESOLVED_URI};
                 for (@{$res->{queue}}, @{$res->{dialog}}) {
                     $_->{$QUEUE_KEY_REFERER} = $referer;
-                    $_->{$QUEUE_KEY_PARENT} = scalar @$result;
                     $_->{$QUEUE_KEY_DEPTH} = ($queue->{$QUEUE_KEY_DEPTH} || 0) + 1;
                 }
                 push(@$queues, @{$res->{queue}});
